@@ -7,7 +7,7 @@ description = "Work in progress"
 readme = "README.md"
 repository = "https://github.com/eadf/linestring.rs"
 license = "AGPL-3.0"
-keywords = ["geometry", "ramer-douglas-peucker", "visvalingam-whyatt"]
+keywords = ["geometry", "douglas-peucker", "visvalingam-whyatt"]
 
 [features]
 default = ["std"]
