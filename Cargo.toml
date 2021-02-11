@@ -1,6 +1,6 @@
 [package]
 name = "linestring"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["eadf"]
 edition = "2018"
 description = "Work in progress"
@@ -13,13 +13,11 @@ keywords = ["geometry", "douglas-peucker", "visvalingam-whyatt"]
 default = ["std"]
 #default = ["std", "impl-cgmath", "mint", "impl-nalgebra"]
 impl-cgmath = ["cgmath"]
-#impl-glam = ["glam"]
 impl-nalgebra = ["nalgebra"]
 impl-mint = ["mint"]
 std = []
 
 [dependencies]
 cgmath = { version = "^0.18.0", optional = true }
-#glam = { version = "0.10", optional = true }
 nalgebra = { version = "^0.24.1", optional = true }
 mint = { version = "^0.5.6", optional = true }

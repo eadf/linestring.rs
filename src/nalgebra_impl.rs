@@ -3,7 +3,7 @@ use std::fmt;
 
 // Auto generated file, do NOT edit
 
-#[derive(PartialEq, Eq, Copy, Clone, Hash)]
+#[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line2<T>
 where
     T: nalgebra::Scalar + Copy + fmt::Debug + cmp::PartialOrd,
@@ -23,16 +23,16 @@ where
     aabb: Aabb2<T>,
 }
 
-#[derive(PartialEq, Eq, Clone, Hash)]
+#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T>
 where
     T: nalgebra::Scalar + Copy + fmt::Debug + cmp::PartialOrd,
 {
-    aabb_min: Option<nalgebra::Point2<T>>,
-    aabb_max: Option<nalgebra::Point2<T>>,
+    aabb_min_max: Option<(nalgebra::Point2<T>,nalgebra::Point2<T>)>,
+
 }
 
-#[derive(PartialEq, Eq, Clone, Hash)]
+#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString2<T>
 where
     T: nalgebra::Scalar + Copy + fmt::Debug + cmp::PartialOrd,
@@ -41,7 +41,7 @@ where
     connected: bool,
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Hash)]
+#[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line3<T>
 where
     T: nalgebra::Scalar + Copy + fmt::Debug + cmp::PartialOrd,
@@ -50,7 +50,7 @@ where
     pub end: nalgebra::Point3<T>,
 }
 
-#[derive(PartialEq, Eq, Clone, Hash)]
+#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString3<T>
 where
     T: nalgebra::Scalar + Copy + fmt::Debug + cmp::PartialOrd,
@@ -71,13 +71,12 @@ where
     aabb: Aabb3<T>,
 }
 
-#[derive(PartialEq, Eq, Clone, Hash)]
+#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb3<T>
 where
     T: nalgebra::Scalar + Copy + fmt::Debug + cmp::PartialOrd,
 {
-    aabb_min: Option<nalgebra::Point3<T>>,
-    aabb_max: Option<nalgebra::Point3<T>>,
+    aabb_min_max: Option<(nalgebra::Point3<T>,nalgebra::Point3<T>)>,
 }
 
 impl<T> LineString2<T>
@@ -227,6 +226,20 @@ where
     pub fn is_empty(&self) -> bool {
         self.set.is_empty()
     }
+
+    pub fn push(&mut self, ls: LineString2<T>) {
+        if !ls.is_empty() {
+            self.set.push(ls);
+
+            for ls in self.set.last().unwrap().points.iter() {
+                self.aabb.update_point(ls);
+            }
+        }
+    }
+
+    pub fn get_aabb(&self) -> &Aabb2<T> {
+        &self.aabb
+    }
 }
 
 impl<T> LineStringSet3<T>
@@ -256,9 +269,13 @@ where
             self.set.push(ls);
 
             for ls in self.set.last().unwrap().points.iter() {
-                self.aabb.update(ls);
+                self.aabb.update_point(ls);
             }
         }
+    }
+
+    pub fn get_aabb(&self) -> &Aabb3<T> {
+        &self.aabb
     }
 
     /// Simplify using Ramer–Douglas–Peucker algorithm adapted for 3d
@@ -278,20 +295,28 @@ where
 {
     pub fn default() -> Self {
         Self {
-            aabb_max: None,
-            aabb_min: None,
+            aabb_min_max: None,
         }
     }
 
-    pub fn update(&mut self, point: &nalgebra::Point2<T>) {
-        if self.aabb_max.is_none() {
-            self.aabb_max = Some(*point);
+    pub fn new(point: &nalgebra::Point2<T>) -> Self {
+        Self {
+            aabb_min_max: Some((*point,*point)),
         }
-        if self.aabb_min.is_none() {
-            self.aabb_min = Some(*point);
+    }
+
+    pub fn update_aabb(&mut self, aabb: &Aabb2<T>) {
+        if let Some((min, max)) = &aabb.aabb_min_max {
+            self.update_point(min);
+            self.update_point(max);
         }
-        let mut aabb_min = self.aabb_min.take().unwrap();
-        let mut aabb_max = self.aabb_max.take().unwrap();
+    }
+
+    pub fn update_point(&mut self, point: &nalgebra::Point2<T>) {
+        if self.aabb_min_max.is_none() {
+            self.aabb_min_max = Some((*point, *point));
+        }
+        let (mut aabb_min, mut aabb_max) = self.aabb_min_max.take().unwrap();
 
         if point.x < aabb_min.x {
             aabb_min.x = point.x;
@@ -305,16 +330,21 @@ where
         if point.y > aabb_max.y {
             aabb_max.y = point.y;
         }
-        self.aabb_min = Some(aabb_min);
-        self.aabb_max = Some(aabb_max);
+        self.aabb_min_max = Some((aabb_min,aabb_max));
     }
 
     pub fn get_high(&self) -> Option<nalgebra::Point2<T>> {
-        self.aabb_max
+        if let Some((_, _high)) = self.aabb_min_max {
+            return Some(_high);
+        }
+        None
     }
 
     pub fn get_low(&self) -> Option<nalgebra::Point2<T>> {
-        self.aabb_min
+        if let Some((_low, _)) = self.aabb_min_max {
+            return Some(_low);
+        }
+        None
     }
 }
 
@@ -324,20 +354,22 @@ where
 {
     pub fn default() -> Self {
         Self {
-            aabb_max: None,
-            aabb_min: None,
+            aabb_min_max: None,
         }
     }
 
-    pub fn update(&mut self, point: &nalgebra::Point3<T>) {
-        if self.aabb_max.is_none() {
-            self.aabb_max = Some(*point);
+    pub fn update_aabb(&mut self, aabb: &Aabb3<T>) {
+        if let Some((min, max)) = &aabb.aabb_min_max {
+            self.update_point(min);
+            self.update_point(max);
         }
-        if self.aabb_min.is_none() {
-            self.aabb_min = Some(*point);
+    }
+
+    pub fn update_point(&mut self, point: &nalgebra::Point3<T>) {
+        if self.aabb_min_max.is_none() {
+            self.aabb_min_max = Some((*point, *point));
         }
-        let mut aabb_min = self.aabb_min.take().unwrap();
-        let mut aabb_max = self.aabb_max.take().unwrap();
+        let (mut aabb_min, mut aabb_max) = self.aabb_min_max.take().unwrap();
 
         if point.x < aabb_min.x {
             aabb_min.x = point.x;
@@ -357,15 +389,20 @@ where
         if point.z > aabb_max.z {
             aabb_max.z = point.z;
         }
-        self.aabb_min = Some(aabb_min);
-        self.aabb_max = Some(aabb_max);
+        self.aabb_min_max = Some((aabb_min,aabb_max));
     }
 
     pub fn get_high(&self) -> Option<nalgebra::Point3<T>> {
-        self.aabb_max
+        if let Some((_, _high)) = self.aabb_min_max {
+            return Some(_high);
+        }
+        None
     }
 
     pub fn get_low(&self) -> Option<nalgebra::Point3<T>> {
-        self.aabb_min
+        if let Some((_low, _)) = self.aabb_min_max {
+            return Some(_low);
+        }
+        None
     }
 }
