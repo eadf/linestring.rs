@@ -42,3 +42,19 @@ fn linestring3_1() {
     //println!("as_lines={:?}", linestring.as_lines());
     assert_eq!(linestring.as_lines().len(), points_len);
 }
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn line2_1() {
+    let line = cgmath_impl::Line2::<f64>::from([[10.,0.], [0.,11.]]);
+    assert_eq!(line.start, cgmath::Point2::from([10.,0.]));
+    assert_eq!(line.end, cgmath::Point2::from([0.,11.]));
+}
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn line3_1() {
+    let line = cgmath_impl::Line3::<f64>::from([[10.,0.,9.], [0.,11.,9.]]);
+    assert_eq!(line.start, cgmath::Point3::from([10.,0.,9.]));
+    assert_eq!(line.end, cgmath::Point3::from([0.,11.,9.]));
+}

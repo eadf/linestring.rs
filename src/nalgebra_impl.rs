@@ -151,12 +151,12 @@ impl<T> Line3<T>
     }
 }
 
-impl<T, IT> From<[IT; 3]> for Line3<T>
+impl<T, IT> From<[IT; 2]> for Line3<T>
     where
         T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
         IT: Copy + Into<nalgebra::Point3<T>>
 {
-    fn from(pos: [IT; 3]) -> Line3<T> {
+    fn from(pos: [IT; 2]) -> Line3<T> {
         Line3::<T>::new(pos[0].into(), pos[1].into())
     }
 }
