@@ -8,12 +8,13 @@
 Anything in this API may change without notice.
 
 This is intended to be 3d and 2d implementations of:
-* Line
-* LineString
-* Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box)
+* Line, a finite two-point struct
+* LineString, a sequence of points
 * [Ramer–Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm) and [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
+* Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box)
 
-This will be implemented (feature gated) for cgmath, nalgebra and mint (at least).
+This will be implemented (feature gated) for [cgmath](https://crates.io/crates/cgmath) and 
+[nalgebra](https://crates.io/crates/nalgebra) at least.
 
 Cargo.toml usage:
 ```cargo
@@ -21,11 +22,6 @@ linestring = {version = "^0.0.2", features = ["impl-cgmath"]}
 ```
 
 ```cargo
-linestring = {version = "^0.0.2", features = ["impl-mint"]}
-```
-
-```cargo
 linestring = {version = "^0.0.2", features = ["impl-nalgebra"]}
 ```
-
 
