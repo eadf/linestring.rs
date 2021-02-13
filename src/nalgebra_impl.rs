@@ -1,4 +1,3 @@
-
 use num_traits::{Float, Zero};
 use std::cmp;
 use std::fmt;
@@ -15,11 +14,19 @@ pub enum Plane {
 }
 
 impl Plane {
+    /// Try to figure out what axes defines the plane.
+    /// If the AABB delta of one axis (a) it virtually nothing compared to
+    /// the widest axis (b) while the third axis (c) is comparable to (b)
+    /// by some fraction, we assume that that (a) isn't part of the plane.
+    ///
+    /// It's not possible to compare to zero exactly because blender
+    /// leaves some decimal in coordinates that's suppose to be zero.
     pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
     where
         T: Copy
             + Float
-            + nalgebra::Scalar + nalgebra::RealField
+            + nalgebra::Scalar
+            + nalgebra::RealField
             + fmt::Debug
             + cmp::PartialOrd
             + ops::Sub<Output = T>
@@ -27,20 +34,25 @@ impl Plane {
             + approx::AbsDiffEq
             + approx::UlpsEq,
     {
-        if let Some(lowb) = aabb.get_low() {
-            if let Some(highb) = aabb.get_high() {
+        if let Some(low_bound) = aabb.get_low() {
+            if let Some(high_bound) = aabb.get_high() {
+                let dx = high_bound.x - low_bound.x;
+                let dy = high_bound.y - low_bound.y;
+                let dz = high_bound.z - low_bound.z;
+                let max_delta = Float::max(Float::max(dx, dy), dz);
+
                 let dx = T::zero().ulps_eq(
-                    &(highb.x - lowb.x),
+                    &(dx / max_delta),
                     T::default_epsilon(),
                     T::default_max_ulps(),
                 );
                 let dy = T::zero().ulps_eq(
-                    &(highb.y - lowb.y),
+                    &&(dy / max_delta),
                     T::default_epsilon(),
                     T::default_max_ulps(),
                 );
                 let dz = T::zero().ulps_eq(
-                    &(highb.z - lowb.z),
+                    &&(dz / max_delta),
                     T::default_epsilon(),
                     T::default_max_ulps(),
                 );
@@ -70,7 +82,7 @@ where
 }
 
 /// A set of linestrings + an aabb
-/// Intended to contain shapes with holes, e.g. outlines of letters
+/// Intended to contain related shapes. E.g. outlines of letters with holes
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet2<T>
 where
@@ -80,6 +92,8 @@ where
     aabb: Aabb2<T>,
 }
 
+/// A simple 2d AABB
+/// If aabb_min_max is none the data has not been assigned yet.
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T>
 where
@@ -94,6 +108,9 @@ where
     T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
 {
     points: Vec<nalgebra::Point2<T>>,
+
+    /// if connected is set the as_lines() method will add an extra line connecting
+    /// the first and last point
     pub connected: bool,
 }
 
@@ -112,7 +129,9 @@ where
     T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
 {
     points: Vec<nalgebra::Point3<T>>,
-    // would name this 'loop' but it's reserved
+
+    /// if connected is set the as_lines() method will add an extra line connecting
+    /// the first and last point
     pub connected: bool,
 }
 
@@ -203,11 +222,7 @@ where
     //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix3<T>) -> Self {
         Self {
-            points: self
-                .points
-                .iter()
-                .map(|x| mat.transform_point(x))
-                .collect(),
+            points: self.points.iter().map(|x| mat.transform_point(x)).collect(),
             connected: self.connected,
         }
     }
@@ -302,11 +317,7 @@ where
     //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix4<T>) -> Self {
         Self {
-            points: self
-                .points
-                .iter()
-                .map(|x| mat.transform_point(x))
-                .collect(),
+            points: self.points.iter().map(|x| mat.transform_point(x)).collect(),
             connected: self.connected,
         }
     }

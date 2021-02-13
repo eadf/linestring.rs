@@ -1,5 +1,6 @@
 # Simple sed scripts converting from cgmath_impl.rs to nalgebra_impl.rs.
-# This could probably be done as a Rust macro but I doubt it would be as easy as a few lines of sed script
+# This should probably be done by a rust macro but for now this simple sed script will do
+
 
 # Use this shell command to generate nalgebra_impl.rs:
 # sed -f cgmath_2_nalgebra.sed < cgmath_impl.rs > nalgebra_impl.rs

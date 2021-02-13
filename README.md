@@ -5,7 +5,7 @@
 [![dependency status](https://deps.rs/crate/linestring/0.0.2/status.svg)](https://deps.rs/crate/linestring/0.0.2)
 
 #Work in progress
-Anything in this API may change without notice.
+Anything in this API ~~may~~ will change without notice.
 
 This is intended to be 3d and 2d implementations of:
 * Line, a finite two-point struct
