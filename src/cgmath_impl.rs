@@ -81,6 +81,25 @@ where
     pub end: cgmath::Point2<T>,
 }
 
+impl<T> Line2<T>
+where
+    T: Copy + cgmath::BaseFloat + fmt::Debug + cmp::PartialOrd,
+{
+    pub fn new(start: cgmath::Point2<T>, end: cgmath::Point2<T>) -> Self {
+        Self { start, end }
+    }
+}
+
+impl<T, IT> From<[IT; 2]> for Line2<T>
+    where
+        T: Copy + cgmath::BaseFloat + fmt::Debug + cmp::PartialOrd,
+        IT: Copy + Into<cgmath::Point2<T>>
+{
+    fn from(pos: [IT; 2]) -> Line2<T> {
+        Line2::<T>::new(pos[0].into(), pos[1].into())
+    }
+}
+
 /// A set of linestrings + an aabb
 /// Intended to contain related shapes. E.g. outlines of letters with holes
 #[derive(PartialEq, Eq, Clone, Hash)]
@@ -121,6 +140,25 @@ where
 {
     pub start: cgmath::Point3<T>,
     pub end: cgmath::Point3<T>,
+}
+
+impl<T> Line3<T>
+    where
+        T: Copy + cgmath::BaseFloat + fmt::Debug + cmp::PartialOrd,
+{
+    pub fn new(start: cgmath::Point3<T>, end: cgmath::Point3<T>) -> Self {
+        Self { start, end }
+    }
+}
+
+impl<T, IT> From<[IT; 3]> for Line3<T>
+    where
+        T: Copy + cgmath::BaseFloat + fmt::Debug + cmp::PartialOrd,
+        IT: Copy + Into<cgmath::Point3<T>>
+{
+    fn from(pos: [IT; 3]) -> Line3<T> {
+        Line3::<T>::new(pos[0].into(), pos[1].into())
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
@@ -241,9 +279,11 @@ where
         unimplemented!();
     }
 }
-impl<T, IC: Into<cgmath::Point2<T>>> std::iter::FromIterator<IC> for LineString2<T>
+
+impl<T, IC> std::iter::FromIterator<IC> for LineString2<T>
 where
     T: Copy + cgmath::BaseFloat + fmt::Debug + cmp::PartialOrd,
+    IC: Into<cgmath::Point2<T>>
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString2 {

@@ -1,3 +1,4 @@
+
 use num_traits::{Float, Zero};
 use std::cmp;
 use std::fmt;
@@ -25,8 +26,7 @@ impl Plane {
     where
         T: Copy
             + Float
-            + nalgebra::Scalar
-            + nalgebra::RealField
+            + nalgebra::Scalar + nalgebra::RealField
             + fmt::Debug
             + cmp::PartialOrd
             + ops::Sub<Output = T>
@@ -81,6 +81,25 @@ where
     pub end: nalgebra::Point2<T>,
 }
 
+impl<T> Line2<T>
+where
+    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+{
+    pub fn new(start: nalgebra::Point2<T>, end: nalgebra::Point2<T>) -> Self {
+        Self { start, end }
+    }
+}
+
+impl<T, IT> From<[IT; 2]> for Line2<T>
+    where
+        T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+        IT: Copy + Into<nalgebra::Point2<T>>
+{
+    fn from(pos: [IT; 2]) -> Line2<T> {
+        Line2::<T>::new(pos[0].into(), pos[1].into())
+    }
+}
+
 /// A set of linestrings + an aabb
 /// Intended to contain related shapes. E.g. outlines of letters with holes
 #[derive(PartialEq, Eq, Clone, Hash)]
@@ -121,6 +140,25 @@ where
 {
     pub start: nalgebra::Point3<T>,
     pub end: nalgebra::Point3<T>,
+}
+
+impl<T> Line3<T>
+    where
+        T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+{
+    pub fn new(start: nalgebra::Point3<T>, end: nalgebra::Point3<T>) -> Self {
+        Self { start, end }
+    }
+}
+
+impl<T, IT> From<[IT; 3]> for Line3<T>
+    where
+        T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+        IT: Copy + Into<nalgebra::Point3<T>>
+{
+    fn from(pos: [IT; 3]) -> Line3<T> {
+        Line3::<T>::new(pos[0].into(), pos[1].into())
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
@@ -222,7 +260,11 @@ where
     //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix3<T>) -> Self {
         Self {
-            points: self.points.iter().map(|x| mat.transform_point(x)).collect(),
+            points: self
+                .points
+                .iter()
+                .map(|x| mat.transform_point(x))
+                .collect(),
             connected: self.connected,
         }
     }
@@ -237,9 +279,11 @@ where
         unimplemented!();
     }
 }
-impl<T, IC: Into<nalgebra::Point2<T>>> std::iter::FromIterator<IC> for LineString2<T>
+
+impl<T, IC> std::iter::FromIterator<IC> for LineString2<T>
 where
     T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    IC: Into<nalgebra::Point2<T>>
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString2 {
@@ -317,7 +361,11 @@ where
     //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix4<T>) -> Self {
         Self {
-            points: self.points.iter().map(|x| mat.transform_point(x)).collect(),
+            points: self
+                .points
+                .iter()
+                .map(|x| mat.transform_point(x))
+                .collect(),
             connected: self.connected,
         }
     }
