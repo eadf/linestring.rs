@@ -1,8 +1,5 @@
-
-use num_traits::{Float, Zero};
-use std::cmp;
+use num_traits::Float;
 use std::fmt;
-use std::ops;
 
 // Auto generated file, do NOT edit
 
@@ -24,15 +21,7 @@ impl Plane {
     /// leaves some decimal in coordinates that's suppose to be zero.
     pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
     where
-        T: Copy
-            + Float
-            
-            + fmt::Debug
-            + cmp::PartialOrd
-            + ops::Sub<Output = T>
-            + Zero
-            + approx::AbsDiffEq
-            + approx::UlpsEq,
+        T: std::cmp::PartialOrd + Float + approx::AbsDiffEq + approx::UlpsEq,
     {
         if let Some(low_bound) = aabb.get_low() {
             if let Some(high_bound) = aabb.get_high() {
@@ -75,7 +64,7 @@ impl Plane {
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line2<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     pub start: mint::Point2<T>,
     pub end: mint::Point2<T>,
@@ -83,7 +72,7 @@ where
 
 impl<T> Line2<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn new(start: mint::Point2<T>, end: mint::Point2<T>) -> Self {
         Self { start, end }
@@ -91,12 +80,12 @@ where
 }
 
 impl<T, IT> From<[IT; 2]> for Line2<T>
-    where
-        T: Copy  + fmt::Debug + cmp::PartialOrd,
-        IT: Copy + Into<mint::Point2<T>>
+where
+    T: std::cmp::PartialOrd + Float,
+    IT: Copy + Into<mint::Point2<T>>,
 {
-    fn from(pos: [IT; 2]) -> Line2<T> {
-        Line2::<T>::new(pos[0].into(), pos[1].into())
+    fn from(coordinate: [IT; 2]) -> Line2<T> {
+        Line2::<T>::new(coordinate[0].into(), coordinate[1].into())
     }
 }
 
@@ -105,7 +94,7 @@ impl<T, IT> From<[IT; 2]> for Line2<T>
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet2<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     set: Vec<LineString2<T>>,
     aabb: Aabb2<T>,
@@ -116,7 +105,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     aabb_min_max: Option<(mint::Point2<T>, mint::Point2<T>)>,
 }
@@ -124,7 +113,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString2<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     points: Vec<mint::Point2<T>>,
 
@@ -136,15 +125,15 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line3<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     pub start: mint::Point3<T>,
     pub end: mint::Point3<T>,
 }
 
 impl<T> Line3<T>
-    where
-        T: Copy  + fmt::Debug + cmp::PartialOrd,
+where
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn new(start: mint::Point3<T>, end: mint::Point3<T>) -> Self {
         Self { start, end }
@@ -152,9 +141,9 @@ impl<T> Line3<T>
 }
 
 impl<T, IT> From<[IT; 2]> for Line3<T>
-    where
-        T: Copy  + fmt::Debug + cmp::PartialOrd,
-        IT: Copy + Into<mint::Point3<T>>
+where
+    T: std::cmp::PartialOrd + Float,
+    IT: Copy + Into<mint::Point3<T>>,
 {
     fn from(pos: [IT; 2]) -> Line3<T> {
         Line3::<T>::new(pos[0].into(), pos[1].into())
@@ -164,7 +153,7 @@ impl<T, IT> From<[IT; 2]> for Line3<T>
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString3<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     points: Vec<mint::Point3<T>>,
 
@@ -178,7 +167,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet3<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     pub set: Vec<LineString3<T>>,
     pub aabb: Aabb3<T>,
@@ -187,14 +176,14 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Aabb3<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     aabb_min_max: Option<(mint::Point3<T>, mint::Point3<T>)>,
 }
 
 impl<T> LineString2<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self {
@@ -257,7 +246,7 @@ where
         self.points.push(point);
     }
 
-    #[cfg(not(feature="impl-mint"))]
+    #[cfg(not(feature = "impl-mint"))]
     pub fn transform(&self, mat: &mint::ColumnMatrix3<T>) -> Self {
         Self {
             points: self
@@ -282,8 +271,8 @@ where
 
 impl<T, IC> std::iter::FromIterator<IC> for LineString2<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
-    IC: Into<mint::Point2<T>>
+    T: std::cmp::PartialOrd + Float,
+    IC: Into<mint::Point2<T>>,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString2 {
@@ -295,7 +284,7 @@ where
 
 impl<T> LineString3<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self {
@@ -358,7 +347,7 @@ where
         self.points.push(point);
     }
 
-    #[cfg(not(feature="impl-mint"))]
+    #[cfg(not(feature = "impl-mint"))]
     pub fn transform(&self, mat: &mint::ColumnMatrix4<T>) -> Self {
         Self {
             points: self
@@ -383,7 +372,7 @@ where
 
 impl<T, IC: Into<mint::Point3<T>>> std::iter::FromIterator<IC> for LineString3<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString3 {
@@ -395,7 +384,7 @@ where
 
 impl<T> LineStringSet2<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self {
@@ -429,7 +418,7 @@ where
         &self.aabb
     }
 
-    #[cfg(not(feature="impl-mint"))]
+    #[cfg(not(feature = "impl-mint"))]
     pub fn transform(&self, mat: &mint::ColumnMatrix3<T>) -> Self {
         Self {
             aabb: self.aabb.transform(mat),
@@ -440,7 +429,7 @@ where
 
 impl<T> LineStringSet3<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self {
@@ -474,7 +463,7 @@ where
         &self.aabb
     }
 
-    #[cfg(not(feature="impl-mint"))]
+    #[cfg(not(feature = "impl-mint"))]
     pub fn transform(&self, mat: &mint::ColumnMatrix4<T>) -> Self {
         Self {
             set: self.set.iter().map(|x| x.transform(mat)).collect(),
@@ -485,7 +474,7 @@ where
 
 impl<T> Aabb2<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self { aabb_min_max: None }
@@ -539,7 +528,7 @@ where
         None
     }
 
-    #[cfg(not(feature="impl-mint"))]
+    #[cfg(not(feature = "impl-mint"))]
     pub fn transform(&self, mat: &mint::ColumnMatrix3<T>) -> Self {
         if let Some(aabb_min_max) = self.aabb_min_max {
             Self {
@@ -556,7 +545,7 @@ where
 
 impl<T> Aabb3<T>
 where
-    T: Copy  + fmt::Debug + cmp::PartialOrd,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self { aabb_min_max: None }
@@ -610,7 +599,7 @@ where
         None
     }
 
-    #[cfg(not(feature="impl-mint"))]
+    #[cfg(not(feature = "impl-mint"))]
     pub fn transform(&self, mat: &mint::ColumnMatrix4<T>) -> Self {
         if let Some(aabb_min_max) = self.aabb_min_max {
             Self {

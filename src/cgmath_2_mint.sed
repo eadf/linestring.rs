@@ -7,7 +7,7 @@
 
 s/cgmath::Point3/mint::Point3/g
 s/cgmath::Point2/mint::Point2/g
-s/+ cgmath::BaseFloat//g
+s/cgmath::BaseFloat/std::cmp::PartialOrd+ Float/g
 s/mint::Point3::new(/mint::Point3::from([/g
 s/cgmath::Matrix3/mint::ColumnMatrix3/g
 s/cgmath::Matrix4/mint::ColumnMatrix4/g

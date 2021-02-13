@@ -46,15 +46,15 @@ fn linestring3_1() {
 #[cfg(feature = "impl-nalgebra")]
 #[test]
 fn line2_1() {
-    let line = nalgebra_impl::Line2::<f64>::from([[10.,0.], [0.,11.]]);
-    assert_eq!(line.start, nalgebra::Point2::from([10.,0.]));
-    assert_eq!(line.end, nalgebra::Point2::from([0.,11.]));
+    let line = nalgebra_impl::Line2::<f64>::from([[10., 0.], [0., 11.]]);
+    assert_eq!(line.start, nalgebra::Point2::from([10., 0.]));
+    assert_eq!(line.end, nalgebra::Point2::from([0., 11.]));
 }
 
 #[cfg(feature = "impl-nalgebra")]
 #[test]
 fn line3_1() {
-    let line = nalgebra_impl::Line3::<f64>::from([[10.,0.,9.], [0.,11.,9.]]);
-    assert_eq!(line.start, nalgebra::Point3::from([10.,0.,9.]));
-    assert_eq!(line.end, nalgebra::Point3::from([0.,11.,9.]));
+    let line = nalgebra_impl::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
+    assert_eq!(line.start, nalgebra::Point3::from([10., 0., 9.]));
+    assert_eq!(line.end, nalgebra::Point3::from([0., 11., 9.]));
 }

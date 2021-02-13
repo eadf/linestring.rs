@@ -46,15 +46,15 @@ fn linestring3_1() {
 #[cfg(feature = "impl-mint")]
 #[test]
 fn line2_1() {
-    let line = mint_impl::Line2::<f64>::from([[10.,0.], [0.,11.]]);
-    assert_eq!(line.start, mint::Point2::from([10.,0.]));
-    assert_eq!(line.end, mint::Point2::from([0.,11.]));
+    let line = mint_impl::Line2::<f64>::from([[10., 0.], [0., 11.]]);
+    assert_eq!(line.start, mint::Point2::from([10., 0.]));
+    assert_eq!(line.end, mint::Point2::from([0., 11.]));
 }
 
 #[cfg(feature = "impl-mint")]
 #[test]
 fn line3_1() {
-    let line = mint_impl::Line3::<f64>::from([[10.,0.,9.], [0.,11.,9.]]);
-    assert_eq!(line.start, mint::Point3::from([10.,0.,9.]));
-    assert_eq!(line.end, mint::Point3::from([0.,11.,9.]));
+    let line = mint_impl::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
+    assert_eq!(line.start, mint::Point3::from([10., 0., 9.]));
+    assert_eq!(line.end, mint::Point3::from([0., 11., 9.]));
 }

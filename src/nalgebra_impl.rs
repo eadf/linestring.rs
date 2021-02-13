@@ -1,8 +1,5 @@
-
-use num_traits::{Float, Zero};
-use std::cmp;
+use num_traits::Float;
 use std::fmt;
-use std::ops;
 
 // Auto generated file, do NOT edit
 
@@ -24,15 +21,7 @@ impl Plane {
     /// leaves some decimal in coordinates that's suppose to be zero.
     pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
     where
-        T: Copy
-            + Float
-            + nalgebra::Scalar + nalgebra::RealField
-            + fmt::Debug
-            + cmp::PartialOrd
-            + ops::Sub<Output = T>
-            + Zero
-            + approx::AbsDiffEq
-            + approx::UlpsEq,
+        T: nalgebra::RealField + Float + approx::AbsDiffEq + approx::UlpsEq,
     {
         if let Some(low_bound) = aabb.get_low() {
             if let Some(high_bound) = aabb.get_high() {
@@ -75,7 +64,7 @@ impl Plane {
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line2<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     pub start: nalgebra::Point2<T>,
     pub end: nalgebra::Point2<T>,
@@ -83,7 +72,7 @@ where
 
 impl<T> Line2<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     pub fn new(start: nalgebra::Point2<T>, end: nalgebra::Point2<T>) -> Self {
         Self { start, end }
@@ -91,12 +80,12 @@ where
 }
 
 impl<T, IT> From<[IT; 2]> for Line2<T>
-    where
-        T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
-        IT: Copy + Into<nalgebra::Point2<T>>
+where
+    T: nalgebra::RealField + Float,
+    IT: Copy + Into<nalgebra::Point2<T>>,
 {
-    fn from(pos: [IT; 2]) -> Line2<T> {
-        Line2::<T>::new(pos[0].into(), pos[1].into())
+    fn from(coordinate: [IT; 2]) -> Line2<T> {
+        Line2::<T>::new(coordinate[0].into(), coordinate[1].into())
     }
 }
 
@@ -105,7 +94,7 @@ impl<T, IT> From<[IT; 2]> for Line2<T>
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet2<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     set: Vec<LineString2<T>>,
     aabb: Aabb2<T>,
@@ -116,7 +105,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     aabb_min_max: Option<(nalgebra::Point2<T>, nalgebra::Point2<T>)>,
 }
@@ -124,7 +113,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString2<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     points: Vec<nalgebra::Point2<T>>,
 
@@ -136,15 +125,15 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line3<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     pub start: nalgebra::Point3<T>,
     pub end: nalgebra::Point3<T>,
 }
 
 impl<T> Line3<T>
-    where
-        T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+where
+    T: nalgebra::RealField + Float,
 {
     pub fn new(start: nalgebra::Point3<T>, end: nalgebra::Point3<T>) -> Self {
         Self { start, end }
@@ -152,9 +141,9 @@ impl<T> Line3<T>
 }
 
 impl<T, IT> From<[IT; 2]> for Line3<T>
-    where
-        T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
-        IT: Copy + Into<nalgebra::Point3<T>>
+where
+    T: nalgebra::RealField + Float,
+    IT: Copy + Into<nalgebra::Point3<T>>,
 {
     fn from(pos: [IT; 2]) -> Line3<T> {
         Line3::<T>::new(pos[0].into(), pos[1].into())
@@ -164,7 +153,7 @@ impl<T, IT> From<[IT; 2]> for Line3<T>
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString3<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     points: Vec<nalgebra::Point3<T>>,
 
@@ -178,7 +167,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet3<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     pub set: Vec<LineString3<T>>,
     pub aabb: Aabb3<T>,
@@ -187,14 +176,14 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Aabb3<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     aabb_min_max: Option<(nalgebra::Point3<T>, nalgebra::Point3<T>)>,
 }
 
 impl<T> LineString2<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     pub fn default() -> Self {
         Self {
@@ -260,11 +249,7 @@ where
     //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix3<T>) -> Self {
         Self {
-            points: self
-                .points
-                .iter()
-                .map(|x| mat.transform_point(x))
-                .collect(),
+            points: self.points.iter().map(|x| mat.transform_point(x)).collect(),
             connected: self.connected,
         }
     }
@@ -282,8 +267,8 @@ where
 
 impl<T, IC> std::iter::FromIterator<IC> for LineString2<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
-    IC: Into<nalgebra::Point2<T>>
+    T: nalgebra::RealField + Float,
+    IC: Into<nalgebra::Point2<T>>,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString2 {
@@ -295,7 +280,7 @@ where
 
 impl<T> LineString3<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     pub fn default() -> Self {
         Self {
@@ -361,11 +346,7 @@ where
     //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix4<T>) -> Self {
         Self {
-            points: self
-                .points
-                .iter()
-                .map(|x| mat.transform_point(x))
-                .collect(),
+            points: self.points.iter().map(|x| mat.transform_point(x)).collect(),
             connected: self.connected,
         }
     }
@@ -383,7 +364,7 @@ where
 
 impl<T, IC: Into<nalgebra::Point3<T>>> std::iter::FromIterator<IC> for LineString3<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString3 {
@@ -395,7 +376,7 @@ where
 
 impl<T> LineStringSet2<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     pub fn default() -> Self {
         Self {
@@ -440,7 +421,7 @@ where
 
 impl<T> LineStringSet3<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     pub fn default() -> Self {
         Self {
@@ -485,7 +466,7 @@ where
 
 impl<T> Aabb2<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     pub fn default() -> Self {
         Self { aabb_min_max: None }
@@ -556,7 +537,7 @@ where
 
 impl<T> Aabb3<T>
 where
-    T: Copy + nalgebra::Scalar + nalgebra::RealField + fmt::Debug + cmp::PartialOrd,
+    T: nalgebra::RealField + Float,
 {
     pub fn default() -> Self {
         Self { aabb_min_max: None }
