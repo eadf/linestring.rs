@@ -614,7 +614,7 @@ where
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
     pub fn contains_line(&self, line: &Line2<T>) -> bool {
-        return self.contains_point(&line.start) && self.contains_point(&line.end);
+        self.contains_point(&line.start) && self.contains_point(&line.end)
     }
 
     /// returns true if this aabb contains a point (inclusive)
@@ -711,7 +711,7 @@ where
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
     pub fn contains_line(&self, line: &Line3<T>) -> bool {
-        return self.contains_point(&line.start) && self.contains_point(&line.end);
+        self.contains_point(&line.start) && self.contains_point(&line.end)
     }
 
     /// returns true if this aabb contains a point (inclusive)
