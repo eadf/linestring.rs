@@ -18,7 +18,7 @@ There will be 3d and 2d implementations of:
 * Maybe [2d line intersection](https://github.com/eadf/intersect2d.rs)
 
 This will be implemented (feature gated) for [cgmath](https://crates.io/crates/cgmath), 
-[nalgebra](https://crates.io/crates/nalgebra) and a limited version for [mint](https://crates.io/crates/nalgebra) (no transformations etc).
+[nalgebra](https://crates.io/crates/nalgebra) and limited versions for [mint](https://crates.io/crates/nalgebra) and plain vector scalar (no transformations etc).
 More implementations could be added if required.
 
 Cargo.toml usage:
@@ -34,3 +34,6 @@ linestring = {version = "^0.0.2", features = ["impl-nalgebra"]}
 linestring = {version = "^0.0.2", features = ["impl-mint"]}
 ```
 
+```cargo
+linestring = {version = "^0.0.2", features = ["impl-vec"]}
+```
