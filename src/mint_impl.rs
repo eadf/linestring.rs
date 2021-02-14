@@ -1,10 +1,8 @@
 use num_traits::Float;
 use std::fmt;
 
-// Auto generated file, do NOT edit
-
 /// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
-#[derive(fmt::Debug)]
+#[derive(fmt::Debug, Copy, Clone)]
 pub enum Plane {
     XY,
     XZ,
@@ -437,6 +435,10 @@ where
         }
     }
 
+    pub fn set(&self) -> &Vec<LineString2<T>> {
+        &self.set
+    }
+
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             set: Vec::<LineString2<T>>::with_capacity(capacity),
@@ -487,6 +489,10 @@ where
             set: Vec::<LineString3<T>>::with_capacity(capacity),
             aabb: Aabb3::default(),
         }
+    }
+
+    pub fn set(&self) -> &Vec<LineString3<T>> {
+        &self.set
     }
 
     pub fn is_empty(&self) -> bool {
