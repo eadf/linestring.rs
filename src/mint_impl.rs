@@ -161,7 +161,7 @@ where
 }
 
 /// A set of linestrings + an aabb
-/// Intended to contain shapes with holes, e.g. outlines of letters
+/// Intended to contain related 3d shapes. E.g. outlines of letters with holes
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet3<T>
 where
@@ -190,15 +190,15 @@ where
         }
     }
 
-    pub fn points(&self) -> &Vec<mint::Point2<T>> {
-        &self.points
-    }
-
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             points: Vec::<mint::Point2<T>>::with_capacity(capacity),
             connected: false,
         }
+    }
+
+    pub fn points(&self) -> &Vec<mint::Point2<T>> {
+        &self.points
     }
 
     pub fn len(&self) -> usize {
@@ -244,9 +244,10 @@ where
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_3d(&self, plane: Plane) -> LineString3<T> {
-        let mut rv = LineString3::<T>::with_capacity(self.len());
-        for p2d in self.points.iter() {
-            let p3d = match plane {
+        let mut rv: LineString3<T> = self
+            .points
+            .iter()
+            .map(|p2d| match plane {
                 Plane::XY => mint::Point3 {
                     x: p2d.x,
                     y: p2d.y,
@@ -262,9 +263,9 @@ where
                     y: p2d.y,
                     z: p2d.x,
                 },
-            };
-            rv.push(p3d);
-        }
+            })
+            .collect();
+        rv.connected = self.connected;
         rv
     }
 
@@ -330,15 +331,16 @@ where
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_2d(&self, plane: Plane) -> LineString2<T> {
-        let mut rv = LineString2::<T>::with_capacity(self.len());
-        for p3d in self.points.iter() {
-            let p2d = match plane {
+        let mut rv: LineString2<T> = self
+            .points
+            .iter()
+            .map(|p3d| match plane {
                 Plane::XY => mint::Point2 { x: p3d.x, y: p3d.y },
                 Plane::XZ => mint::Point2 { x: p3d.x, y: p3d.z },
                 Plane::ZY => mint::Point2 { x: p3d.z, y: p3d.y },
-            };
-            rv.push(p2d);
-        }
+            })
+            .collect();
+        rv.connected = self.connected;
         rv
     }
 

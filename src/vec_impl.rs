@@ -1,4 +1,3 @@
-
 use num_traits::Float;
 use std::fmt;
 
@@ -20,7 +19,7 @@ impl Plane {
     /// leaves some decimal in coordinates that's suppose to be zero.
     pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
     where
-        T: std::cmp::PartialOrd+ Float + approx::AbsDiffEq + approx::UlpsEq,
+        T: std::cmp::PartialOrd + Float + approx::AbsDiffEq + approx::UlpsEq,
     {
         if let Some(low_bound) = aabb.get_low() {
             if let Some(high_bound) = aabb.get_high() {
@@ -63,25 +62,25 @@ impl Plane {
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line2<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
-    pub start: [T;2],
-    pub end: [T;2],
+    pub start: [T; 2],
+    pub end: [T; 2],
 }
 
 impl<T> Line2<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
-    pub fn new(start: [T;2], end: [T;2]) -> Self {
+    pub fn new(start: [T; 2], end: [T; 2]) -> Self {
         Self { start, end }
     }
 }
 
 impl<T, IT> From<[IT; 2]> for Line2<T>
 where
-    T: std::cmp::PartialOrd+ Float,
-    IT: Copy + Into<[T;2]>,
+    T: std::cmp::PartialOrd + Float,
+    IT: Copy + Into<[T; 2]>,
 {
     fn from(coordinate: [IT; 2]) -> Line2<T> {
         Line2::<T>::new(coordinate[0].into(), coordinate[1].into())
@@ -93,7 +92,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet2<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
     set: Vec<LineString2<T>>,
     aabb: Aabb2<T>,
@@ -104,17 +103,17 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
-    aabb_min_max: Option<([T;2], [T;2])>,
+    aabb_min_max: Option<([T; 2], [T; 2])>,
 }
 
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString2<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
-    points: Vec<[T;2]>,
+    points: Vec<[T; 2]>,
 
     /// if connected is set the as_lines() method will add an extra line connecting
     /// the first and last point
@@ -124,25 +123,25 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line3<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
-    pub start: [T;3],
-    pub end: [T;3],
+    pub start: [T; 3],
+    pub end: [T; 3],
 }
 
 impl<T> Line3<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
-    pub fn new(start: [T;3], end: [T;3]) -> Self {
+    pub fn new(start: [T; 3], end: [T; 3]) -> Self {
         Self { start, end }
     }
 }
 
 impl<T, IT> From<[IT; 2]> for Line3<T>
 where
-    T: std::cmp::PartialOrd+ Float,
-    IT: Copy + Into<[T;3]>,
+    T: std::cmp::PartialOrd + Float,
+    IT: Copy + Into<[T; 3]>,
 {
     fn from(pos: [IT; 2]) -> Line3<T> {
         Line3::<T>::new(pos[0].into(), pos[1].into())
@@ -152,9 +151,9 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString3<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
-    points: Vec<[T;3]>,
+    points: Vec<[T; 3]>,
 
     /// if connected is set the as_lines() method will add an extra line connecting
     /// the first and last point
@@ -162,11 +161,11 @@ where
 }
 
 /// A set of linestrings + an aabb
-/// Intended to contain shapes with holes, e.g. outlines of letters
+/// Intended to contain related 3d shapes. E.g. outlines of letters with holes
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet3<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
     pub set: Vec<LineString3<T>>,
     pub aabb: Aabb3<T>,
@@ -175,31 +174,31 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Aabb3<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
-    aabb_min_max: Option<([T;3], [T;3])>,
+    aabb_min_max: Option<([T; 3], [T; 3])>,
 }
 
 impl<T> LineString2<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self {
-            points: Vec::<[T;2]>::new(),
+            points: Vec::<[T; 2]>::new(),
             connected: false,
         }
-    }
-
-    pub fn points(&self) -> &Vec<[T;2]> {
-        &self.points
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            points: Vec::<[T;2]>::with_capacity(capacity),
+            points: Vec::<[T; 2]>::with_capacity(capacity),
             connected: false,
         }
+    }
+
+    pub fn points(&self) -> &Vec<[T; 2]> {
+        &self.points
     }
 
     pub fn len(&self) -> usize {
@@ -245,27 +244,25 @@ where
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_3d(&self, plane: Plane) -> LineString3<T> {
-        let mut rv = LineString3::<T>::with_capacity(self.len());
-        for p2d in self.points.iter() {
-            let p3d = match plane {
-                Plane::XY => [p2d[0],p2d[1],T::zero(),
-               ],
-                Plane::XZ => [p2d[0],T::zero(),p2d[1],
-               ],
-                Plane::ZY => [T::zero(),p2d[1],p2d[0],
-               ],
-            };
-            rv.push(p3d);
-        }
+        let mut rv: LineString3<T> = self
+            .points
+            .iter()
+            .map(|p2d| match plane {
+                Plane::XY => [p2d[0], p2d[1], T::zero()],
+                Plane::XZ => [p2d[0], T::zero(), p2d[1]],
+                Plane::ZY => [T::zero(), p2d[1], p2d[0]],
+            })
+            .collect();
+        rv.connected = self.connected;
         rv
     }
 
-    pub fn push(&mut self, point: [T;2]) {
+    pub fn push(&mut self, point: [T; 2]) {
         self.points.push(point);
     }
 
-    #[cfg(not(feature="impl-vec"))]
-pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
+    #[cfg(not(feature = "impl-vec"))]
+    pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
         Self {
             points: self
                 .points
@@ -289,8 +286,8 @@ pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
 
 impl<T, IC> std::iter::FromIterator<IC> for LineString2<T>
 where
-    T: std::cmp::PartialOrd+ Float,
-    IC: Into<[T;2]>,
+    T: std::cmp::PartialOrd + Float,
+    IC: Into<[T; 2]>,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString2 {
@@ -302,18 +299,18 @@ where
 
 impl<T> LineString3<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self {
-            points: Vec::<[T;3]>::new(),
+            points: Vec::<[T; 3]>::new(),
             connected: false,
         }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            points: Vec::<[T;3]>::with_capacity(capacity),
+            points: Vec::<[T; 3]>::with_capacity(capacity),
             connected: false,
         }
     }
@@ -322,19 +319,20 @@ where
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_2d(&self, plane: Plane) -> LineString2<T> {
-        let mut rv = LineString2::<T>::with_capacity(self.len());
-        for p3d in self.points.iter() {
-            let p2d = match plane {
-                Plane::XY => [p3d[0],p3d[1]],
-                Plane::XZ => [p3d[0],p3d[2]],
-                Plane::ZY => [p3d[2],p3d[1]],
-            };
-            rv.push(p2d);
-        }
+        let mut rv: LineString2<T> = self
+            .points
+            .iter()
+            .map(|p3d| match plane {
+                Plane::XY => [p3d[0], p3d[1]],
+                Plane::XZ => [p3d[0], p3d[2]],
+                Plane::ZY => [p3d[2], p3d[1]],
+            })
+            .collect();
+        rv.connected = self.connected;
         rv
     }
 
-    pub fn points(&self) -> &Vec<[T;3]> {
+    pub fn points(&self) -> &Vec<[T; 3]> {
         &self.points
     }
 
@@ -377,12 +375,12 @@ where
         }
     }
 
-    pub fn push(&mut self, point: [T;3]) {
+    pub fn push(&mut self, point: [T; 3]) {
         self.points.push(point);
     }
 
-    #[cfg(not(feature="impl-vec"))]
-pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
+    #[cfg(not(feature = "impl-vec"))]
+    pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
         Self {
             points: self
                 .points
@@ -404,9 +402,9 @@ pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
     }
 }
 
-impl<T, IC: Into<[T;3]>> std::iter::FromIterator<IC> for LineString3<T>
+impl<T, IC: Into<[T; 3]>> std::iter::FromIterator<IC> for LineString3<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString3 {
@@ -418,7 +416,7 @@ where
 
 impl<T> LineStringSet2<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self {
@@ -456,8 +454,8 @@ where
         &self.aabb
     }
 
-    #[cfg(not(feature="impl-vec"))]
-pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
+    #[cfg(not(feature = "impl-vec"))]
+    pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
         Self {
             aabb: self.aabb.transform(mat),
             set: self.set.iter().map(|x| x.transform(mat)).collect(),
@@ -485,7 +483,7 @@ pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
 
 impl<T> LineStringSet3<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self {
@@ -523,8 +521,8 @@ where
         &self.aabb
     }
 
-    #[cfg(not(feature="impl-vec"))]
-pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
+    #[cfg(not(feature = "impl-vec"))]
+    pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
         Self {
             set: self.set.iter().map(|x| x.transform(mat)).collect(),
             aabb: self.aabb.transform(mat),
@@ -551,13 +549,13 @@ pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
 
 impl<T> Aabb2<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self { aabb_min_max: None }
     }
 
-    pub fn new(point: &[T;2]) -> Self {
+    pub fn new(point: &[T; 2]) -> Self {
         Self {
             aabb_min_max: Some((*point, *point)),
         }
@@ -570,7 +568,7 @@ where
         }
     }
 
-    pub fn update_point(&mut self, point: &[T;2]) {
+    pub fn update_point(&mut self, point: &[T; 2]) {
         if self.aabb_min_max.is_none() {
             self.aabb_min_max = Some((*point, *point));
         }
@@ -591,22 +589,22 @@ where
         self.aabb_min_max = Some((aabb_min, aabb_max));
     }
 
-    pub fn get_high(&self) -> Option<[T;2]> {
+    pub fn get_high(&self) -> Option<[T; 2]> {
         if let Some((_, _high)) = self.aabb_min_max {
             return Some(_high);
         }
         None
     }
 
-    pub fn get_low(&self) -> Option<[T;2]> {
+    pub fn get_low(&self) -> Option<[T; 2]> {
         if let Some((_low, _)) = self.aabb_min_max {
             return Some(_low);
         }
         None
     }
 
-    #[cfg(not(feature="impl-vec"))]
-pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
+    #[cfg(not(feature = "impl-vec"))]
+    pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
         if let Some(aabb_min_max) = self.aabb_min_max {
             Self {
                 aabb_min_max: Some((
@@ -636,7 +634,7 @@ pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
 
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
-    pub fn contains_point(&self, point: &[T;2]) -> bool {
+    pub fn contains_point(&self, point: &[T; 2]) -> bool {
         if let Some(s_aabb) = self.aabb_min_max {
             return s_aabb.0[0] <= point[0]
                 && s_aabb.0[1] <= point[1]
@@ -649,7 +647,7 @@ pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
 
 impl<T> Aabb3<T>
 where
-    T: std::cmp::PartialOrd+ Float,
+    T: std::cmp::PartialOrd + Float,
 {
     pub fn default() -> Self {
         Self { aabb_min_max: None }
@@ -662,7 +660,7 @@ where
         }
     }
 
-    pub fn update_point(&mut self, point: &[T;3]) {
+    pub fn update_point(&mut self, point: &[T; 3]) {
         if self.aabb_min_max.is_none() {
             self.aabb_min_max = Some((*point, *point));
         }
@@ -689,22 +687,22 @@ where
         self.aabb_min_max = Some((aabb_min, aabb_max));
     }
 
-    pub fn get_high(&self) -> Option<[T;3]> {
+    pub fn get_high(&self) -> Option<[T; 3]> {
         if let Some((_, _high)) = self.aabb_min_max {
             return Some(_high);
         }
         None
     }
 
-    pub fn get_low(&self) -> Option<[T;3]> {
+    pub fn get_low(&self) -> Option<[T; 3]> {
         if let Some((_low, _)) = self.aabb_min_max {
             return Some(_low);
         }
         None
     }
 
-    #[cfg(not(feature="impl-vec"))]
-pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
+    #[cfg(not(feature = "impl-vec"))]
+    pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
         if let Some(aabb_min_max) = self.aabb_min_max {
             Self {
                 aabb_min_max: Some((
@@ -734,7 +732,7 @@ pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
 
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
-    pub fn contains_point(&self, point: &[T;3]) -> bool {
+    pub fn contains_point(&self, point: &[T; 3]) -> bool {
         if let Some(s_aabb) = self.aabb_min_max {
             return s_aabb.0[0] <= point[0]
                 && s_aabb.0[1] <= point[1]
