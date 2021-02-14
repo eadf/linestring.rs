@@ -471,6 +471,24 @@ where
             set: self.set.iter().map(|x| x.transform(mat)).collect(),
         }
     }
+
+    /// Copy this linestringset2 into a linestringset3, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    /// The empty axis will be set to zero.
+    pub fn copy_to_3d(&self, plane: Plane) -> LineStringSet3<T> {
+        let mut rv = LineStringSet3::with_capacity(self.set.len());
+        for ls in self.set.iter() {
+            rv.push(ls.copy_to_3d(plane));
+        }
+        rv
+    }
+
+    /// drains the 'other' container of all shapes and put them into 'self'
+    pub fn take_from(&mut self, other: &mut Self) {
+        self.aabb.update_aabb(&other.aabb);
+        self.set.append(&mut other.set);
+    }
 }
 
 impl<T> LineStringSet3<T>
@@ -519,6 +537,23 @@ where
             set: self.set.iter().map(|x| x.transform(mat)).collect(),
             aabb: self.aabb.transform(mat),
         }
+    }
+
+    /// Copy this linestringset3 into a linestringset2, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    pub fn copy_to_2d(&self, plane: Plane) -> LineStringSet2<T> {
+        let mut rv = LineStringSet2::with_capacity(self.set.len());
+        for ls in self.set.iter() {
+            rv.push(ls.copy_to_2d(plane));
+        }
+        rv
+    }
+
+    /// drains the 'other' container of all shapes and put them into 'self'
+    pub fn take_from(&mut self, other: &mut Self) {
+        self.aabb.update_aabb(&other.aabb);
+        self.set.append(&mut other.set);
     }
 }
 
@@ -591,6 +626,33 @@ where
             Self { aabb_min_max: None }
         }
     }
+
+    /// returns true if this aabb contains 'other' (inclusive)
+    #[inline(always)]
+    pub fn contains_aabb(&self, other: &Aabb2<T>) -> bool {
+        if let Some(o_aabb) = other.aabb_min_max {
+            return self.contains_point(&o_aabb.0) && self.contains_point(&o_aabb.1);
+        }
+        false
+    }
+
+    /// returns true if this aabb contains a point (inclusive)
+    #[inline(always)]
+    pub fn contains_line(&self, line: &Line2<T>) -> bool {
+        return self.contains_point(&line.start) && self.contains_point(&line.end);
+    }
+
+    /// returns true if this aabb contains a point (inclusive)
+    #[inline(always)]
+    pub fn contains_point(&self, point: &mint::Point2<T>) -> bool {
+        if let Some(s_aabb) = self.aabb_min_max {
+            return s_aabb.0.x <= point.x
+                && s_aabb.0.y <= point.y
+                && s_aabb.1.x >= point.x
+                && s_aabb.1.y >= point.y;
+        }
+        false
+    }
 }
 
 impl<T> Aabb3<T>
@@ -661,5 +723,34 @@ where
         } else {
             Self { aabb_min_max: None }
         }
+    }
+
+    /// returns true if this aabb contains 'other' (inclusive)
+    #[inline(always)]
+    pub fn contains_aabb(&self, other: &Aabb3<T>) -> bool {
+        if let Some(o_aabb) = other.aabb_min_max {
+            return self.contains_point(&o_aabb.0) && self.contains_point(&o_aabb.1);
+        }
+        false
+    }
+
+    /// returns true if this aabb contains a point (inclusive)
+    #[inline(always)]
+    pub fn contains_line(&self, line: &Line3<T>) -> bool {
+        return self.contains_point(&line.start) && self.contains_point(&line.end);
+    }
+
+    /// returns true if this aabb contains a point (inclusive)
+    #[inline(always)]
+    pub fn contains_point(&self, point: &mint::Point3<T>) -> bool {
+        if let Some(s_aabb) = self.aabb_min_max {
+            return s_aabb.0.x <= point.x
+                && s_aabb.0.y <= point.y
+                && s_aabb.0.z <= point.z
+                && s_aabb.1.x >= point.x
+                && s_aabb.1.y >= point.y
+                && s_aabb.1.z >= point.z;
+        }
+        false
     }
 }
