@@ -13,7 +13,7 @@ pub enum Plane {
 
 impl Plane {
     /// Try to figure out what axes defines the plane.
-    /// If the AABB delta of one axis (a) it virtually nothing compared to
+    /// If the AABB delta of one axis (a) is virtually nothing compared to
     /// the widest axis (b) while the third axis (c) is comparable to (b)
     /// by some fraction, we assume that that (a) isn't part of the plane.
     ///
@@ -242,11 +242,26 @@ where
         }
     }
 
+    /// Copy this linestring2 into a linestring3, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    pub fn copy_to_3d(&self, plane: Plane) -> LineString3<T> {
+        let mut rv = LineString3::<T>::with_capacity(self.len());
+        for p2d in self.points.iter() {
+            let p3d = match plane {
+                Plane::XY => nalgebra::Point3::<T>::new(p2d.x, p2d.y, T::zero()),
+                Plane::XZ => nalgebra::Point3::<T>::new(p2d.x, T::zero(), p2d.y),
+                Plane::ZY => nalgebra::Point3::<T>::new(T::zero(), p2d.y, p2d.x),
+            };
+            rv.push(p3d);
+        }
+        rv
+    }
+
     pub fn push(&mut self, point: nalgebra::Point2<T>) {
         self.points.push(point);
     }
 
-    //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix3<T>) -> Self {
         Self {
             points: self.points.iter().map(|x| mat.transform_point(x)).collect(),
@@ -296,6 +311,22 @@ where
         }
     }
 
+    /// Copy this linestring3 into a linestring2, keeping the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    pub fn copy_to_2d(&self, plane: Plane) -> LineString2<T> {
+        let mut rv = LineString2::<T>::with_capacity(self.len());
+        for p3d in self.points.iter() {
+            let p2d = match plane {
+                Plane::XY => nalgebra::Point2::<T>::new(p3d.x, p3d.y),
+                Plane::XZ => nalgebra::Point2::<T>::new(p3d.x, p3d.z),
+                Plane::ZY => nalgebra::Point2::<T>::new(p3d.z, p3d.y),
+            };
+            rv.push(p2d);
+        }
+        rv
+    }
+
     pub fn points(&self) -> &Vec<nalgebra::Point3<T>> {
         &self.points
     }
@@ -343,7 +374,6 @@ where
         self.points.push(point);
     }
 
-    //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix4<T>) -> Self {
         Self {
             points: self.points.iter().map(|x| mat.transform_point(x)).collect(),
@@ -410,7 +440,6 @@ where
         &self.aabb
     }
 
-    //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix3<T>) -> Self {
         Self {
             aabb: self.aabb.transform(mat),
@@ -455,7 +484,6 @@ where
         &self.aabb
     }
 
-    //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix4<T>) -> Self {
         Self {
             set: self.set.iter().map(|x| x.transform(mat)).collect(),
@@ -520,7 +548,6 @@ where
         None
     }
 
-    //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix3<T>) -> Self {
         if let Some(aabb_min_max) = self.aabb_min_max {
             Self {
@@ -591,7 +618,6 @@ where
         None
     }
 
-    //#[cfg(not(feature="impl-mint"))]
     pub fn transform(&self, mat: &nalgebra::Matrix4<T>) -> Self {
         if let Some(aabb_min_max) = self.aabb_min_max {
             Self {
