@@ -104,6 +104,7 @@ impl Plane {
     }
 }
 
+/// A 2d line
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line2<T>
 where
@@ -209,7 +210,7 @@ where
     }
 }
 
-/// A set of linestrings + an aabb
+/// A set of 2d linestrings + an aabb
 /// Intended to contain related shapes. E.g. outlines of letters with holes
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet2<T>
@@ -221,13 +222,13 @@ where
 }
 
 /// A simple 2d AABB
-/// If aabb_min_max is none the data has not been assigned yet.
+/// If min_max is none the data has not been assigned yet.
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T>
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    aabb_min_max: Option<(mint::Point2<T>, mint::Point2<T>)>,
+    min_max: Option<(mint::Point2<T>, mint::Point2<T>)>,
 }
 
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
@@ -242,6 +243,7 @@ where
     pub connected: bool,
 }
 
+/// A 3d line
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line3<T>
 where
@@ -293,12 +295,14 @@ where
     pub aabb: Aabb3<T>,
 }
 
+/// A simple 3d AABB
+/// If min_max is none the data has not been assigned yet.
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Aabb3<T>
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    aabb_min_max: Option<(mint::Point3<T>, mint::Point3<T>)>,
+    min_max: Option<(mint::Point3<T>, mint::Point3<T>)>,
 }
 
 impl<T> LineString2<T>
@@ -686,27 +690,27 @@ where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub fn default() -> Self {
-        Self { aabb_min_max: None }
+        Self { min_max: None }
     }
 
     pub fn new(point: &mint::Point2<T>) -> Self {
         Self {
-            aabb_min_max: Some((*point, *point)),
+            min_max: Some((*point, *point)),
         }
     }
 
     pub fn update_aabb(&mut self, aabb: &Aabb2<T>) {
-        if let Some((min, max)) = &aabb.aabb_min_max {
+        if let Some((min, max)) = &aabb.min_max {
             self.update_point(min);
             self.update_point(max);
         }
     }
 
     pub fn update_point(&mut self, point: &mint::Point2<T>) {
-        if self.aabb_min_max.is_none() {
-            self.aabb_min_max = Some((*point, *point));
+        if self.min_max.is_none() {
+            self.min_max = Some((*point, *point));
         }
-        let (mut aabb_min, mut aabb_max) = self.aabb_min_max.take().unwrap();
+        let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
 
         if point.x < aabb_min.x {
             aabb_min.x = point.x;
@@ -720,18 +724,18 @@ where
         if point.y > aabb_max.y {
             aabb_max.y = point.y;
         }
-        self.aabb_min_max = Some((aabb_min, aabb_max));
+        self.min_max = Some((aabb_min, aabb_max));
     }
 
     pub fn get_high(&self) -> Option<mint::Point2<T>> {
-        if let Some((_, _high)) = self.aabb_min_max {
+        if let Some((_, _high)) = self.min_max {
             return Some(_high);
         }
         None
     }
 
     pub fn get_low(&self) -> Option<mint::Point2<T>> {
-        if let Some((_low, _)) = self.aabb_min_max {
+        if let Some((_low, _)) = self.min_max {
             return Some(_low);
         }
         None
@@ -739,22 +743,22 @@ where
 
     #[cfg(not(feature = "impl-mint"))]
     pub fn transform(&self, mat: &mint::ColumnMatrix3<T>) -> Self {
-        if let Some(aabb_min_max) = self.aabb_min_max {
+        if let Some(min_max) = self.min_max {
             Self {
-                aabb_min_max: Some((
-                    mat.transform_point(aabb_min_max.0),
-                    mat.transform_point(aabb_min_max.1),
+                min_max: Some((
+                    mat.transform_point(min_max.0),
+                    mat.transform_point(min_max.1),
                 )),
             }
         } else {
-            Self { aabb_min_max: None }
+            Self { min_max: None }
         }
     }
 
     /// returns true if this aabb contains 'other' (inclusive)
     #[inline(always)]
     pub fn contains_aabb(&self, other: &Aabb2<T>) -> bool {
-        if let Some(o_aabb) = other.aabb_min_max {
+        if let Some(o_aabb) = other.min_max {
             return self.contains_point(&o_aabb.0) && self.contains_point(&o_aabb.1);
         }
         false
@@ -769,7 +773,7 @@ where
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
     pub fn contains_point(&self, point: &mint::Point2<T>) -> bool {
-        if let Some(s_aabb) = self.aabb_min_max {
+        if let Some(s_aabb) = self.min_max {
             return s_aabb.0.x <= point.x
                 && s_aabb.0.y <= point.y
                 && s_aabb.1.x >= point.x
@@ -784,21 +788,21 @@ where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub fn default() -> Self {
-        Self { aabb_min_max: None }
+        Self { min_max: None }
     }
 
     pub fn update_aabb(&mut self, aabb: &Aabb3<T>) {
-        if let Some((min, max)) = &aabb.aabb_min_max {
+        if let Some((min, max)) = &aabb.min_max {
             self.update_point(min);
             self.update_point(max);
         }
     }
 
     pub fn update_point(&mut self, point: &mint::Point3<T>) {
-        if self.aabb_min_max.is_none() {
-            self.aabb_min_max = Some((*point, *point));
+        if self.min_max.is_none() {
+            self.min_max = Some((*point, *point));
         }
-        let (mut aabb_min, mut aabb_max) = self.aabb_min_max.take().unwrap();
+        let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
 
         if point.x < aabb_min.x {
             aabb_min.x = point.x;
@@ -818,18 +822,18 @@ where
         if point.z > aabb_max.z {
             aabb_max.z = point.z;
         }
-        self.aabb_min_max = Some((aabb_min, aabb_max));
+        self.min_max = Some((aabb_min, aabb_max));
     }
 
     pub fn get_high(&self) -> Option<mint::Point3<T>> {
-        if let Some((_, _high)) = self.aabb_min_max {
+        if let Some((_, _high)) = self.min_max {
             return Some(_high);
         }
         None
     }
 
     pub fn get_low(&self) -> Option<mint::Point3<T>> {
-        if let Some((_low, _)) = self.aabb_min_max {
+        if let Some((_low, _)) = self.min_max {
             return Some(_low);
         }
         None
@@ -837,22 +841,22 @@ where
 
     #[cfg(not(feature = "impl-mint"))]
     pub fn transform(&self, mat: &mint::ColumnMatrix4<T>) -> Self {
-        if let Some(aabb_min_max) = self.aabb_min_max {
+        if let Some(min_max) = self.min_max {
             Self {
-                aabb_min_max: Some((
-                    mat.transform_point(aabb_min_max.0),
-                    mat.transform_point(aabb_min_max.1),
+                min_max: Some((
+                    mat.transform_point(min_max.0),
+                    mat.transform_point(min_max.1),
                 )),
             }
         } else {
-            Self { aabb_min_max: None }
+            Self { min_max: None }
         }
     }
 
     /// returns true if this aabb contains 'other' (inclusive)
     #[inline(always)]
     pub fn contains_aabb(&self, other: &Aabb3<T>) -> bool {
-        if let Some(o_aabb) = other.aabb_min_max {
+        if let Some(o_aabb) = other.min_max {
             return self.contains_point(&o_aabb.0) && self.contains_point(&o_aabb.1);
         }
         false
@@ -867,7 +871,7 @@ where
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
     pub fn contains_point(&self, point: &mint::Point3<T>) -> bool {
-        if let Some(s_aabb) = self.aabb_min_max {
+        if let Some(s_aabb) = self.min_max {
             return s_aabb.0.x <= point.x
                 && s_aabb.0.y <= point.y
                 && s_aabb.0.z <= point.z

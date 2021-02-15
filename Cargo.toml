@@ -10,12 +10,10 @@ license = "AGPL-3.0"
 keywords = ["geometry", "intersection", "douglas-peucker", "visvalingam-whyatt"]
 
 [features]
-#default = ["std"]
 impl-cgmath = ["cgmath"]
 impl-nalgebra = ["nalgebra"]
 impl-mint = ["mint"]
 impl-vec = []
-#std = []
 
 [dependencies]
 cgmath = { version = "^0.18.0", optional = true }
