@@ -188,6 +188,16 @@ where
     }
 }
 
+#[allow(clippy::from_over_into)]
+impl<T> Into<[T; 4]> for Line2<T>
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    fn into(self) -> [T; 4] {
+        [self.start[0], self.start[1], self.end[0], self.end[1]]
+    }
+}
+
 impl<T, IT> From<[IT; 2]> for Line2<T>
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
@@ -259,6 +269,23 @@ where
 {
     pub fn new(start: [T; 3], end: [T; 3]) -> Self {
         Self { start, end }
+    }
+}
+
+#[allow(clippy::from_over_into)]
+impl<T> Into<[T; 6]> for Line3<T>
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    fn into(self) -> [T; 6] {
+        [
+            self.start[0],
+            self.start[1],
+            self.start[2],
+            self.end[0],
+            self.end[1],
+            self.end[2],
+        ]
     }
 }
 
