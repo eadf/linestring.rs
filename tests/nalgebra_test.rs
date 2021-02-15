@@ -1,5 +1,15 @@
 #[cfg(feature = "impl-nalgebra")]
 use linestring::nalgebra_impl;
+use num_traits::Float;
+
+#[cfg(feature = "impl-nalgebra")]
+fn almost_equal<T>(x1: T, x2: T, y1: T, y2: T)
+where
+    T: nalgebra::RealField + Float,
+{
+    assert!(nalgebra_impl::ulps_eq(&x1, &x2));
+    assert!(nalgebra_impl::ulps_eq(&y1, &y2));
+}
 
 #[cfg(feature = "impl-nalgebra")]
 #[test]
@@ -57,4 +67,13 @@ fn line3_1() {
     let line = nalgebra_impl::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
     assert_eq!(line.start, nalgebra::Point3::from([10., 0., 9.]));
     assert_eq!(line.end, nalgebra::Point3::from([0., 11., 9.]));
+}
+
+#[cfg(feature = "impl-nalgebra")]
+#[test]
+fn intersection_1() {
+    let l1 = nalgebra_impl::Line2::from([200., 200., 300., 300.]);
+    let l2 = nalgebra_impl::Line2::from([400., 200., 300., 300.]);
+    let rv = l1.intersection_point(&l2).unwrap().single();
+    almost_equal(rv.x, 300.0, rv.y, 300.0);
 }

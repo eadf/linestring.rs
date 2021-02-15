@@ -1,5 +1,16 @@
 #[cfg(feature = "impl-mint")]
 use linestring::mint_impl;
+use num_traits::Float;
+use std::fmt;
+
+#[cfg(feature = "impl-cgmath")]
+fn almost_equal<T>(x1: T, x2: T, y1: T, y2: T)
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    assert!(mint_impl::ulps_eq(&x1, &x2));
+    assert!(mint_impl::ulps_eq(&y1, &y2));
+}
 
 #[cfg(feature = "impl-mint")]
 #[test]
@@ -57,4 +68,13 @@ fn line3_1() {
     let line = mint_impl::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
     assert_eq!(line.start, mint::Point3::from([10., 0., 9.]));
     assert_eq!(line.end, mint::Point3::from([0., 11., 9.]));
+}
+
+#[cfg(feature = "impl-mint")]
+#[test]
+fn intersection_1() {
+    let l1 = mint_impl::Line2::from([200., 200., 300., 300.]);
+    let l2 = mint_impl::Line2::from([400., 200., 300., 300.]);
+    let rv = l1.intersection_point(&l2).unwrap().single();
+    almost_equal(rv.x, 300.0, rv.y, 300.0);
 }

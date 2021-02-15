@@ -19,7 +19,7 @@ impl Plane {
     /// leaves some decimal in coordinates that's suppose to be zero.
     pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
     where
-        T: nalgebra::RealField + Float + approx::AbsDiffEq + approx::UlpsEq,
+        T: nalgebra::RealField + Float,
     {
         if let Some(low_bound) = aabb.get_low() {
             if let Some(high_bound) = aabb.get_high() {
@@ -75,6 +75,71 @@ where
     pub fn new(start: nalgebra::Point2<T>, end: nalgebra::Point2<T>) -> Self {
         Self { start, end }
     }
+
+    /// Get any intersection point between line segments.
+    /// Note that this function always detects endpoint-to-endpoint intersections.
+    /// Most of this is from https://stackoverflow.com/a/565282
+    #[allow(clippy::many_single_char_names)]
+    pub fn intersection_point(&self, other: &Self) -> Option<Intersection<T>>
+    where
+        T: nalgebra::RealField + Float,
+    {
+        let p = self.start;
+        let q = other.start;
+        let r = sub(&self.end, &p);
+        let s = sub(&other.end, &q);
+
+        let r_cross_s = cross(&r, &s);
+        let q_minus_p = sub(&q, &p);
+        let q_minus_p_cross_r = cross(&q_minus_p, &r);
+
+        // If r × s = 0 then the two lines are parallel
+        if ulps_eq(&r_cross_s, &T::zero()) {
+            // one (or both) of the lines may be a point
+            let one_is_a_point = ulps_eq_c(&self.start, &self.end);
+            let other_is_a_point = ulps_eq_c(&other.start, &other.end);
+            if one_is_a_point || other_is_a_point {
+                if one_is_a_point && other_is_a_point && ulps_eq_c(&self.start, &other.start) {
+                    return Some(Intersection::Intersection(self.start));
+                }
+                return if one_is_a_point {
+                    intersect_line_point(other, &self.start)
+                } else {
+                    intersect_line_point(self, &other.start)
+                };
+            }
+
+            // If r × s = 0 and (q − p) × r = 0, then the two lines are collinear.
+            if ulps_eq(&q_minus_p_cross_r, &T::zero()) {
+                let r_dot_r = dot(&r, &r);
+                let r_div_r_dot_r = div(&r, r_dot_r);
+                let s_dot_r = dot(&s, &r);
+                let t0 = dot(&q_minus_p, &r_div_r_dot_r);
+                let t1 = t0 + s_dot_r / r_dot_r;
+
+                Some(Intersection::OverLap(Line2::new(
+                    scale_to_coordinate(&p, &r, t0),
+                    scale_to_coordinate(&p, &r, t1),
+                )))
+            } else {
+                // If r × s = 0 and (q − p) × r ≠ 0,
+                // then the two lines are parallel and non-intersecting.
+                None
+            }
+        } else {
+            // the lines are not parallel
+            let t = cross(&q_minus_p, &div(&s, r_cross_s));
+            let u = cross(&q_minus_p, &div(&r, r_cross_s));
+
+            // If r × s ≠ 0 and 0 ≤ t ≤ 1 and 0 ≤ u ≤ 1,
+            // the two line segments meet at the point p + t r = q + u s.
+            if T::zero() <= t && t <= T::one() && T::zero() <= u && u <= T::one() {
+                Some(Intersection::Intersection(scale_to_coordinate(&p, &r, t)))
+            } else {
+                None
+            }
+        }
+    }
 }
 
 impl<T, IT> From<[IT; 2]> for Line2<T>
@@ -84,6 +149,18 @@ where
 {
     fn from(coordinate: [IT; 2]) -> Line2<T> {
         Line2::<T>::new(coordinate[0].into(), coordinate[1].into())
+    }
+}
+
+impl<T> From<[T; 4]> for Line2<T>
+where
+    T: nalgebra::RealField + Float,
+{
+    fn from(coordinate: [T; 4]) -> Line2<T> {
+        Line2::<T>::new(
+            [coordinate[0], coordinate[1]].into(),
+            [coordinate[2], coordinate[3]].into(),
+        )
     }
 }
 
@@ -729,4 +806,140 @@ where
         }
         false
     }
+}
+
+/// Get any intersection point between line segment and point.
+/// Inspired by https://stackoverflow.com/a/17590923
+pub fn intersect_line_point<T>(
+    line: &Line2<T>,
+    point: &nalgebra::Point2<T>,
+) -> Option<Intersection<T>>
+where
+    T: nalgebra::RealField + Float,
+{
+    // take care of end point equality
+    if ulps_eq(&line.start.x, &point.x) && ulps_eq(&line.start.y, &point.y) {
+        return Some(Intersection::Intersection(*point));
+    }
+    if ulps_eq(&line.end.x, &point.x) && ulps_eq(&line.end.y, &point.y) {
+        return Some(Intersection::Intersection(*point));
+    }
+
+    let x1 = line.start.x;
+    let x2 = line.end.x;
+    let y1 = line.start.y;
+    let y2 = line.end.y;
+    let x = point.x;
+    let y = point.y;
+
+    let ab = Float::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+    let ap = Float::sqrt((x - x1) * (x - x1) + (y - y1) * (y - y1));
+    let pb = Float::sqrt((x2 - x) * (x2 - x) + (y2 - y) * (y2 - y));
+
+    #[cfg(feature = "console_trace")]
+    println!("ab={}, ap={}, pb={}, ap+pb={}", ab, ap, pb, ap + pb);
+    if ulps_eq(&ab, &(ap + pb)) {
+        return Some(Intersection::Intersection(*point));
+    }
+    None
+}
+
+#[allow(dead_code)]
+pub enum Intersection<T>
+where
+    T: nalgebra::RealField + Float,
+{
+    // Normal one point intersection
+    Intersection(nalgebra::Point2<T>),
+    // Collinear overlapping
+    OverLap(Line2<T>),
+}
+
+impl<T> Intersection<T>
+where
+    T: nalgebra::RealField + Float,
+{
+    /// return a single, simple intersection point
+    pub fn single(&self) -> nalgebra::Point2<T> {
+        match self {
+            Self::OverLap(a) => a.start,
+            Self::Intersection(a) => *a,
+        }
+    }
+}
+
+impl<T> fmt::Debug for Intersection<T>
+where
+    T: nalgebra::RealField + Float,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::OverLap(a) => a.fmt(f),
+            Self::Intersection(a) => a.fmt(f),
+        }
+    }
+}
+
+#[inline(always)]
+pub fn scale_to_coordinate<T>(
+    point: &nalgebra::Point2<T>,
+    vector: &nalgebra::Vector2<T>,
+    scale: T,
+) -> nalgebra::Point2<T>
+where
+    T: nalgebra::RealField + Float,
+{
+    nalgebra::Point2::<T>::new(point.x + scale * vector.x, point.y + scale * vector.y)
+}
+
+#[inline(always)]
+/// Divides a 'vector' by 'b'. Obviously, don't feed this with 'b' == 0
+fn div<T>(a: &nalgebra::Vector2<T>, b: T) -> nalgebra::Vector2<T>
+where
+    T: nalgebra::RealField + Float,
+{
+    nalgebra::Vector2::<T>::new(a.x / b, a.y / b)
+}
+
+#[inline(always)]
+/// subtracts point b from point a resulting in a vector
+fn sub<T>(a: &nalgebra::Point2<T>, b: &nalgebra::Point2<T>) -> nalgebra::Vector2<T>
+where
+    T: nalgebra::RealField + Float,
+{
+    nalgebra::Vector2::<T>::new(a.x - b.x, a.y - b.y)
+}
+
+#[inline(always)]
+/// calculate the cross product of two lines
+fn cross<T>(a: &nalgebra::Vector2<T>, b: &nalgebra::Vector2<T>) -> T
+where
+    T: nalgebra::RealField + Float,
+{
+    a.x * b.y - a.y * b.x
+}
+
+#[inline(always)]
+/// calculate the dot product of two lines
+fn dot<T>(a: &nalgebra::Vector2<T>, b: &nalgebra::Vector2<T>) -> T
+where
+    T: nalgebra::RealField + Float,
+{
+    a.x * b.x + a.y * b.y
+}
+
+#[inline(always)]
+pub fn ulps_eq_c<T>(a: &nalgebra::Point2<T>, b: &nalgebra::Point2<T>) -> bool
+where
+    T: nalgebra::RealField + Float,
+{
+    ulps_eq(&a.x, &b.x) && ulps_eq(&a.y, &b.y)
+}
+
+#[inline(always)]
+pub fn ulps_eq<T>(a: &T, b: &T) -> bool
+where
+    T: nalgebra::RealField + Float,
+{
+    T::ulps_eq(a, b, T::default_epsilon(), T::default_max_ulps())
 }
