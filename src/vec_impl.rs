@@ -1106,12 +1106,27 @@ where
 #[inline(always)]
 /// from https://stackoverflow.com/a/565282 :
 ///  "Define the 2-dimensional vector cross product v × w to be vx wy − vy wx."
-/// This function returns the z component of v × w
+/// This function returns the z component of v × w (if we pretend v and w are two dimensional)
 fn cross_z<T>(v: &[T; 2], w: &[T; 2]) -> T
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     v[0] * w[1] - v[1] * w[0]
+}
+
+#[inline(always)]
+/// The distance between the line a->b to the point p is the same as
+/// distance = |(a-p)×(a-b)|/|a-b|
+/// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation
+pub fn distance_to_line2_squared<T>(a: &[T; 2], b: &[T; 2], p: &[T; 2]) -> T
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    let a_sub_b = sub(a, b);
+    let a_sub_p = sub(a, p);
+    let a_sub_p_cross_a_sub_b = cross_z(&a_sub_p, &a_sub_b);
+    (a_sub_p_cross_a_sub_b * a_sub_p_cross_a_sub_b)
+        / (a_sub_b[0] * a_sub_b[0] + a_sub_b[1] * a_sub_b[1])
 }
 
 #[inline(always)]

@@ -1114,12 +1114,31 @@ where
 #[inline(always)]
 /// from https://stackoverflow.com/a/565282 :
 ///  "Define the 2-dimensional vector cross product v × w to be vx wy − vy wx."
-/// This function returns the z component of v × w
+/// This function returns the z component of v × w (if we pretend v and w are two dimensional)
 fn cross_z<T>(v: &nalgebra::Vector2<T>, w: &nalgebra::Vector2<T>) -> T
 where
     T: nalgebra::RealField + Float,
 {
     v.x * w.y - v.y * w.x
+}
+
+#[inline(always)]
+/// The distance between the line a->b to the point p is the same as
+/// distance = |(a-p)×(a-b)|/|a-b|
+/// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation
+pub fn distance_to_line2_squared<T>(
+    a: &nalgebra::Point2<T>,
+    b: &nalgebra::Point2<T>,
+    p: &nalgebra::Point2<T>,
+) -> T
+where
+    T: nalgebra::RealField + Float,
+{
+    let a_sub_b = sub(a, b);
+    let a_sub_p = sub(a, p);
+    let a_sub_p_cross_a_sub_b = cross_z(&a_sub_p, &a_sub_b);
+    (a_sub_p_cross_a_sub_b * a_sub_p_cross_a_sub_b)
+        / (a_sub_b.x * a_sub_b.x + a_sub_b.y * a_sub_b.y)
 }
 
 #[inline(always)]
