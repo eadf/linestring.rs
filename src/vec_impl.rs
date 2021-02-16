@@ -135,9 +135,9 @@ where
         let r = sub(&self.end, &p);
         let s = sub(&other.end, &q);
 
-        let r_cross_s = cross_x(&r, &s);
+        let r_cross_s = cross_z(&r, &s);
         let q_minus_p = sub(&q, &p);
-        let q_minus_p_cross_r = cross_x(&q_minus_p, &r);
+        let q_minus_p_cross_r = cross_z(&q_minus_p, &r);
 
         // If r × s = 0 then the two lines are parallel
         if ulps_eq(&r_cross_s, &T::zero()) {
@@ -174,8 +174,8 @@ where
             }
         } else {
             // the lines are not parallel
-            let t = cross_x(&q_minus_p, &div(&s, r_cross_s));
-            let u = cross_x(&q_minus_p, &div(&r, r_cross_s));
+            let t = cross_z(&q_minus_p, &div(&s, r_cross_s));
+            let u = cross_z(&q_minus_p, &div(&r, r_cross_s));
 
             // If r × s ≠ 0 and 0 ≤ t ≤ 1 and 0 ≤ u ≤ 1,
             // the two line segments meet at the point p + t r = q + u s.
@@ -830,10 +830,10 @@ where
     /// returns true if aabb contains a point (inclusive)
     #[inline(always)]
     fn contains_point_(aabb: &([T; 2], [T; 2]), point: &[T; 2]) -> bool {
-        return aabb.0[0] <= point[0]
+        aabb.0[0] <= point[0]
             && aabb.0[1] <= point[1]
             && aabb.1[0] >= point[0]
-            && aabb.1[1] >= point[1];
+            && aabb.1[1] >= point[1]
     }
 }
 
@@ -967,12 +967,12 @@ where
     /// returns true if aabb contains a point (inclusive)
     #[inline(always)]
     fn contains_point_(aabb: &([T; 3], [T; 3]), point: &[T; 3]) -> bool {
-        return aabb.0[0] <= point[0]
+        aabb.0[0] <= point[0]
             && aabb.0[1] <= point[1]
             && aabb.0[2] <= point[2]
             && aabb.1[0] >= point[0]
             && aabb.1[1] >= point[1]
-            && aabb.1[2] >= point[2];
+            && aabb.1[2] >= point[2]
     }
 }
 
@@ -1072,16 +1072,18 @@ where
 }
 
 #[inline(always)]
-/// calculate the x component of the cross product of two lines
-fn cross_x<T>(a: &[T; 2], b: &[T; 2]) -> T
+/// from https://stackoverflow.com/a/565282 :
+///  "Define the 2-dimensional vector cross product v × w to be vx wy − vy wx."
+/// This function returns the z component of v × w
+fn cross_z<T>(v: &[T; 2], w: &[T; 2]) -> T
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    a[0] * b[1] - a[1] * b[0]
+    v[0] * w[1] - v[1] * w[0]
 }
 
 #[inline(always)]
-/// calculate the dot product of two lines
+/// calculate the dot product of two vectors
 fn dot<T>(a: &[T; 2], b: &[T; 2]) -> T
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,

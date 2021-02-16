@@ -135,9 +135,9 @@ where
         let r = sub(&self.end, &p);
         let s = sub(&other.end, &q);
 
-        let r_cross_s = cross_x(&r, &s);
+        let r_cross_s = cross_z(&r, &s);
         let q_minus_p = sub(&q, &p);
-        let q_minus_p_cross_r = cross_x(&q_minus_p, &r);
+        let q_minus_p_cross_r = cross_z(&q_minus_p, &r);
 
         // If r × s = 0 then the two lines are parallel
         if ulps_eq(&r_cross_s, &T::zero()) {
@@ -174,8 +174,8 @@ where
             }
         } else {
             // the lines are not parallel
-            let t = cross_x(&q_minus_p, &div(&s, r_cross_s));
-            let u = cross_x(&q_minus_p, &div(&r, r_cross_s));
+            let t = cross_z(&q_minus_p, &div(&s, r_cross_s));
+            let u = cross_z(&q_minus_p, &div(&r, r_cross_s));
 
             // If r × s ≠ 0 and 0 ≤ t ≤ 1 and 0 ≤ u ≤ 1,
             // the two line segments meet at the point p + t r = q + u s.
@@ -820,10 +820,7 @@ where
         aabb: &(nalgebra::Point2<T>, nalgebra::Point2<T>),
         point: &nalgebra::Point2<T>,
     ) -> bool {
-        return aabb.0.x <= point.x
-            && aabb.0.y <= point.y
-            && aabb.1.x >= point.x
-            && aabb.1.y >= point.y;
+        aabb.0.x <= point.x && aabb.0.y <= point.y && aabb.1.x >= point.x && aabb.1.y >= point.y
     }
 }
 
@@ -959,12 +956,12 @@ where
         aabb: &(nalgebra::Point3<T>, nalgebra::Point3<T>),
         point: &nalgebra::Point3<T>,
     ) -> bool {
-        return aabb.0.x <= point.x
+        aabb.0.x <= point.x
             && aabb.0.y <= point.y
             && aabb.0.z <= point.z
             && aabb.1.x >= point.x
             && aabb.1.y >= point.y
-            && aabb.1.z >= point.z;
+            && aabb.1.z >= point.z
     }
 }
 
@@ -1071,16 +1068,18 @@ where
 }
 
 #[inline(always)]
-/// calculate the x component of the cross product of two lines
-fn cross_x<T>(a: &nalgebra::Vector2<T>, b: &nalgebra::Vector2<T>) -> T
+/// from https://stackoverflow.com/a/565282 :
+///  "Define the 2-dimensional vector cross product v × w to be vx wy − vy wx."
+/// This function returns the z component of v × w
+fn cross_z<T>(v: &nalgebra::Vector2<T>, w: &nalgebra::Vector2<T>) -> T
 where
     T: nalgebra::RealField + Float,
 {
-    a.x * b.y - a.y * b.x
+    v.x * w.y - v.y * w.x
 }
 
 #[inline(always)]
-/// calculate the dot product of two lines
+/// calculate the dot product of two vectors
 fn dot<T>(a: &nalgebra::Vector2<T>, b: &nalgebra::Vector2<T>) -> T
 where
     T: nalgebra::RealField + Float,
