@@ -709,6 +709,38 @@ where
     }
 }
 
+impl<T, IT> From<[IT; 2]> for Aabb2<T>
+where
+    T: cgmath::BaseFloat,
+    IT: Copy + Into<cgmath::Point2<T>>,
+{
+    fn from(coordinate: [IT; 2]) -> Aabb2<T> {
+        Aabb2 {
+            min_max: Some((coordinate[0].into(), coordinate[1].into())),
+        }
+    }
+}
+
+impl<T> From<[T; 4]> for Aabb2<T>
+where
+    T: cgmath::BaseFloat,
+{
+    fn from(coordinate: [T; 4]) -> Aabb2<T> {
+        Aabb2 {
+            min_max: Some((
+                cgmath::Point2 {
+                    x: coordinate[0],
+                    y: coordinate[1],
+                },
+                cgmath::Point2 {
+                    x: coordinate[2],
+                    y: coordinate[3],
+                },
+            )),
+        }
+    }
+}
+
 impl<T> Aabb2<T>
 where
     T: cgmath::BaseFloat,
@@ -819,6 +851,40 @@ where
             && aabb.0.y <= point.y
             && aabb.1.x >= point.x
             && aabb.1.y >= point.y;
+    }
+}
+
+impl<T, IT> From<[IT; 2]> for Aabb3<T>
+where
+    T: cgmath::BaseFloat,
+    IT: Copy + Into<cgmath::Point3<T>>,
+{
+    fn from(coordinate: [IT; 2]) -> Aabb3<T> {
+        Aabb3 {
+            min_max: Some((coordinate[0].into(), coordinate[1].into())),
+        }
+    }
+}
+
+impl<T> From<[T; 6]> for Aabb3<T>
+where
+    T: cgmath::BaseFloat,
+{
+    fn from(coordinate: [T; 6]) -> Aabb3<T> {
+        Aabb3 {
+            min_max: Some((
+                cgmath::Point3 {
+                    x: coordinate[0],
+                    y: coordinate[1],
+                    z: coordinate[2],
+                },
+                cgmath::Point3 {
+                    x: coordinate[3],
+                    y: coordinate[4],
+                    z: coordinate[5],
+                },
+            )),
+        }
     }
 }
 

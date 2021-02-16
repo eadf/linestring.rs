@@ -78,3 +78,15 @@ fn intersection_1() {
     let rv = l1.intersection_point(&l2).unwrap().single();
     almost_equal(rv.x, 300.0, rv.y, 300.0);
 }
+
+#[cfg(feature = "impl-mint")]
+#[test]
+fn aabb2_1() {
+    let aabb = mint_impl::Aabb2::from([200_f32, 200., 400., 400.]);
+    let line = mint_impl::Line2::from([201_f32, 250., 300., 300.]);
+    assert!(aabb.contains_line(&line));
+
+    let aabb = mint_impl::Aabb2::from([200_f32, 200., 400., 400.]);
+    let line = mint_impl::Line2::from([199.9999_f32, 250., 300., 300.]);
+    assert!(!aabb.contains_line(&line));
+}

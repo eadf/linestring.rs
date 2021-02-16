@@ -79,3 +79,15 @@ fn intersection_1() {
     let rv = l1.intersection_point(&l2).unwrap().single();
     almost_equal(rv[0], 300.0, rv[1], 300.0);
 }
+
+#[cfg(feature = "impl-vec")]
+#[test]
+fn aabb2_1() {
+    let aabb = vec_impl::Aabb2::from([200_f32, 200., 400., 400.]);
+    let line = vec_impl::Line2::from([201_f32, 250., 300., 300.]);
+    assert!(aabb.contains_line(&line));
+
+    let aabb = vec_impl::Aabb2::from([200_f32, 200., 400., 400.]);
+    let line = vec_impl::Line2::from([199.9999_f32, 250., 300., 300.]);
+    assert!(!aabb.contains_line(&line));
+}

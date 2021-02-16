@@ -700,6 +700,32 @@ where
     }
 }
 
+impl<T, IT> From<[IT; 2]> for Aabb2<T>
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    IT: Copy + Into<[T; 2]>,
+{
+    fn from(coordinate: [IT; 2]) -> Aabb2<T> {
+        Aabb2 {
+            min_max: Some((coordinate[0].into(), coordinate[1].into())),
+        }
+    }
+}
+
+impl<T> From<[T; 4]> for Aabb2<T>
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    fn from(coordinate: [T; 4]) -> Aabb2<T> {
+        Aabb2 {
+            min_max: Some((
+                [coordinate[0], coordinate[1]],
+                [coordinate[2], coordinate[3]],
+            )),
+        }
+    }
+}
+
 impl<T> Aabb2<T>
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
@@ -808,6 +834,32 @@ where
             && aabb.0[1] <= point[1]
             && aabb.1[0] >= point[0]
             && aabb.1[1] >= point[1];
+    }
+}
+
+impl<T, IT> From<[IT; 2]> for Aabb3<T>
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    IT: Copy + Into<[T; 3]>,
+{
+    fn from(coordinate: [IT; 2]) -> Aabb3<T> {
+        Aabb3 {
+            min_max: Some((coordinate[0].into(), coordinate[1].into())),
+        }
+    }
+}
+
+impl<T> From<[T; 6]> for Aabb3<T>
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    fn from(coordinate: [T; 6]) -> Aabb3<T> {
+        Aabb3 {
+            min_max: Some((
+                [coordinate[0], coordinate[1], coordinate[2]],
+                [coordinate[3], coordinate[4], coordinate[5]],
+            )),
+        }
     }
 }
 
