@@ -350,6 +350,19 @@ where
         }
     }
 
+    /// Copies the points of the iterator into the LineString2
+    /// from_iter is already claimed for into() objects.
+    pub fn with_iter<'a, I>(iter: I) -> Self
+    where
+        T: 'a,
+        I: Iterator<Item = &'a [T; 2]>,
+    {
+        Self {
+            points: iter.into_iter().copied().collect(),
+            connected: false,
+        }
+    }
+
     pub fn points(&self) -> &Vec<[T; 2]> {
         &self.points
     }
@@ -397,15 +410,23 @@ where
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_3d(&self, plane: Plane) -> LineString3<T> {
-        let mut rv: LineString3<T> = self
-            .points
-            .iter()
-            .map(|p2d| match plane {
-                Plane::XY => [p2d[0], p2d[1], T::zero()],
-                Plane::XZ => [p2d[0], T::zero(), p2d[1]],
-                Plane::ZY => [T::zero(), p2d[1], p2d[0]],
-            })
-            .collect();
+        let mut rv: LineString3<T> = match plane {
+            Plane::XY => self
+                .points
+                .iter()
+                .map(|p2d| [p2d[0], p2d[1], T::zero()])
+                .collect(),
+            Plane::XZ => self
+                .points
+                .iter()
+                .map(|p2d| [p2d[0], T::zero(), p2d[1]])
+                .collect(),
+            Plane::ZY => self
+                .points
+                .iter()
+                .map(|p2d| [T::zero(), p2d[1], p2d[0]])
+                .collect(),
+        };
         rv.connected = self.connected;
         rv
     }
@@ -468,19 +489,28 @@ where
         }
     }
 
+    /// Copies the points of the iterator into the LineString2
+    /// from_iter is already claimed for into() objects.
+    pub fn with_iter<'a, I>(iter: I) -> Self
+    where
+        T: 'a,
+        I: Iterator<Item = &'a [T; 3]>,
+    {
+        Self {
+            points: iter.into_iter().copied().collect(),
+            connected: false,
+        }
+    }
+
     /// Copy this linestring3 into a linestring2, keeping the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_2d(&self, plane: Plane) -> LineString2<T> {
-        let mut rv: LineString2<T> = self
-            .points
-            .iter()
-            .map(|p3d| match plane {
-                Plane::XY => [p3d[0], p3d[1]],
-                Plane::XZ => [p3d[0], p3d[2]],
-                Plane::ZY => [p3d[2], p3d[1]],
-            })
-            .collect();
+        let mut rv: LineString2<T> = match plane {
+            Plane::XY => self.points.iter().map(|p3d| [p3d[0], p3d[1]]).collect(),
+            Plane::XZ => self.points.iter().map(|p3d| [p3d[0], p3d[2]]).collect(),
+            Plane::ZY => self.points.iter().map(|p3d| [p3d[2], p3d[1]]).collect(),
+        };
         rv.connected = self.connected;
         rv
     }
@@ -750,6 +780,7 @@ where
     pub fn update_point(&mut self, point: &[T; 2]) {
         if self.min_max.is_none() {
             self.min_max = Some((*point, *point));
+            return;
         }
         let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
 
@@ -881,6 +912,7 @@ where
     pub fn update_point(&mut self, point: &[T; 3]) {
         if self.min_max.is_none() {
             self.min_max = Some((*point, *point));
+            return;
         }
         let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
 

@@ -350,6 +350,19 @@ where
         }
     }
 
+    /// Copies the points of the iterator into the LineString2
+    /// from_iter is already claimed for into() objects.
+    pub fn with_iter<'a, I>(iter: I) -> Self
+    where
+        T: 'a,
+        I: Iterator<Item = &'a nalgebra::Point2<T>>,
+    {
+        Self {
+            points: iter.into_iter().copied().collect(),
+            connected: false,
+        }
+    }
+
     pub fn points(&self) -> &Vec<nalgebra::Point2<T>> {
         &self.points
     }
@@ -397,15 +410,23 @@ where
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_3d(&self, plane: Plane) -> LineString3<T> {
-        let mut rv: LineString3<T> = self
-            .points
-            .iter()
-            .map(|p2d| match plane {
-                Plane::XY => nalgebra::Point3::<T>::new(p2d.x, p2d.y, T::zero()),
-                Plane::XZ => nalgebra::Point3::<T>::new(p2d.x, T::zero(), p2d.y),
-                Plane::ZY => nalgebra::Point3::<T>::new(T::zero(), p2d.y, p2d.x),
-            })
-            .collect();
+        let mut rv: LineString3<T> = match plane {
+            Plane::XY => self
+                .points
+                .iter()
+                .map(|p2d| nalgebra::Point3::<T>::new(p2d.x, p2d.y, T::zero()))
+                .collect(),
+            Plane::XZ => self
+                .points
+                .iter()
+                .map(|p2d| nalgebra::Point3::<T>::new(p2d.x, T::zero(), p2d.y))
+                .collect(),
+            Plane::ZY => self
+                .points
+                .iter()
+                .map(|p2d| nalgebra::Point3::<T>::new(T::zero(), p2d.y, p2d.x))
+                .collect(),
+        };
         rv.connected = self.connected;
         rv
     }
@@ -463,19 +484,40 @@ where
         }
     }
 
+    /// Copies the points of the iterator into the LineString2
+    /// from_iter is already claimed for into() objects.
+    pub fn with_iter<'a, I>(iter: I) -> Self
+    where
+        T: 'a,
+        I: Iterator<Item = &'a nalgebra::Point3<T>>,
+    {
+        Self {
+            points: iter.into_iter().copied().collect(),
+            connected: false,
+        }
+    }
+
     /// Copy this linestring3 into a linestring2, keeping the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_2d(&self, plane: Plane) -> LineString2<T> {
-        let mut rv: LineString2<T> = self
-            .points
-            .iter()
-            .map(|p3d| match plane {
-                Plane::XY => nalgebra::Point2::<T>::new(p3d.x, p3d.y),
-                Plane::XZ => nalgebra::Point2::<T>::new(p3d.x, p3d.z),
-                Plane::ZY => nalgebra::Point2::<T>::new(p3d.z, p3d.y),
-            })
-            .collect();
+        let mut rv: LineString2<T> = match plane {
+            Plane::XY => self
+                .points
+                .iter()
+                .map(|p3d| nalgebra::Point2::<T>::new(p3d.x, p3d.y))
+                .collect(),
+            Plane::XZ => self
+                .points
+                .iter()
+                .map(|p3d| nalgebra::Point2::<T>::new(p3d.x, p3d.z))
+                .collect(),
+            Plane::ZY => self
+                .points
+                .iter()
+                .map(|p3d| nalgebra::Point2::<T>::new(p3d.z, p3d.y))
+                .collect(),
+        };
         rv.connected = self.connected;
         rv
     }
@@ -738,6 +780,7 @@ where
     pub fn update_point(&mut self, point: &nalgebra::Point2<T>) {
         if self.min_max.is_none() {
             self.min_max = Some((*point, *point));
+            return;
         }
         let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
 
@@ -868,6 +911,7 @@ where
     pub fn update_point(&mut self, point: &nalgebra::Point3<T>) {
         if self.min_max.is_none() {
             self.min_max = Some((*point, *point));
+            return;
         }
         let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
 

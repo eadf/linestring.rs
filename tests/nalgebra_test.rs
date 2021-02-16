@@ -89,3 +89,20 @@ fn aabb2_1() {
     let line = nalgebra_impl::Line2::from([199.9999_f32, 250., 300., 300.]);
     assert!(!aabb.contains_line(&line));
 }
+
+#[cfg(feature = "impl-nalgebra")]
+#[test]
+fn d2_to_3d_to_2d_1() {
+    let plane = nalgebra_impl::Plane::XY;
+    let ls2_1 = nalgebra_impl::LineString2::with_iter(
+        [
+            nalgebra::Point2::new(200_f32, 200.),
+            nalgebra::Point2::new(400., 400.),
+            nalgebra::Point2::new(400., 200.),
+        ]
+        .iter(),
+    );
+    let ls3 = ls2_1.copy_to_3d(plane);
+    let ls2_2 = ls3.copy_to_2d(plane);
+    assert_eq!(ls2_1.points(), ls2_2.points());
+}
