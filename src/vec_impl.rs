@@ -135,9 +135,9 @@ where
         let r = sub(&self.end, &p);
         let s = sub(&other.end, &q);
 
-        let r_cross_s = cross(&r, &s);
+        let r_cross_s = cross_x(&r, &s);
         let q_minus_p = sub(&q, &p);
-        let q_minus_p_cross_r = cross(&q_minus_p, &r);
+        let q_minus_p_cross_r = cross_x(&q_minus_p, &r);
 
         // If r × s = 0 then the two lines are parallel
         if ulps_eq(&r_cross_s, &T::zero()) {
@@ -174,8 +174,8 @@ where
             }
         } else {
             // the lines are not parallel
-            let t = cross(&q_minus_p, &div(&s, r_cross_s));
-            let u = cross(&q_minus_p, &div(&r, r_cross_s));
+            let t = cross_x(&q_minus_p, &div(&s, r_cross_s));
+            let u = cross_x(&q_minus_p, &div(&r, r_cross_s));
 
             // If r × s ≠ 0 and 0 ≤ t ≤ 1 and 0 ≤ u ≤ 1,
             // the two line segments meet at the point p + t r = q + u s.
@@ -770,31 +770,44 @@ where
         }
     }
 
-    /// returns true if this aabb contains 'other' (inclusive)
+    /// returns true if this aabb entirely contains/engulfs 'other' (inclusive)
     #[inline(always)]
     pub fn contains_aabb(&self, other: &Aabb2<T>) -> bool {
-        if let Some(o_aabb) = other.min_max {
-            return self.contains_point(&o_aabb.0) && self.contains_point(&o_aabb.1);
+        if let Some(self_aabb) = self.min_max {
+            if let Some(other_aabb) = other.min_max {
+                return Self::contains_point_(&self_aabb, &other_aabb.0)
+                    && Self::contains_point_(&self_aabb, &other_aabb.1);
+            }
         }
         false
     }
 
-    /// returns true if this aabb contains a point (inclusive)
+    /// returns true if this aabb entirely contains/engulfs a line (inclusive)
     #[inline(always)]
     pub fn contains_line(&self, line: &Line2<T>) -> bool {
-        self.contains_point(&line.start) && self.contains_point(&line.end)
+        if let Some(self_aabb) = self.min_max {
+            return Self::contains_point_(&self_aabb, &line.start)
+                && Self::contains_point_(&self_aabb, &line.end);
+        }
+        false
     }
 
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
     pub fn contains_point(&self, point: &[T; 2]) -> bool {
-        if let Some(s_aabb) = self.min_max {
-            return s_aabb.0[0] <= point[0]
-                && s_aabb.0[1] <= point[1]
-                && s_aabb.1[0] >= point[0]
-                && s_aabb.1[1] >= point[1];
+        if let Some(self_aabb) = self.min_max {
+            return Self::contains_point_(&self_aabb, point);
         }
         false
+    }
+
+    /// returns true if aabb contains a point (inclusive)
+    #[inline(always)]
+    fn contains_point_(aabb: &([T; 2], [T; 2]), point: &[T; 2]) -> bool {
+        return aabb.0[0] <= point[0]
+            && aabb.0[1] <= point[1]
+            && aabb.1[0] >= point[0]
+            && aabb.1[1] >= point[1];
     }
 }
 
@@ -868,33 +881,46 @@ where
         }
     }
 
-    /// returns true if this aabb contains 'other' (inclusive)
+    /// returns true if this aabb entirely contains/engulfs 'other' (inclusive)
     #[inline(always)]
-    pub fn contains_aabb(&self, other: &Aabb3<T>) -> bool {
-        if let Some(o_aabb) = other.min_max {
-            return self.contains_point(&o_aabb.0) && self.contains_point(&o_aabb.1);
+    pub fn contains_aabb(&self, other: &Self) -> bool {
+        if let Some(self_aabb) = other.min_max {
+            if let Some(o_aabb) = other.min_max {
+                return Self::contains_point_(&self_aabb, &o_aabb.0)
+                    && Self::contains_point_(&self_aabb, &o_aabb.1);
+            }
         }
         false
     }
 
-    /// returns true if this aabb contains a point (inclusive)
+    /// returns true if this aabb entirely contains/engulfs a line (inclusive)
     #[inline(always)]
     pub fn contains_line(&self, line: &Line3<T>) -> bool {
-        self.contains_point(&line.start) && self.contains_point(&line.end)
+        if let Some(self_aabb) = self.min_max {
+            return Self::contains_point_(&self_aabb, &line.start)
+                && Self::contains_point_(&self_aabb, &line.end);
+        }
+        false
     }
 
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
     pub fn contains_point(&self, point: &[T; 3]) -> bool {
-        if let Some(s_aabb) = self.min_max {
-            return s_aabb.0[0] <= point[0]
-                && s_aabb.0[1] <= point[1]
-                && s_aabb.0[2] <= point[2]
-                && s_aabb.1[0] >= point[0]
-                && s_aabb.1[1] >= point[1]
-                && s_aabb.1[2] >= point[2];
+        if let Some(self_aabb) = self.min_max {
+            return Self::contains_point_(&self_aabb, point);
         }
         false
+    }
+
+    /// returns true if aabb contains a point (inclusive)
+    #[inline(always)]
+    fn contains_point_(aabb: &([T; 3], [T; 3]), point: &[T; 3]) -> bool {
+        return aabb.0[0] <= point[0]
+            && aabb.0[1] <= point[1]
+            && aabb.0[2] <= point[2]
+            && aabb.1[0] >= point[0]
+            && aabb.1[1] >= point[1]
+            && aabb.1[2] >= point[2];
     }
 }
 
@@ -994,8 +1020,8 @@ where
 }
 
 #[inline(always)]
-/// calculate the cross product of two lines
-fn cross<T>(a: &[T; 2], b: &[T; 2]) -> T
+/// calculate the x component of the cross product of two lines
+fn cross_x<T>(a: &[T; 2], b: &[T; 2]) -> T
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {

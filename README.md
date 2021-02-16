@@ -8,10 +8,10 @@
 
 Anything in this API ~~may~~ *will* change without notice.
 
-This crate will contain data structures and methods that deals with lines in 2d and 3d geometry.
+This crate will contain data structures and methods that deals with lines in 2d and 3d space.
 
 There will be 3d and 2d implementations of:
-* Line, a finite two-point struct
+* Line, a finite two-point struct (no rays)
 * LineString, a sequence of points
 * [Ramer–Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm) and [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
 * Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box)
@@ -20,19 +20,19 @@ This will be implemented (feature gated) for [cgmath](https://crates.io/crates/c
 [nalgebra](https://crates.io/crates/nalgebra) and limited versions for [mint](https://crates.io/crates/nalgebra) and plain vector scalars (no transformations etc).
 More implementations could be added if required.
 
-Cargo.toml usage:
+If you want to use this library in your cgmath project you add this to your Cargo.toml:
 ```cargo
-linestring = {version = "^0.0.3", features = ["impl-cgmath"]}
+linestring = {version = "^0.0.4", features = ["impl-cgmath"]}
+```
+Same thing for the other flavours of 2d/3d containers: 
+```cargo
+linestring = {version = "^0.0.4", features = ["impl-nalgebra"]}
 ```
 
 ```cargo
-linestring = {version = "^0.0.3", features = ["impl-nalgebra"]}
+linestring = {version = "^0.0.4", features = ["impl-mint"]}
 ```
 
 ```cargo
-linestring = {version = "^0.0.3", features = ["impl-mint"]}
-```
-
-```cargo
-linestring = {version = "^0.0.3", features = ["impl-vec"]}
+linestring = {version = "^0.0.4", features = ["impl-vec"]}
 ```
