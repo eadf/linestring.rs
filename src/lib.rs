@@ -50,6 +50,20 @@ licenses /why-not-lgpl.html>.
 #![deny(unused_results)]
 #![deny(unused_imports)]
 
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum LinestringError {
+    #[error("Your line-strings are self-intersecting.")]
+    SelfIntersectingData { txt: String },
+
+    #[error("The input data is not 2D")]
+    InputNotPLane { txt: String },
+
+    #[error("Invalid data")]
+    InvalidData { txt: String },
+}
+
 #[cfg(feature = "impl-nalgebra")]
 pub mod nalgebra_impl;
 

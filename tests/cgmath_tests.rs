@@ -59,8 +59,8 @@ fn linestring2_1() {
 #[cfg(feature = "impl-cgmath")]
 #[test]
 fn linestring3_1() {
-    let points: Vec<[f32; 3]> = vec![
-        [0., 0., 0.],
+    let points = vec![
+        [0_f32, 0., 0.],
         [1., 1., 0.],
         [2., 2., 0.],
         [3., 3., 0.],
@@ -232,18 +232,6 @@ fn intersection_10() {
             end: line1.start,
         };
 
-        /*
-        println!(
-            "line1:{:?} slope:{}",
-            line1,
-            (line1.start.x - line1.end.x) / (line1.start.y - line1.end.y)
-        );
-        println!(
-            "line2:{:?} slope:{}",
-            line2,
-            (line2.start.x - line2.end.x) / (line2.start.y - line2.end.y)
-        );*/
-
         let rv = line1.intersection_point(&line2);
         match rv {
             Some(cgmath_impl::Intersection::Intersection(_a)) => {
@@ -257,4 +245,53 @@ fn intersection_10() {
             _ => panic!("expected an overlap, got None"),
         }
     }
+}
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn simplify_1() {
+    let linestring: cgmath_impl::LineString2<f32> = vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]
+        .into_iter()
+        .collect();
+    assert_eq!(1, linestring.simplify(10.0).as_lines().len());
+    println!("{:?}", linestring.simplify(0.1));
+    assert_eq!(2, linestring.simplify(0.1).as_lines().len());
+    let linestring: cgmath_impl::LineString2<f32> =
+        vec![[10f32, 10.], [20.0, 10.0]].into_iter().collect();
+    assert_eq!(1, linestring.simplify(0.1).as_lines().len());
+    let linestring: cgmath_impl::LineString2<f32> =
+        vec![[10f32, 10.], [15.0, 12.0], [17.0, 13.0], [20.0, 10.0]]
+            .into_iter()
+            .collect();
+    //println!("-----Result :{:?}", linestring.simplify(1.1));
+    assert_eq!(2, linestring.simplify(1.1).as_lines().len());
+
+    let line = vec![
+        [77f32, 613.],
+        [689., 650.],
+        [710., 467.],
+        [220., 200.],
+        [120., 300.],
+        [100., 100.],
+    ];
+    let mut line: cgmath_impl::LineString2<f32> = line.into_iter().collect();
+    line.connected = true;
+    assert_eq!(6, line.simplify(1.0).as_lines().len());
+}
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn simplify_2() {
+    let line = vec![
+        [77f32, 613.],
+        [689., 650.],
+        [710., 467.],
+        [220., 200.],
+        [120., 300.],
+        [100., 100.],
+        [77., 613.],
+    ];
+    let mut line: cgmath_impl::LineString2<f32> = line.into_iter().collect();
+    line.connected = false;
+    assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
