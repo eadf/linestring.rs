@@ -133,6 +133,7 @@ where
 }
 
 #[allow(clippy::from_over_into)]
+// Todo is this a subset of "impl<T> From<[T; 4]> for Line2<T>"?
 impl<T> Into<[T; 4]> for Line2<T>
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
@@ -142,6 +143,7 @@ where
     }
 }
 
+// [Into<Point<T>>,Into<Point<T>>] -> Line2<T>
 impl<T, IT> From<[IT; 2]> for Line2<T>
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
@@ -152,6 +154,7 @@ where
     }
 }
 
+// [T,T,T,T] -> Line2<T>
 impl<T> From<[T; 4]> for Line2<T>
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,

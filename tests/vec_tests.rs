@@ -93,3 +93,51 @@ fn aabb2_1() {
     let line = vec_2d::Line2::from([199.9999_f32, 250., 300., 300.]);
     assert!(!aabb.contains_line(&line));
 }
+
+#[cfg(feature = "impl-vec")]
+#[test]
+fn simplify_1() {
+    let linestring: vec_2d::LineString2<f32> = vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]
+        .into_iter()
+        .collect();
+    assert_eq!(1, linestring.simplify(10.0).as_lines().len());
+    println!("{:?}", linestring.simplify(0.1));
+    assert_eq!(2, linestring.simplify(0.1).as_lines().len());
+    let linestring: vec_2d::LineString2<f32> =
+        vec![[10f32, 10.], [20.0, 10.0]].into_iter().collect();
+    assert_eq!(1, linestring.simplify(0.1).as_lines().len());
+    let linestring: vec_2d::LineString2<f32> =
+        vec![[10f32, 10.], [15.0, 12.0], [17.0, 13.0], [20.0, 10.0]]
+            .into_iter()
+            .collect();
+    assert_eq!(2, linestring.simplify(1.1).as_lines().len());
+
+    let line = vec![
+        [77f32, 613.],
+        [689., 650.],
+        [710., 467.],
+        [220., 200.],
+        [120., 300.],
+        [100., 100.],
+    ];
+    let mut line: vec_2d::LineString2<f32> = line.into_iter().collect();
+    line.connected = true;
+    assert_eq!(6, line.simplify(1.0).as_lines().len());
+}
+
+#[cfg(feature = "impl-vec")]
+#[test]
+fn simplify_2() {
+    let line = vec![
+        [77f32, 613.],
+        [689., 650.],
+        [710., 467.],
+        [220., 200.],
+        [120., 300.],
+        [100., 100.],
+        [77., 613.],
+    ];
+    let mut line: vec_2d::LineString2<f32> = line.into_iter().collect();
+    line.connected = false;
+    assert_eq!(6, line.simplify(1.0).as_lines().len());
+}
