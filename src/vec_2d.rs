@@ -43,83 +43,26 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
  */
 
-use cgmath::Transform;
+use super::vec_3d;
+
 use num_traits::Float;
 use std::fmt;
-
-/// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
-#[derive(fmt::Debug, Copy, Clone)]
-pub enum Plane {
-    XY,
-    XZ,
-    ZY,
-}
-
-impl Plane {
-    /// Try to figure out what axes defines the plane.
-    /// If the AABB delta of one axis (a) is virtually nothing compared to
-    /// the widest axis (b) while the third axis (c) is comparable to (b)
-    /// by some fraction, we assume that that (a) isn't part of the plane.
-    ///
-    /// It's not possible to compare to zero exactly because blender
-    /// leaves some decimal in coordinates that's suppose to be zero.
-    pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
-    where
-        T: cgmath::BaseFloat,
-    {
-        if let Some(low_bound) = aabb.get_low() {
-            if let Some(high_bound) = aabb.get_high() {
-                let dx = high_bound.x - low_bound.x;
-                let dy = high_bound.y - low_bound.y;
-                let dz = high_bound.z - low_bound.z;
-                let max_delta = Float::max(Float::max(dx, dy), dz);
-
-                let dx = T::zero().ulps_eq(
-                    &(dx / max_delta),
-                    T::default_epsilon(),
-                    T::default_max_ulps(),
-                );
-                let dy = T::zero().ulps_eq(
-                    &&(dy / max_delta),
-                    T::default_epsilon(),
-                    T::default_max_ulps(),
-                );
-                let dz = T::zero().ulps_eq(
-                    &&(dz / max_delta),
-                    T::default_epsilon(),
-                    T::default_max_ulps(),
-                );
-
-                if dx && !dy && !dz {
-                    return Some(Plane::XY);
-                }
-                if dy && !dx && !dz {
-                    return Some(Plane::XZ);
-                }
-                if dz && !dx && !dy {
-                    return Some(Plane::ZY);
-                }
-            }
-        }
-        None
-    }
-}
 
 /// A 2d line
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line2<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    pub start: cgmath::Point2<T>,
-    pub end: cgmath::Point2<T>,
+    pub start: [T; 2],
+    pub end: [T; 2],
 }
 
 impl<T> Line2<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    pub fn new(start: cgmath::Point2<T>, end: cgmath::Point2<T>) -> Self {
+    pub fn new(start: [T; 2], end: [T; 2]) -> Self {
         Self { start, end }
     }
 
@@ -129,7 +72,7 @@ where
     #[allow(clippy::many_single_char_names)]
     pub fn intersection_point(&self, other: &Self) -> Option<Intersection<T>>
     where
-        T: cgmath::BaseFloat,
+        T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
     {
         let p = self.start;
         let q = other.start;
@@ -192,17 +135,17 @@ where
 #[allow(clippy::from_over_into)]
 impl<T> Into<[T; 4]> for Line2<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn into(self) -> [T; 4] {
-        [self.start.x, self.start.y, self.end.x, self.end.y]
+        [self.start[0], self.start[1], self.end[0], self.end[1]]
     }
 }
 
 impl<T, IT> From<[IT; 2]> for Line2<T>
 where
-    T: cgmath::BaseFloat,
-    IT: Copy + Into<cgmath::Point2<T>>,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    IT: Copy + Into<[T; 2]>,
 {
     fn from(coordinate: [IT; 2]) -> Line2<T> {
         Line2::<T>::new(coordinate[0].into(), coordinate[1].into())
@@ -211,12 +154,12 @@ where
 
 impl<T> From<[T; 4]> for Line2<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn from(coordinate: [T; 4]) -> Line2<T> {
         Line2::<T>::new(
-            [coordinate[0], coordinate[1]].into(),
-            [coordinate[2], coordinate[3]].into(),
+            [coordinate[0], coordinate[1]],
+            [coordinate[2], coordinate[3]],
         )
     }
 }
@@ -226,7 +169,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet2<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     set: Vec<LineString2<T>>,
     aabb: Aabb2<T>,
@@ -237,116 +180,37 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    min_max: Option<(cgmath::Point2<T>, cgmath::Point2<T>)>,
+    min_max: Option<([T; 2], [T; 2])>,
 }
 
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString2<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    points: Vec<cgmath::Point2<T>>,
+    points: Vec<[T; 2]>,
 
     /// if connected is set the as_lines() method will add an extra line connecting
     /// the first and last point
     pub connected: bool,
-}
-
-/// A 3d line
-#[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
-pub struct Line3<T>
-where
-    T: cgmath::BaseFloat,
-{
-    pub start: cgmath::Point3<T>,
-    pub end: cgmath::Point3<T>,
-}
-
-impl<T> Line3<T>
-where
-    T: cgmath::BaseFloat,
-{
-    pub fn new(start: cgmath::Point3<T>, end: cgmath::Point3<T>) -> Self {
-        Self { start, end }
-    }
-}
-
-#[allow(clippy::from_over_into)]
-impl<T> Into<[T; 6]> for Line3<T>
-where
-    T: cgmath::BaseFloat,
-{
-    fn into(self) -> [T; 6] {
-        [
-            self.start.x,
-            self.start.y,
-            self.start.z,
-            self.end.x,
-            self.end.y,
-            self.end.z,
-        ]
-    }
-}
-
-impl<T, IT> From<[IT; 2]> for Line3<T>
-where
-    T: cgmath::BaseFloat,
-    IT: Copy + Into<cgmath::Point3<T>>,
-{
-    fn from(pos: [IT; 2]) -> Line3<T> {
-        Line3::<T>::new(pos[0].into(), pos[1].into())
-    }
-}
-
-#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
-pub struct LineString3<T>
-where
-    T: cgmath::BaseFloat,
-{
-    points: Vec<cgmath::Point3<T>>,
-
-    /// if connected is set the as_lines() method will add an extra line connecting
-    /// the first and last point
-    pub connected: bool,
-}
-
-/// A set of linestrings + an aabb
-/// Intended to contain related 3d shapes. E.g. outlines of letters with holes
-#[derive(PartialEq, Eq, Clone, Hash)]
-pub struct LineStringSet3<T>
-where
-    T: cgmath::BaseFloat,
-{
-    pub set: Vec<LineString3<T>>,
-    pub aabb: Aabb3<T>,
-}
-
-/// A simple 3d AABB
-/// If min_max is none the data has not been assigned yet.
-#[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
-pub struct Aabb3<T>
-where
-    T: cgmath::BaseFloat,
-{
-    min_max: Option<(cgmath::Point3<T>, cgmath::Point3<T>)>,
 }
 
 impl<T> LineString2<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub fn default() -> Self {
         Self {
-            points: Vec::<cgmath::Point2<T>>::new(),
+            points: Vec::<[T; 2]>::new(),
             connected: false,
         }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            points: Vec::<cgmath::Point2<T>>::with_capacity(capacity),
+            points: Vec::<[T; 2]>::with_capacity(capacity),
             connected: false,
         }
     }
@@ -356,7 +220,7 @@ where
     pub fn with_iter<'a, I>(iter: I) -> Self
     where
         T: 'a,
-        I: Iterator<Item = &'a cgmath::Point2<T>>,
+        I: Iterator<Item = &'a [T; 2]>,
     {
         Self {
             points: iter.into_iter().copied().collect(),
@@ -364,7 +228,7 @@ where
         }
     }
 
-    pub fn points(&self) -> &Vec<cgmath::Point2<T>> {
+    pub fn points(&self) -> &Vec<[T; 2]> {
         &self.points
     }
 
@@ -410,44 +274,33 @@ where
     /// Copy this linestring2 into a linestring3, populating the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_3d(&self, plane: Plane) -> LineString3<T> {
-        let mut rv: LineString3<T> = match plane {
-            Plane::XY => self
+    pub fn copy_to_3d(&self, plane: vec_3d::Plane) -> vec_3d::LineString3<T> {
+        let mut rv: vec_3d::LineString3<T> = match plane {
+            vec_3d::Plane::XY => self
                 .points
                 .iter()
-                .map(|p2d| cgmath::Point3 {
-                    x: p2d.x,
-                    y: p2d.y,
-                    z: T::zero(),
-                })
+                .map(|p2d| [p2d[0], p2d[1], T::zero()])
                 .collect(),
-            Plane::XZ => self
+            vec_3d::Plane::XZ => self
                 .points
                 .iter()
-                .map(|p2d| cgmath::Point3 {
-                    x: p2d.x,
-                    y: T::zero(),
-                    z: p2d.y,
-                })
+                .map(|p2d| [p2d[0], T::zero(), p2d[1]])
                 .collect(),
-            Plane::ZY => self
+            vec_3d::Plane::ZY => self
                 .points
                 .iter()
-                .map(|p2d| cgmath::Point3 {
-                    x: T::zero(),
-                    y: p2d.y,
-                    z: p2d.x,
-                })
+                .map(|p2d| [T::zero(), p2d[1], p2d[0]])
                 .collect(),
         };
         rv.connected = self.connected;
         rv
     }
 
-    pub fn push(&mut self, point: cgmath::Point2<T>) {
+    pub fn push(&mut self, point: [T; 2]) {
         self.points.push(point);
     }
 
+    #[cfg(not(feature = "impl-vec"))]
     pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
         Self {
             points: self
@@ -479,14 +332,14 @@ where
                 }
             }
             //println!("max_dist_sq: {:?}", max_dist_sq);
-            let mut rv: Vec<cgmath::Point2<T>> = Vec::with_capacity(self.points.len());
+            let mut rv: Vec<[T; 2]> = Vec::with_capacity(self.points.len());
             rv.push(*self.points.first().unwrap());
             rv.append(&mut Self::_simplify(
                 distance_predicate * distance_predicate,
                 &self.points.as_slice()[..max_dist_sq.1 + 1],
             ));
             {
-                let mut tmp: Vec<cgmath::Point2<T>> = self.points.as_slice()[max_dist_sq.1..]
+                let mut tmp: Vec<[T; 2]> = self.points.as_slice()[max_dist_sq.1..]
                     .iter()
                     .copied()
                     .collect();
@@ -504,7 +357,7 @@ where
                 connected: true,
             }
         } else {
-            let mut rv: Vec<cgmath::Point2<T>> = Vec::with_capacity(self.points.len());
+            let mut rv: Vec<[T; 2]> = Vec::with_capacity(self.points.len());
             // _simplify() always omits the the first point, so we have to add that
             rv.push(*self.points.first().unwrap());
             rv.append(&mut Self::_simplify(
@@ -521,7 +374,7 @@ where
     /// A naïve implementation of Ramer–Douglas–Peucker algorithm
     /// It spawns a lot of Vec, but it seems to work
     /// TODO: make sure this isn't called with endpoint==startpoint!!
-    fn _simplify(distance_predicate_sq: T, slice: &[cgmath::Point2<T>]) -> Vec<cgmath::Point2<T>> {
+    fn _simplify(distance_predicate_sq: T, slice: &[[T; 2]]) -> Vec<[T; 2]> {
         //println!("input dist:{:?} slice{:?}", distance_predicate_sq, slice);
         if slice.len() <= 2 {
             return slice[1..].to_vec();
@@ -563,8 +416,8 @@ where
 
 impl<T, IC> std::iter::FromIterator<IC> for LineString2<T>
 where
-    T: cgmath::BaseFloat,
-    IC: Into<cgmath::Point2<T>>,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    IC: Into<[T; 2]>,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString2 {
@@ -574,146 +427,9 @@ where
     }
 }
 
-impl<T> LineString3<T>
-where
-    T: cgmath::BaseFloat,
-{
-    pub fn default() -> Self {
-        Self {
-            points: Vec::<cgmath::Point3<T>>::new(),
-            connected: false,
-        }
-    }
-
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            points: Vec::<cgmath::Point3<T>>::with_capacity(capacity),
-            connected: false,
-        }
-    }
-
-    /// Copies the points of the iterator into the LineString2
-    /// from_iter is already claimed for into() objects.
-    pub fn with_iter<'a, I>(iter: I) -> Self
-    where
-        T: 'a,
-        I: Iterator<Item = &'a cgmath::Point3<T>>,
-    {
-        Self {
-            points: iter.into_iter().copied().collect(),
-            connected: false,
-        }
-    }
-
-    /// Copy this linestring3 into a linestring2, keeping the axes defined by 'plane'
-    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
-    /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_2d(&self, plane: Plane) -> LineString2<T> {
-        let mut rv: LineString2<T> = match plane {
-            Plane::XY => self
-                .points
-                .iter()
-                .map(|p3d| cgmath::Point2 { x: p3d.x, y: p3d.y })
-                .collect(),
-            Plane::XZ => self
-                .points
-                .iter()
-                .map(|p3d| cgmath::Point2 { x: p3d.x, y: p3d.z })
-                .collect(),
-            Plane::ZY => self
-                .points
-                .iter()
-                .map(|p3d| cgmath::Point2 { x: p3d.z, y: p3d.y })
-                .collect(),
-        };
-        rv.connected = self.connected;
-        rv
-    }
-
-    pub fn points(&self) -> &Vec<cgmath::Point3<T>> {
-        &self.points
-    }
-
-    pub fn len(&self) -> usize {
-        self.points.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.points.is_empty()
-    }
-
-    pub fn as_lines(&self) -> Vec<Line3<T>> {
-        if self.points.is_empty() {
-            return vec![];
-        } else if self.points.len() == 1 {
-            return vec![Line3 {
-                start: *self.points.first().unwrap(),
-                end: *self.points.first().unwrap(),
-            }];
-        }
-        let iter1 = self.points.iter().skip(1);
-        let iter2 = self.points.iter();
-        if self.connected && self.points.last() != self.points.first() {
-            iter1
-                .zip(iter2)
-                .map(|(a, b)| Line3 { start: *b, end: *a })
-                .chain(
-                    Some(Line3 {
-                        start: *self.points.last().unwrap(),
-                        end: *self.points.first().unwrap(),
-                    })
-                    .into_iter(),
-                )
-                .collect()
-        } else {
-            iter1
-                .zip(iter2)
-                .map(|(a, b)| Line3 { start: *b, end: *a })
-                .collect()
-        }
-    }
-
-    pub fn push(&mut self, point: cgmath::Point3<T>) {
-        self.points.push(point);
-    }
-
-    pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
-        Self {
-            points: self
-                .points
-                .iter()
-                .map(|x| mat.transform_point(*x))
-                .collect(),
-            connected: self.connected,
-        }
-    }
-
-    /// Simplify using Ramer–Douglas–Peucker algorithm adapted for 3d
-    pub fn simplify(&self, _d: T) -> Self {
-        unimplemented!();
-    }
-
-    /// Simplify using Visvalingam–Whyatt algorithm adapted for 3d
-    pub fn simplify_vw(&self, _d: T) -> Self {
-        unimplemented!();
-    }
-}
-
-impl<T, IC: Into<cgmath::Point3<T>>> std::iter::FromIterator<IC> for LineString3<T>
-where
-    T: cgmath::BaseFloat,
-{
-    fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
-        LineString3 {
-            points: iter.into_iter().map(|c| c.into()).collect(),
-            connected: false,
-        }
-    }
-}
-
 impl<T> LineStringSet2<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub fn default() -> Self {
         Self {
@@ -751,6 +467,7 @@ where
         &self.aabb
     }
 
+    #[cfg(not(feature = "impl-vec"))]
     pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
         Self {
             aabb: self.aabb.transform(mat),
@@ -762,8 +479,8 @@ where
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     /// The empty axis will be set to zero.
-    pub fn copy_to_3d(&self, plane: Plane) -> LineStringSet3<T> {
-        let mut rv = LineStringSet3::with_capacity(self.set.len());
+    pub fn copy_to_3d(&self, plane: vec_3d::Plane) -> vec_3d::LineStringSet3<T> {
+        let mut rv = vec_3d::LineStringSet3::with_capacity(self.set.len());
         for ls in self.set.iter() {
             rv.push(ls.copy_to_3d(plane));
         }
@@ -777,75 +494,10 @@ where
     }
 }
 
-impl<T> LineStringSet3<T>
-where
-    T: cgmath::BaseFloat,
-{
-    pub fn default() -> Self {
-        Self {
-            set: Vec::<LineString3<T>>::new(),
-            aabb: Aabb3::default(),
-        }
-    }
-
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            set: Vec::<LineString3<T>>::with_capacity(capacity),
-            aabb: Aabb3::default(),
-        }
-    }
-
-    pub fn set(&self) -> &Vec<LineString3<T>> {
-        &self.set
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.set.is_empty()
-    }
-
-    pub fn push(&mut self, ls: LineString3<T>) {
-        if !ls.is_empty() {
-            self.set.push(ls);
-
-            for ls in self.set.last().unwrap().points.iter() {
-                self.aabb.update_point(ls);
-            }
-        }
-    }
-
-    pub fn get_aabb(&self) -> &Aabb3<T> {
-        &self.aabb
-    }
-
-    pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
-        Self {
-            set: self.set.iter().map(|x| x.transform(mat)).collect(),
-            aabb: self.aabb.transform(mat),
-        }
-    }
-
-    /// Copy this linestringset3 into a linestringset2, populating the axes defined by 'plane'
-    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
-    /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_2d(&self, plane: Plane) -> LineStringSet2<T> {
-        let mut rv = LineStringSet2::with_capacity(self.set.len());
-        for ls in self.set.iter() {
-            rv.push(ls.copy_to_2d(plane));
-        }
-        rv
-    }
-
-    /// drains the 'other' container of all shapes and put them into 'self'
-    pub fn take_from(&mut self, other: &mut Self) {
-        self.aabb.update_aabb(&other.aabb);
-        self.set.append(&mut other.set);
-    }
-}
-
 impl<T, IT> From<[IT; 2]> for Aabb2<T>
 where
-    T: cgmath::BaseFloat,
-    IT: Copy + Into<cgmath::Point2<T>>,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    IT: Copy + Into<[T; 2]>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb2<T> {
         Aabb2 {
@@ -856,19 +508,13 @@ where
 
 impl<T> From<[T; 4]> for Aabb2<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn from(coordinate: [T; 4]) -> Aabb2<T> {
         Aabb2 {
             min_max: Some((
-                cgmath::Point2 {
-                    x: coordinate[0],
-                    y: coordinate[1],
-                },
-                cgmath::Point2 {
-                    x: coordinate[2],
-                    y: coordinate[3],
-                },
+                [coordinate[0], coordinate[1]],
+                [coordinate[2], coordinate[3]],
             )),
         }
     }
@@ -876,13 +522,13 @@ where
 
 impl<T> Aabb2<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub fn default() -> Self {
         Self { min_max: None }
     }
 
-    pub fn new(point: &cgmath::Point2<T>) -> Self {
+    pub fn new(point: &[T; 2]) -> Self {
         Self {
             min_max: Some((*point, *point)),
         }
@@ -895,42 +541,43 @@ where
         }
     }
 
-    pub fn update_point(&mut self, point: &cgmath::Point2<T>) {
+    pub fn update_point(&mut self, point: &[T; 2]) {
         if self.min_max.is_none() {
             self.min_max = Some((*point, *point));
             return;
         }
         let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
 
-        if point.x < aabb_min.x {
-            aabb_min.x = point.x;
+        if point[0] < aabb_min[0] {
+            aabb_min[0] = point[0];
         }
-        if point.y < aabb_min.y {
-            aabb_min.y = point.y;
+        if point[1] < aabb_min[1] {
+            aabb_min[1] = point[1];
         }
-        if point.x > aabb_max.x {
-            aabb_max.x = point.x;
+        if point[0] > aabb_max[0] {
+            aabb_max[0] = point[0];
         }
-        if point.y > aabb_max.y {
-            aabb_max.y = point.y;
+        if point[1] > aabb_max[1] {
+            aabb_max[1] = point[1];
         }
         self.min_max = Some((aabb_min, aabb_max));
     }
 
-    pub fn get_high(&self) -> Option<cgmath::Point2<T>> {
+    pub fn get_high(&self) -> Option<[T; 2]> {
         if let Some((_, _high)) = self.min_max {
             return Some(_high);
         }
         None
     }
 
-    pub fn get_low(&self) -> Option<cgmath::Point2<T>> {
+    pub fn get_low(&self) -> Option<[T; 2]> {
         if let Some((_low, _)) = self.min_max {
             return Some(_low);
         }
         None
     }
 
+    #[cfg(not(feature = "impl-vec"))]
     pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
         if let Some(min_max) = self.min_max {
             Self {
@@ -968,7 +615,7 @@ where
 
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
-    pub fn contains_point(&self, point: &cgmath::Point2<T>) -> bool {
+    pub fn contains_point(&self, point: &[T; 2]) -> bool {
         if let Some(self_aabb) = self.min_max {
             return Self::contains_point_(&self_aabb, point);
         }
@@ -977,187 +624,34 @@ where
 
     /// returns true if aabb contains a point (inclusive)
     #[inline(always)]
-    fn contains_point_(
-        aabb: &(cgmath::Point2<T>, cgmath::Point2<T>),
-        point: &cgmath::Point2<T>,
-    ) -> bool {
-        aabb.0.x <= point.x && aabb.0.y <= point.y && aabb.1.x >= point.x && aabb.1.y >= point.y
-    }
-}
-
-impl<T, IT> From<[IT; 2]> for Aabb3<T>
-where
-    T: cgmath::BaseFloat,
-    IT: Copy + Into<cgmath::Point3<T>>,
-{
-    fn from(coordinate: [IT; 2]) -> Aabb3<T> {
-        Aabb3 {
-            min_max: Some((coordinate[0].into(), coordinate[1].into())),
-        }
-    }
-}
-
-impl<T> From<[T; 6]> for Aabb3<T>
-where
-    T: cgmath::BaseFloat,
-{
-    fn from(coordinate: [T; 6]) -> Aabb3<T> {
-        Aabb3 {
-            min_max: Some((
-                cgmath::Point3 {
-                    x: coordinate[0],
-                    y: coordinate[1],
-                    z: coordinate[2],
-                },
-                cgmath::Point3 {
-                    x: coordinate[3],
-                    y: coordinate[4],
-                    z: coordinate[5],
-                },
-            )),
-        }
-    }
-}
-
-impl<T> Aabb3<T>
-where
-    T: cgmath::BaseFloat,
-{
-    pub fn default() -> Self {
-        Self { min_max: None }
-    }
-
-    pub fn update_aabb(&mut self, aabb: &Aabb3<T>) {
-        if let Some((min, max)) = &aabb.min_max {
-            self.update_point(min);
-            self.update_point(max);
-        }
-    }
-
-    pub fn update_point(&mut self, point: &cgmath::Point3<T>) {
-        if self.min_max.is_none() {
-            self.min_max = Some((*point, *point));
-            return;
-        }
-        let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
-
-        if point.x < aabb_min.x {
-            aabb_min.x = point.x;
-        }
-        if point.y < aabb_min.y {
-            aabb_min.y = point.y;
-        }
-        if point.z < aabb_min.z {
-            aabb_min.z = point.z;
-        }
-        if point.x > aabb_max.x {
-            aabb_max.x = point.x;
-        }
-        if point.y > aabb_max.y {
-            aabb_max.y = point.y;
-        }
-        if point.z > aabb_max.z {
-            aabb_max.z = point.z;
-        }
-        self.min_max = Some((aabb_min, aabb_max));
-    }
-
-    pub fn get_high(&self) -> Option<cgmath::Point3<T>> {
-        if let Some((_, _high)) = self.min_max {
-            return Some(_high);
-        }
-        None
-    }
-
-    pub fn get_low(&self) -> Option<cgmath::Point3<T>> {
-        if let Some((_low, _)) = self.min_max {
-            return Some(_low);
-        }
-        None
-    }
-
-    pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
-        if let Some(min_max) = self.min_max {
-            Self {
-                min_max: Some((
-                    mat.transform_point(min_max.0),
-                    mat.transform_point(min_max.1),
-                )),
-            }
-        } else {
-            Self { min_max: None }
-        }
-    }
-
-    /// returns true if this aabb entirely contains/engulfs 'other' (inclusive)
-    #[inline(always)]
-    pub fn contains_aabb(&self, other: &Self) -> bool {
-        if let Some(self_aabb) = other.min_max {
-            if let Some(o_aabb) = other.min_max {
-                return Self::contains_point_(&self_aabb, &o_aabb.0)
-                    && Self::contains_point_(&self_aabb, &o_aabb.1);
-            }
-        }
-        false
-    }
-
-    /// returns true if this aabb entirely contains/engulfs a line (inclusive)
-    #[inline(always)]
-    pub fn contains_line(&self, line: &Line3<T>) -> bool {
-        if let Some(self_aabb) = self.min_max {
-            return Self::contains_point_(&self_aabb, &line.start)
-                && Self::contains_point_(&self_aabb, &line.end);
-        }
-        false
-    }
-
-    /// returns true if this aabb contains a point (inclusive)
-    #[inline(always)]
-    pub fn contains_point(&self, point: &cgmath::Point3<T>) -> bool {
-        if let Some(self_aabb) = self.min_max {
-            return Self::contains_point_(&self_aabb, point);
-        }
-        false
-    }
-
-    /// returns true if aabb contains a point (inclusive)
-    #[inline(always)]
-    fn contains_point_(
-        aabb: &(cgmath::Point3<T>, cgmath::Point3<T>),
-        point: &cgmath::Point3<T>,
-    ) -> bool {
-        aabb.0.x <= point.x
-            && aabb.0.y <= point.y
-            && aabb.0.z <= point.z
-            && aabb.1.x >= point.x
-            && aabb.1.y >= point.y
-            && aabb.1.z >= point.z
+    fn contains_point_(aabb: &([T; 2], [T; 2]), point: &[T; 2]) -> bool {
+        aabb.0[0] <= point[0]
+            && aabb.0[1] <= point[1]
+            && aabb.1[0] >= point[0]
+            && aabb.1[1] >= point[1]
     }
 }
 
 /// Get any intersection point between line segment and point.
 /// Inspired by https://stackoverflow.com/a/17590923
-pub fn intersect_line_point<T>(
-    line: &Line2<T>,
-    point: &cgmath::Point2<T>,
-) -> Option<Intersection<T>>
+pub fn intersect_line_point<T>(line: &Line2<T>, point: &[T; 2]) -> Option<Intersection<T>>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     // take care of end point equality
-    if ulps_eq(&line.start.x, &point.x) && ulps_eq(&line.start.y, &point.y) {
+    if ulps_eq(&line.start[0], &point[0]) && ulps_eq(&line.start[1], &point[1]) {
         return Some(Intersection::Intersection(*point));
     }
-    if ulps_eq(&line.end.x, &point.x) && ulps_eq(&line.end.y, &point.y) {
+    if ulps_eq(&line.end[0], &point[0]) && ulps_eq(&line.end[1], &point[1]) {
         return Some(Intersection::Intersection(*point));
     }
 
-    let x1 = line.start.x;
-    let x2 = line.end.x;
-    let y1 = line.start.y;
-    let y2 = line.end.y;
-    let x = point.x;
-    let y = point.y;
+    let x1 = line.start[0];
+    let x2 = line.end[0];
+    let y1 = line.start[1];
+    let y2 = line.end[1];
+    let x = point[0];
+    let y = point[1];
 
     let ab = Float::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
     let ap = Float::sqrt((x - x1) * (x - x1) + (y - y1) * (y - y1));
@@ -1174,20 +668,20 @@ where
 #[allow(dead_code)]
 pub enum Intersection<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     // Normal one point intersection
-    Intersection(cgmath::Point2<T>),
+    Intersection([T; 2]),
     // Collinear overlapping
     OverLap(Line2<T>),
 }
 
 impl<T> Intersection<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     /// return a single, simple intersection point
-    pub fn single(&self) -> cgmath::Point2<T> {
+    pub fn single(&self) -> [T; 2] {
         match self {
             Self::OverLap(a) => a.start,
             Self::Intersection(a) => *a,
@@ -1197,7 +691,7 @@ where
 
 impl<T> fmt::Debug for Intersection<T>
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -1208,50 +702,40 @@ where
 }
 
 #[inline(always)]
-pub fn scale_to_coordinate<T>(
-    point: &cgmath::Point2<T>,
-    vector: &cgmath::Vector2<T>,
-    scale: T,
-) -> cgmath::Point2<T>
+pub fn scale_to_coordinate<T>(point: &[T; 2], vector: &[T; 2], scale: T) -> [T; 2]
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    cgmath::Point2 {
-        x: point.x + scale * vector.x,
-        y: point.y + scale * vector.y,
-    }
+    [point[0] + scale * vector[0], point[1] + scale * vector[1]]
 }
 
 #[inline(always)]
 /// Divides a 'vector' by 'b'. Obviously, don't feed this with 'b' == 0
-fn div<T>(a: &cgmath::Vector2<T>, b: T) -> cgmath::Vector2<T>
+fn div<T>(a: &[T; 2], b: T) -> [T; 2]
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    cgmath::Vector2 {
-        x: a.x / b,
-        y: a.y / b,
-    }
+    [a[0] / b, a[1] / b]
 }
 
 #[inline(always)]
 /// subtracts point b from point a resulting in a vector
-fn sub<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> cgmath::Vector2<T>
+fn sub<T>(a: &[T; 2], b: &[T; 2]) -> [T; 2]
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    a - b
+    [a[0] - b[0], a[1] - b[1]]
 }
 
 #[inline(always)]
 /// from https://stackoverflow.com/a/565282 :
 ///  "Define the 2-dimensional vector cross product v × w to be vx wy − vy wx."
 /// This function returns the z component of v × w (if we pretend v and w are two dimensional)
-fn cross_z<T>(v: &cgmath::Vector2<T>, w: &cgmath::Vector2<T>) -> T
+fn cross_z<T>(v: &[T; 2], w: &[T; 2]) -> T
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    v.x * w.y - v.y * w.x
+    v[0] * w[1] - v[1] * w[0]
 }
 
 #[inline(always)]
@@ -1259,52 +743,48 @@ where
 /// distance = |(a-p)×(a-b)|/|a-b|
 /// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation
 /// Make sure to *not* call this function with a-b==0
-pub fn distance_to_line2_squared<T>(
-    a: &cgmath::Point2<T>,
-    b: &cgmath::Point2<T>,
-    p: &cgmath::Point2<T>,
-) -> T
+pub fn distance_to_line2_squared<T>(a: &[T; 2], b: &[T; 2], p: &[T; 2]) -> T
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     let a_sub_b = sub(a, b);
     let a_sub_p = sub(a, p);
     let a_sub_p_cross_a_sub_b = cross_z(&a_sub_p, &a_sub_b);
     (a_sub_p_cross_a_sub_b * a_sub_p_cross_a_sub_b)
-        / (a_sub_b.x * a_sub_b.x + a_sub_b.y * a_sub_b.y)
+        / (a_sub_b[0] * a_sub_b[0] + a_sub_b[1] * a_sub_b[1])
 }
 
 #[inline(always)]
 /// The distance between the two points
-pub fn distance_to_point2_squared<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> T
+pub fn distance_to_point2_squared<T>(a: &[T; 2], b: &[T; 2]) -> T
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     let v = sub(a, b);
-    v.x * v.x + v.y * v.y
+    v[0] * v[0] + v[1] * v[1]
 }
 
 #[inline(always)]
 /// calculate the dot product of two vectors
-fn dot<T>(a: &cgmath::Vector2<T>, b: &cgmath::Vector2<T>) -> T
+fn dot<T>(a: &[T; 2], b: &[T; 2]) -> T
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    a.x * b.x + a.y * b.y
+    a[0] * b[0] + a[1] * b[1]
 }
 
 #[inline(always)]
-pub fn ulps_eq_c<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> bool
+pub fn ulps_eq_c<T>(a: &[T; 2], b: &[T; 2]) -> bool
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    ulps_eq(&a.x, &b.x) && ulps_eq(&a.y, &b.y)
+    ulps_eq(&a[0], &b[0]) && ulps_eq(&a[1], &b[1])
 }
 
 #[inline(always)]
 pub fn ulps_eq<T>(a: &T, b: &T) -> bool
 where
-    T: cgmath::BaseFloat,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     T::ulps_eq(a, b, T::default_epsilon(), T::default_max_ulps())
 }

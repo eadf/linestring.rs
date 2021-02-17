@@ -1,5 +1,7 @@
 #[cfg(feature = "impl-mint")]
-use linestring::mint_impl;
+use linestring::mint_2d;
+#[cfg(feature = "impl-mint")]
+use linestring::mint_3d;
 use num_traits::Float;
 use std::fmt;
 
@@ -8,8 +10,8 @@ fn almost_equal<T>(x1: T, x2: T, y1: T, y2: T)
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    assert!(mint_impl::ulps_eq(&x1, &x2));
-    assert!(mint_impl::ulps_eq(&y1, &y2));
+    assert!(mint_2d::ulps_eq(&x1, &x2));
+    assert!(mint_2d::ulps_eq(&y1, &y2));
 }
 
 #[cfg(feature = "impl-mint")]
@@ -18,7 +20,7 @@ fn linestring2_1() {
     let points: Vec<[f32; 2]> = vec![[0., 0.], [1., 1.], [2., 2.], [3., 3.], [1., 10.]];
     let points_len = points.len();
 
-    let mut linestring: mint_impl::LineString2<f32> = points.into_iter().collect();
+    let mut linestring: mint_2d::LineString2<f32> = points.into_iter().collect();
     assert_eq!(linestring.len(), points_len);
 
     linestring.connected = false;
@@ -42,7 +44,7 @@ fn linestring3_1() {
     ];
     let points_len = points.len();
 
-    let mut linestring: mint_impl::LineString3<f32> = points.into_iter().collect();
+    let mut linestring: mint_3d::LineString3<f32> = points.into_iter().collect();
     assert_eq!(linestring.len(), points_len);
 
     linestring.connected = false;
@@ -57,7 +59,7 @@ fn linestring3_1() {
 #[cfg(feature = "impl-mint")]
 #[test]
 fn line2_1() {
-    let line = mint_impl::Line2::<f64>::from([[10., 0.], [0., 11.]]);
+    let line = mint_2d::Line2::<f64>::from([[10., 0.], [0., 11.]]);
     assert_eq!(line.start, mint::Point2::from([10., 0.]));
     assert_eq!(line.end, mint::Point2::from([0., 11.]));
 }
@@ -65,7 +67,7 @@ fn line2_1() {
 #[cfg(feature = "impl-mint")]
 #[test]
 fn line3_1() {
-    let line = mint_impl::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
+    let line = mint_3d::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
     assert_eq!(line.start, mint::Point3::from([10., 0., 9.]));
     assert_eq!(line.end, mint::Point3::from([0., 11., 9.]));
 }
@@ -73,8 +75,8 @@ fn line3_1() {
 #[cfg(feature = "impl-mint")]
 #[test]
 fn intersection_1() {
-    let l1 = mint_impl::Line2::from([200., 200., 300., 300.]);
-    let l2 = mint_impl::Line2::from([400., 200., 300., 300.]);
+    let l1 = mint_2d::Line2::from([200., 200., 300., 300.]);
+    let l2 = mint_2d::Line2::from([400., 200., 300., 300.]);
     let rv = l1.intersection_point(&l2).unwrap().single();
     almost_equal(rv.x, 300.0, rv.y, 300.0);
 }
@@ -82,12 +84,12 @@ fn intersection_1() {
 #[cfg(feature = "impl-mint")]
 #[test]
 fn aabb2_1() {
-    let aabb = mint_impl::Aabb2::from([200_f32, 200., 400., 400.]);
-    let line = mint_impl::Line2::from([201_f32, 250., 300., 300.]);
+    let aabb = mint_2d::Aabb2::from([200_f32, 200., 400., 400.]);
+    let line = mint_2d::Line2::from([201_f32, 250., 300., 300.]);
     assert!(aabb.contains_line(&line));
 
-    let aabb = mint_impl::Aabb2::from([200_f32, 200., 400., 400.]);
-    let line = mint_impl::Line2::from([199.9999_f32, 250., 300., 300.]);
+    let aabb = mint_2d::Aabb2::from([200_f32, 200., 400., 400.]);
+    let line = mint_2d::Line2::from([199.9999_f32, 250., 300., 300.]);
     assert!(!aabb.contains_line(&line));
 }
 
@@ -95,31 +97,31 @@ fn aabb2_1() {
 #[test]
 fn point_distance_1() {
     let point = mint::Point2::from([100_f32, 200.]);
-    let line = mint_impl::Line2::from([100_f32, 100., 300., 100.]);
-    let distance = mint_impl::distance_to_line2_squared(&line.start, &line.end, &point);
+    let line = mint_2d::Line2::from([100_f32, 100., 300., 100.]);
+    let distance = mint_2d::distance_to_line2_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
     assert!(
-        mint_impl::ulps_eq(&distance, &correct),
+        mint_2d::ulps_eq(&distance, &correct),
         "{}!={}",
         distance,
         correct
     );
 
     let point = mint::Point2::from([150_f32, 200.]);
-    let distance = mint_impl::distance_to_line2_squared(&line.start, &line.end, &point);
+    let distance = mint_2d::distance_to_line2_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
     assert!(
-        mint_impl::ulps_eq(&distance, &correct),
+        mint_2d::ulps_eq(&distance, &correct),
         "{}!={}",
         distance,
         correct
     );
 
     let point = mint::Point2::from([54_f32, 0.]);
-    let distance = mint_impl::distance_to_line2_squared(&line.start, &line.end, &point);
+    let distance = mint_2d::distance_to_line2_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
     assert!(
-        mint_impl::ulps_eq(&distance, &correct),
+        mint_2d::ulps_eq(&distance, &correct),
         "{}!={}",
         distance,
         correct

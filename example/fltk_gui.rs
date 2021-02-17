@@ -44,7 +44,7 @@ licenses /why-not-lgpl.html>.
 */
 
 #[cfg(feature = "impl-cgmath")]
-use linestring::cgmath_impl::LineString2;
+use linestring::cgmath_2d::LineString2;
 use linestring::LinestringError;
 
 use fltk::*;

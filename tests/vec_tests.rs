@@ -1,6 +1,8 @@
 use approx;
 #[cfg(feature = "impl-vec")]
-use linestring::vec_impl;
+use linestring::vec_2d;
+#[cfg(feature = "impl-vec")]
+use linestring::vec_3d;
 use num_traits::Float;
 use std::fmt;
 
@@ -9,8 +11,8 @@ fn almost_equal<T>(x1: T, x2: T, y1: T, y2: T)
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    assert!(vec_impl::ulps_eq(&x1, &x2));
-    assert!(vec_impl::ulps_eq(&y1, &y2));
+    assert!(vec_2d::ulps_eq(&x1, &x2));
+    assert!(vec_2d::ulps_eq(&y1, &y2));
 }
 
 #[cfg(feature = "impl-vec")]
@@ -19,7 +21,7 @@ fn linestring2_1() {
     let points: Vec<[f32; 2]> = vec![[0., 0.], [1., 1.], [2., 2.], [3., 3.], [1., 10.]];
     let points_len = points.len();
 
-    let mut linestring: vec_impl::LineString2<f32> = points.into_iter().collect();
+    let mut linestring: vec_2d::LineString2<f32> = points.into_iter().collect();
     assert_eq!(linestring.len(), points_len);
 
     linestring.connected = false;
@@ -43,7 +45,7 @@ fn linestring3_1() {
     ];
     let points_len = points.len();
 
-    let mut linestring: vec_impl::LineString3<f32> = points.into_iter().collect();
+    let mut linestring: vec_3d::LineString3<f32> = points.into_iter().collect();
     assert_eq!(linestring.len(), points_len);
 
     linestring.connected = false;
@@ -58,7 +60,7 @@ fn linestring3_1() {
 #[cfg(feature = "impl-vec")]
 #[test]
 fn line2_1() {
-    let line = vec_impl::Line2::<f64>::from([[10., 0.], [0., 11.]]);
+    let line = vec_2d::Line2::<f64>::from([[10., 0.], [0., 11.]]);
     assert_eq!(line.start, [10., 0.]);
     assert_eq!(line.end, [0., 11.]);
 }
@@ -66,7 +68,7 @@ fn line2_1() {
 #[cfg(feature = "impl-vec")]
 #[test]
 fn line3_1() {
-    let line = vec_impl::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
+    let line = vec_3d::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
     assert_eq!(line.start, [10., 0., 9.]);
     assert_eq!(line.end, [0., 11., 9.]);
 }
@@ -74,8 +76,8 @@ fn line3_1() {
 #[cfg(feature = "impl-vec")]
 #[test]
 fn intersection_1() {
-    let l1 = vec_impl::Line2::from([200., 200., 300., 300.]);
-    let l2 = vec_impl::Line2::from([400., 200., 300., 300.]);
+    let l1 = vec_2d::Line2::from([200., 200., 300., 300.]);
+    let l2 = vec_2d::Line2::from([400., 200., 300., 300.]);
     let rv = l1.intersection_point(&l2).unwrap().single();
     almost_equal(rv[0], 300.0, rv[1], 300.0);
 }
@@ -83,11 +85,11 @@ fn intersection_1() {
 #[cfg(feature = "impl-vec")]
 #[test]
 fn aabb2_1() {
-    let aabb = vec_impl::Aabb2::from([200_f32, 200., 400., 400.]);
-    let line = vec_impl::Line2::from([201_f32, 250., 300., 300.]);
+    let aabb = vec_2d::Aabb2::from([200_f32, 200., 400., 400.]);
+    let line = vec_2d::Line2::from([201_f32, 250., 300., 300.]);
     assert!(aabb.contains_line(&line));
 
-    let aabb = vec_impl::Aabb2::from([200_f32, 200., 400., 400.]);
-    let line = vec_impl::Line2::from([199.9999_f32, 250., 300., 300.]);
+    let aabb = vec_2d::Aabb2::from([200_f32, 200., 400., 400.]);
+    let line = vec_2d::Line2::from([199.9999_f32, 250., 300., 300.]);
     assert!(!aabb.contains_line(&line));
 }

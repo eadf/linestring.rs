@@ -1,5 +1,7 @@
 #[cfg(feature = "impl-nalgebra")]
-use linestring::nalgebra_impl;
+use linestring::nalgebra_2d;
+#[cfg(feature = "impl-nalgebra")]
+use linestring::nalgebra_3d;
 use num_traits::Float;
 
 #[cfg(feature = "impl-nalgebra")]
@@ -7,8 +9,8 @@ fn almost_equal<T>(x1: T, x2: T, y1: T, y2: T)
 where
     T: nalgebra::RealField + Float,
 {
-    assert!(nalgebra_impl::ulps_eq(&x1, &x2));
-    assert!(nalgebra_impl::ulps_eq(&y1, &y2));
+    assert!(nalgebra_2d::ulps_eq(&x1, &x2));
+    assert!(nalgebra_2d::ulps_eq(&y1, &y2));
 }
 
 #[cfg(feature = "impl-nalgebra")]
@@ -17,7 +19,7 @@ fn linestring2_1() {
     let points: Vec<[f32; 2]> = vec![[0., 0.], [1., 1.], [2., 2.], [3., 3.], [1., 10.]];
     let points_len = points.len();
 
-    let mut linestring: nalgebra_impl::LineString2<f32> = points.into_iter().collect();
+    let mut linestring: nalgebra_2d::LineString2<f32> = points.into_iter().collect();
     assert_eq!(linestring.len(), points_len);
 
     linestring.connected = false;
@@ -41,7 +43,7 @@ fn linestring3_1() {
     ];
     let points_len = points.len();
 
-    let mut linestring: nalgebra_impl::LineString3<f32> = points.into_iter().collect();
+    let mut linestring: nalgebra_3d::LineString3<f32> = points.into_iter().collect();
     assert_eq!(linestring.len(), points_len);
 
     linestring.connected = false;
@@ -56,7 +58,7 @@ fn linestring3_1() {
 #[cfg(feature = "impl-nalgebra")]
 #[test]
 fn line2_1() {
-    let line = nalgebra_impl::Line2::<f64>::from([[10., 0.], [0., 11.]]);
+    let line = nalgebra_2d::Line2::<f64>::from([[10., 0.], [0., 11.]]);
     assert_eq!(line.start, nalgebra::Point2::from([10., 0.]));
     assert_eq!(line.end, nalgebra::Point2::from([0., 11.]));
 }
@@ -64,7 +66,7 @@ fn line2_1() {
 #[cfg(feature = "impl-nalgebra")]
 #[test]
 fn line3_1() {
-    let line = nalgebra_impl::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
+    let line = nalgebra_3d::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
     assert_eq!(line.start, nalgebra::Point3::from([10., 0., 9.]));
     assert_eq!(line.end, nalgebra::Point3::from([0., 11., 9.]));
 }
@@ -72,8 +74,8 @@ fn line3_1() {
 #[cfg(feature = "impl-nalgebra")]
 #[test]
 fn intersection_1() {
-    let l1 = nalgebra_impl::Line2::from([200., 200., 300., 300.]);
-    let l2 = nalgebra_impl::Line2::from([400., 200., 300., 300.]);
+    let l1 = nalgebra_2d::Line2::from([200., 200., 300., 300.]);
+    let l2 = nalgebra_2d::Line2::from([400., 200., 300., 300.]);
     let rv = l1.intersection_point(&l2).unwrap().single();
     almost_equal(rv.x, 300.0, rv.y, 300.0);
 }
@@ -81,20 +83,20 @@ fn intersection_1() {
 #[cfg(feature = "impl-nalgebra")]
 #[test]
 fn aabb2_1() {
-    let aabb = nalgebra_impl::Aabb2::from([200_f32, 200., 400., 400.]);
-    let line = nalgebra_impl::Line2::from([201_f32, 250., 300., 300.]);
+    let aabb = nalgebra_2d::Aabb2::from([200_f32, 200., 400., 400.]);
+    let line = nalgebra_2d::Line2::from([201_f32, 250., 300., 300.]);
     assert!(aabb.contains_line(&line));
 
-    let aabb = nalgebra_impl::Aabb2::from([200_f32, 200., 400., 400.]);
-    let line = nalgebra_impl::Line2::from([199.9999_f32, 250., 300., 300.]);
+    let aabb = nalgebra_2d::Aabb2::from([200_f32, 200., 400., 400.]);
+    let line = nalgebra_2d::Line2::from([199.9999_f32, 250., 300., 300.]);
     assert!(!aabb.contains_line(&line));
 }
 
 #[cfg(feature = "impl-nalgebra")]
 #[test]
 fn d2_to_3d_to_2d_1() {
-    let plane = nalgebra_impl::Plane::XY;
-    let ls2_1 = nalgebra_impl::LineString2::with_iter(
+    let plane = nalgebra_3d::Plane::XY;
+    let ls2_1 = nalgebra_2d::LineString2::with_iter(
         [
             nalgebra::Point2::new(200_f32, 200.),
             nalgebra::Point2::new(400., 400.),

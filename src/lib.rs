@@ -65,13 +65,21 @@ pub enum LinestringError {
 }
 
 #[cfg(feature = "impl-nalgebra")]
-pub mod nalgebra_impl;
+pub mod nalgebra_2d;
+#[cfg(feature = "impl-nalgebra")]
+pub mod nalgebra_3d;
 
 #[cfg(feature = "impl-cgmath")]
-pub mod cgmath_impl;
+pub mod cgmath_2d;
+#[cfg(feature = "impl-cgmath")]
+pub mod cgmath_3d;
 
 #[cfg(feature = "impl-mint")]
-pub mod mint_impl;
+pub mod mint_2d;
+#[cfg(feature = "impl-mint")]
+pub mod mint_3d;
 
 #[cfg(feature = "impl-vec")]
-pub mod vec_impl;
+pub mod vec_2d;
+#[cfg(feature = "impl-vec")]
+pub mod vec_3d;
