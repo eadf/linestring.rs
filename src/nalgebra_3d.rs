@@ -526,7 +526,7 @@ where
 }
 
 #[inline(always)]
-pub fn ulps_eq_c<T>(a: &nalgebra::Point3<T>, b: &nalgebra::Point3<T>) -> bool
+pub fn point_ulps_eq<T>(a: &nalgebra::Point3<T>, b: &nalgebra::Point3<T>) -> bool
 where
     T: nalgebra::RealField + Float,
 {

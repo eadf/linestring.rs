@@ -86,13 +86,13 @@ where
         // If r × s = 0 then the two lines are parallel
         if ulps_eq(&r_cross_s, &T::zero()) {
             // one (or both) of the lines may be a point
-            let one_is_a_point = ulps_eq_c(&self.start, &self.end);
-            let other_is_a_point = ulps_eq_c(&other.start, &other.end);
-            if one_is_a_point || other_is_a_point {
-                if one_is_a_point && other_is_a_point && ulps_eq_c(&self.start, &other.start) {
+            let self_is_a_point = point_ulps_eq(&self.start, &self.end);
+            let other_is_a_point = point_ulps_eq(&other.start, &other.end);
+            if self_is_a_point || other_is_a_point {
+                if self_is_a_point && other_is_a_point && point_ulps_eq(&self.start, &other.start) {
                     return Some(Intersection::Intersection(self.start));
                 }
-                return if one_is_a_point {
+                return if self_is_a_point {
                     intersect_line_point(other, &self.start)
                 } else {
                     intersect_line_point(self, &other.start)
@@ -332,37 +332,16 @@ where
             return self.clone();
         }
         if self.connected {
-            let start_point = self.points.first().unwrap();
-            let mut max_dist_sq = (-T::one(), 0_usize);
+            let mut points = self.points.clone();
+            points.push(*points.first().unwrap());
 
-            // find the point with largest distance from the start_point
-            for (i, point) in self.points.iter().enumerate().skip(1) {
-                let sq_d = distance_to_point2_squared(start_point, point);
-                //println!("sq_d:{:?} i:{:?} s:{:?} p:{:?}", sq_d, i,start_point, point);
-                if sq_d > max_dist_sq.0 {
-                    max_dist_sq = (sq_d, i);
-                }
-            }
-            //println!("max_dist_sq: {:?}", max_dist_sq);
-            let mut rv: Vec<mint::Point2<T>> = Vec::with_capacity(self.points.len());
-            rv.push(*self.points.first().unwrap());
+            let mut rv: Vec<mint::Point2<T>> = Vec::with_capacity(points.len());
+            // _simplify() always omits the the first point, so we have to add that
+            rv.push(*points.first().unwrap());
             rv.append(&mut Self::_simplify(
                 distance_predicate * distance_predicate,
-                &self.points.as_slice()[..max_dist_sq.1 + 1],
+                points.as_slice(),
             ));
-            {
-                let mut tmp: Vec<mint::Point2<T>> = self.points.as_slice()[max_dist_sq.1..]
-                    .iter()
-                    .copied()
-                    .collect();
-                // add start_point as end point
-                tmp.push(*start_point);
-                rv.append(&mut Self::_simplify(
-                    distance_predicate * distance_predicate,
-                    &tmp.as_slice()[..],
-                ));
-            }
-            // remove the 'extra' end point we just added.
             let _ = rv.remove(rv.len() - 1);
             Self {
                 points: rv,
@@ -393,11 +372,17 @@ where
         }
         let start_point = slice.first().unwrap();
         let end_point = slice.last().unwrap();
+        let identical_points = point_ulps_eq(&start_point, &end_point);
+
         let mut max_dist_sq = (-T::one(), 0_usize);
 
         // find the point with largest distance to start_point<->endpoint line
         for (i, point) in slice.iter().enumerate().take(slice.len() - 1).skip(1) {
-            let sq_d = distance_to_line2_squared(start_point, end_point, point);
+            let sq_d = if identical_points {
+                distance_to_point2_squared(start_point, point)
+            } else {
+                distance_to_line2_squared(start_point, end_point, point)
+            };
             //println!("sq_d:{:?}", sq_d);
             if sq_d > max_dist_sq.0 && sq_d > distance_predicate_sq {
                 max_dist_sq = (sq_d, i);
@@ -806,7 +791,7 @@ where
 }
 
 #[inline(always)]
-pub fn ulps_eq_c<T>(a: &mint::Point2<T>, b: &mint::Point2<T>) -> bool
+pub fn point_ulps_eq<T>(a: &mint::Point2<T>, b: &mint::Point2<T>) -> bool
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {

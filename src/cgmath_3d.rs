@@ -538,7 +538,7 @@ where
 }
 
 #[inline(always)]
-pub fn ulps_eq_c<T>(a: &cgmath::Point3<T>, b: &cgmath::Point3<T>) -> bool
+pub fn point_ulps_eq<T>(a: &cgmath::Point3<T>, b: &cgmath::Point3<T>) -> bool
 where
     T: cgmath::BaseFloat,
 {

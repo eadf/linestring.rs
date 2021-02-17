@@ -518,7 +518,7 @@ where
 }
 
 #[inline(always)]
-pub fn ulps_eq_c<T>(a: &[T; 3], b: &[T; 3]) -> bool
+pub fn point_ulps_eq<T>(a: &[T; 3], b: &[T; 3]) -> bool
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
