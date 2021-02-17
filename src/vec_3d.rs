@@ -203,6 +203,16 @@ where
         }
     }
 
+    pub fn with_points(mut self, points: Vec<[T; 3]>) -> Self {
+        self.points = points;
+        self
+    }
+
+    pub fn with_connected(mut self, connected: bool) -> Self {
+        self.connected = connected;
+        self
+    }
+
     /// Copies the points of the iterator into the LineString2
     /// from_iter is already claimed for into() objects.
     pub fn with_iter<'a, I>(iter: I) -> Self
@@ -289,8 +299,85 @@ where
     }
 
     /// Simplify using Ramer–Douglas–Peucker algorithm adapted for 3d
-    pub fn simplify(&self, _d: T) -> Self {
-        unimplemented!();
+    pub fn simplify(&self, distance_predicate: T) -> Self {
+        //println!("input dist:{:?} slice{:?}", distance_predicate, self.points);
+
+        if self.points.len() <= 2 {
+            return self.clone();
+        }
+        if self.connected {
+            let mut points = self.points.clone();
+            // add the start-point to the end
+            points.push(*points.first().unwrap());
+
+            let mut rv: Vec<[T; 3]> = Vec::with_capacity(points.len());
+            // _simplify() always omits the the first point of the result, so we have to add that
+            rv.push(*points.first().unwrap());
+            rv.append(&mut Self::_simplify(
+                distance_predicate * distance_predicate,
+                points.as_slice(),
+            ));
+            // remove the start-point from the the end
+            let _ = rv.remove(rv.len() - 1);
+            Self {
+                points: rv,
+                connected: true,
+            }
+        } else {
+            let mut rv: Vec<[T; 3]> = Vec::with_capacity(self.points.len());
+            // _simplify() always omits the the first point of the result, so we have to add that
+            rv.push(*self.points.first().unwrap());
+            rv.append(&mut Self::_simplify(
+                distance_predicate * distance_predicate,
+                self.points.as_slice(),
+            ));
+            Self {
+                points: rv,
+                connected: false,
+            }
+        }
+    }
+
+    /// A naïve implementation of Ramer–Douglas–Peucker algorithm
+    /// It spawns a lot of Vec, but it seems to work
+    fn _simplify(distance_predicate_sq: T, slice: &[[T; 3]]) -> Vec<[T; 3]> {
+        //println!("input dist:{:?} slice{:?}", distance_predicate_sq, slice);
+        if slice.len() <= 2 {
+            return slice[1..].to_vec();
+        }
+        let start_point = slice.first().unwrap();
+        let end_point = slice.last().unwrap();
+        let identical_points = point_ulps_eq(&start_point, &end_point);
+
+        let mut max_dist_sq = (-T::one(), 0_usize);
+
+        // find the point with largest distance to start_point<->endpoint line
+        for (i, point) in slice.iter().enumerate().take(slice.len() - 1).skip(1) {
+            let sq_d = if identical_points {
+                distance_to_point_squared(start_point, point)
+            } else {
+                distance_to_line_squared(start_point, end_point, point)
+            };
+            //println!("sq_d:{:?}", sq_d);
+            if sq_d > max_dist_sq.0 && sq_d > distance_predicate_sq {
+                max_dist_sq = (sq_d, i);
+            }
+        }
+
+        //println!("max_dist_sq: {:?}", max_dist_sq);
+        if max_dist_sq.1 == 0 {
+            // no point was outside the distance limit, return a new list only containing the
+            // end point (start point is implicit)
+            //println!("return start-end");
+            return vec![*end_point];
+        }
+
+        let mut rv = Self::_simplify(distance_predicate_sq, &slice[..max_dist_sq.1 + 1]);
+        rv.append(&mut Self::_simplify(
+            distance_predicate_sq,
+            &slice[max_dist_sq.1..],
+        ));
+        rv
     }
 
     /// Simplify using Visvalingam–Whyatt algorithm adapted for 3d
@@ -523,4 +610,52 @@ where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     vec_2d::ulps_eq(&a[0], &b[0]) && vec_2d::ulps_eq(&a[1], &b[1]) && vec_2d::ulps_eq(&a[1], &b[1])
+}
+
+#[inline(always)]
+/// subtracts point b from point a resulting in a vector
+fn sub<T>(a: &[T; 3], b: &[T; 3]) -> [T; 3]
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+}
+
+#[allow(clippy::many_single_char_names)]
+#[inline(always)]
+fn cross_abs_squared<T>(a: &[T; 3], b: &[T; 3]) -> T
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    let x = a[1] * b[2] - a[2] * b[1];
+    let y = a[2] * b[0] - a[0] * b[2];
+    let z = a[0] * b[1] - a[1] * b[0];
+    x * x + y * y + z * z
+}
+
+#[inline(always)]
+/// The distance between the line a->b to the point p is the same as
+/// distance = |(a-p)×(a-b)|/|a-b|
+/// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation
+/// Make sure to *not* call this function with a-b==0
+/// This function returns the distance²
+pub fn distance_to_line_squared<T>(a: &[T; 3], b: &[T; 3], p: &[T; 3]) -> T
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    let a_sub_b = sub(a, b);
+    let a_sub_p = sub(a, p);
+    let a_sub_p_cross_a_sub_b_squared = cross_abs_squared(&a_sub_p, &a_sub_b);
+    a_sub_p_cross_a_sub_b_squared
+        / (a_sub_b[0] * a_sub_b[0] + a_sub_b[1] * a_sub_b[1] + a_sub_b[2] * a_sub_b[2])
+}
+
+#[inline(always)]
+/// The distance² between the two points
+pub fn distance_to_point_squared<T>(a: &[T; 3], b: &[T; 3]) -> T
+where
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    let v = sub(a, b);
+    v[0] * v[0] + v[1] * v[1] + v[2] * v[2]
 }

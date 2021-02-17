@@ -218,6 +218,16 @@ where
         }
     }
 
+    pub fn with_points(mut self, points: Vec<[T; 2]>) -> Self {
+        self.points = points;
+        self
+    }
+
+    pub fn with_connected(mut self, connected: bool) -> Self {
+        self.connected = connected;
+        self
+    }
+
     /// Copies the points of the iterator into the LineString2
     /// from_iter is already claimed for into() objects.
     pub fn with_iter<'a, I>(iter: I) -> Self
@@ -324,15 +334,17 @@ where
         }
         if self.connected {
             let mut points = self.points.clone();
+            // add the start-point to the end
             points.push(*points.first().unwrap());
 
             let mut rv: Vec<[T; 2]> = Vec::with_capacity(points.len());
-            // _simplify() always omits the the first point, so we have to add that
+            // _simplify() always omits the the first point of the result, so we have to add that
             rv.push(*points.first().unwrap());
             rv.append(&mut Self::_simplify(
                 distance_predicate * distance_predicate,
                 points.as_slice(),
             ));
+            // remove the start-point from the the end
             let _ = rv.remove(rv.len() - 1);
             Self {
                 points: rv,
@@ -340,7 +352,7 @@ where
             }
         } else {
             let mut rv: Vec<[T; 2]> = Vec::with_capacity(self.points.len());
-            // _simplify() always omits the the first point, so we have to add that
+            // _simplify() always omits the the first point of the result, so we have to add that
             rv.push(*self.points.first().unwrap());
             rv.append(&mut Self::_simplify(
                 distance_predicate * distance_predicate,
@@ -355,7 +367,6 @@ where
 
     /// A naïve implementation of Ramer–Douglas–Peucker algorithm
     /// It spawns a lot of Vec, but it seems to work
-    /// TODO: make sure this isn't called with endpoint==startpoint!!
     fn _simplify(distance_predicate_sq: T, slice: &[[T; 2]]) -> Vec<[T; 2]> {
         //println!("input dist:{:?} slice{:?}", distance_predicate_sq, slice);
         if slice.len() <= 2 {
@@ -372,7 +383,7 @@ where
             let sq_d = if identical_points {
                 distance_to_point2_squared(start_point, point)
             } else {
-                distance_to_line2_squared(start_point, end_point, point)
+                distance_to_line_squared(start_point, end_point, point)
             };
             //println!("sq_d:{:?}", sq_d);
             if sq_d > max_dist_sq.0 && sq_d > distance_predicate_sq {
@@ -731,7 +742,8 @@ where
 /// distance = |(a-p)×(a-b)|/|a-b|
 /// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation
 /// Make sure to *not* call this function with a-b==0
-pub fn distance_to_line2_squared<T>(a: &[T; 2], b: &[T; 2], p: &[T; 2]) -> T
+/// This function returns the distance²
+pub fn distance_to_line_squared<T>(a: &[T; 2], b: &[T; 2], p: &[T; 2]) -> T
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
@@ -743,7 +755,7 @@ where
 }
 
 #[inline(always)]
-/// The distance between the two points
+/// The distance² between the two points
 pub fn distance_to_point2_squared<T>(a: &[T; 2], b: &[T; 2]) -> T
 where
     T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,

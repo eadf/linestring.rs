@@ -96,6 +96,41 @@ fn aabb2_1() {
 
 #[cfg(feature = "impl-vec")]
 #[test]
+fn point_distance_1() {
+    let point = [100_f32, 200., 0.];
+    let line = vec_3d::Line3::from([[100_f32, 100., 0.], [300., 100., 0.]]);
+    let distance = vec_3d::distance_to_line_squared(&line.start, &line.end, &point);
+    let correct = 100.0_f32 * 100.0;
+    assert!(
+        vec_2d::ulps_eq(&distance, &correct),
+        "{}!={}",
+        distance,
+        correct
+    );
+
+    let point = [150_f32, 200., 0.];
+    let distance = vec_3d::distance_to_line_squared(&line.start, &line.end, &point);
+    let correct = 100.0_f32 * 100.0;
+    assert!(
+        vec_2d::ulps_eq(&distance, &correct),
+        "{}!={}",
+        distance,
+        correct
+    );
+
+    let point = [54_f32, 0., 0.];
+    let distance = vec_3d::distance_to_line_squared(&line.start, &line.end, &point);
+    let correct = 100.0_f32 * 100.0;
+    assert!(
+        vec_2d::ulps_eq(&distance, &correct),
+        "{}!={}",
+        distance,
+        correct
+    );
+}
+
+#[cfg(feature = "impl-vec")]
+#[test]
 fn simplify_1() {
     let linestring: vec_2d::LineString2<f32> = vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]
         .into_iter()

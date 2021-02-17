@@ -146,8 +146,9 @@ fn add_data(data: Rc<RefCell<SharedData>>) -> Result<(), LinestringError> {
         let y: f32 = 400.0 + (angle as f32).to_radians().sin() * 100.0;
         line.push(cgmath::Point2::new(x, y));
     }
-    let mut line: LineString2<f32> = line.into_iter().collect();
-    line.connected = true;
+    let line = LineString2::<f32>::default()
+        .with_points(line)
+        .with_connected(true);
 
     data_b.lines.push(line);
 

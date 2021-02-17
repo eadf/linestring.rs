@@ -98,7 +98,7 @@ fn aabb2_1() {
 fn point_distance_1() {
     let point = mint::Point2::from([100_f32, 200.]);
     let line = mint_2d::Line2::from([100_f32, 100., 300., 100.]);
-    let distance = mint_2d::distance_to_line2_squared(&line.start, &line.end, &point);
+    let distance = mint_2d::distance_to_line_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
     assert!(
         mint_2d::ulps_eq(&distance, &correct),
@@ -108,7 +108,7 @@ fn point_distance_1() {
     );
 
     let point = mint::Point2::from([150_f32, 200.]);
-    let distance = mint_2d::distance_to_line2_squared(&line.start, &line.end, &point);
+    let distance = mint_2d::distance_to_line_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
     assert!(
         mint_2d::ulps_eq(&distance, &correct),
@@ -118,7 +118,7 @@ fn point_distance_1() {
     );
 
     let point = mint::Point2::from([54_f32, 0.]);
-    let distance = mint_2d::distance_to_line2_squared(&line.start, &line.end, &point);
+    let distance = mint_2d::distance_to_line_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
     assert!(
         mint_2d::ulps_eq(&distance, &correct),

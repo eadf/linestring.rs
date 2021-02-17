@@ -297,3 +297,20 @@ fn simplify_2() {
     line.connected = false;
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn simplify_3() {
+    let line = vec![
+        [77f32, 613., 0.],
+        [689., 650., 0.],
+        [710., 467., 0.],
+        [220., 200., 0.],
+        [120., 300., 0.],
+        [100., 100., 0.],
+        [77., 613., 0.],
+    ];
+    let mut line: cgmath_3d::LineString3<f32> = line.into_iter().collect();
+    line.connected = false;
+    assert_eq!(6, line.simplify(1.0).as_lines().len());
+}
