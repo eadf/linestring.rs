@@ -42,13 +42,13 @@ library. If this is what you want to do, use the GNU Lesser General Public
 License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
 */
+use fltk::app::redraw;
 use fltk::valuator::HorNiceSlider;
 use fltk::{app, button::*, draw::*, frame::*, window::*};
 use linestring::cgmath_2d::LineString2;
 use linestring::LinestringError;
 use std::cell::RefCell;
 use std::rc::Rc;
-use fltk::app::redraw;
 
 // frame size
 const HF: i32 = 590;
@@ -169,7 +169,6 @@ fn main() -> Result<(), LinestringError> {
     app.run().unwrap();
     Ok(())
 }
-
 
 fn add_data(data: Rc<RefCell<SharedData>>) -> Result<(), LinestringError> {
     let mut data_b = data.borrow_mut();

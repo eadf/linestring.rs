@@ -24,7 +24,7 @@ If you want to use this library in your cgmath project you add this to your Carg
 ```cargo
 linestring = {version = "^0.0.5", features = ["impl-cgmath"]}
 ```
-Same thing for the other flavours of 2d/3d containers: 
+Same thing for the other supported 2d/3d libraries: 
 ```cargo
 linestring = {version = "^0.0.5", features = ["impl-nalgebra"]}
 ```
@@ -36,3 +36,16 @@ linestring = {version = "^0.0.5", features = ["impl-mint"]}
 ```cargo
 linestring = {version = "^0.0.5", features = ["impl-vec"]}
 ```
+
+Run the line simplification example with :
+```fish
+cargo run --example fltk_gui --features impl-cgmath
+```
+
+## Todo
+- [ ] Improve on error handling
+- [ ] Benchmark and optimize (add smallvec to simplify?)
+- [ ] optimize Ramer–Douglas-Peucker 2d & 3d
+- [ ] Visvalingam-Whyatt 2d & 3d
+- [ ] Figure out why workflows refuse to start
+
