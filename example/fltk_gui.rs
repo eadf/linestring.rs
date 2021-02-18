@@ -42,63 +42,79 @@ library. If this is what you want to do, use the GNU Lesser General Public
 License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
 */
-
-use fltk::*;
-use fltk::{valuator::HorNiceSlider, frame::Frame};
-#[cfg(feature = "impl-cgmath")]
+use fltk::valuator::HorNiceSlider;
+use fltk::{app, button::*, draw::*, frame::*, window::*};
 use linestring::cgmath_2d::LineString2;
 use linestring::LinestringError;
 use std::cell::RefCell;
 use std::rc::Rc;
+use fltk::app::redraw;
 
-const WINDOW_SIZE: i32 = 800;
+// frame size
+const HF: i32 = 590;
+const WF: i32 = 790;
+
+// window size
+const H: i32 = 650;
+const W: i32 = 800;
 
 struct SharedData {
-    distance: f32,
+    //distance: f32,
     lines: Vec<LineString2<f32>>,
-    _window_center: (i32, i32),
 }
 
-#[cfg(feature = "impl-cgmath")]
 fn main() -> Result<(), LinestringError> {
-    let app = app::App::default();
-    let mut wind = window::Window::default()
-        .with_size(WINDOW_SIZE, WINDOW_SIZE)
-        .center_screen()
-        .with_label("Ramer–Douglas–Peucker 2d Demo");
-    let mut frame = Frame::new(0, WINDOW_SIZE-50, WINDOW_SIZE, 25, "Distance:0");
-    frame.set_frame(FrameType::PlasticUpBox);
-    let mut slider = HorNiceSlider::default()
-        .size_of(&frame)
-        .below_of(&frame, 0);
+    let app = app::App::default().with_scheme(app::Scheme::Gtk);
+
+    let mut wind = Window::new(100, 100, W, H, "Ramer–Douglas–Peucker 2d Demo");
+    let mut frame = Frame::new(5, 5, WF, HF, "");
+    frame.set_color(Color::White);
+    frame.set_frame(FrameType::DownBox);
+
+    let mut slider = HorNiceSlider::new(5, 5 + HF, WF, 25, "Move the slider to draw!!!");
     slider.set_value(0.0);
     slider.set_frame(FrameType::PlasticUpBox);
-    wind.set_color(Color::Black);
+
     wind.end();
     wind.show();
 
     let shared_data_rc = Rc::from(RefCell::from(SharedData {
-        distance: 0.0,
+        //distance: 0.0,
         lines: Vec::new(),
-        _window_center: (WINDOW_SIZE / 2, WINDOW_SIZE / 2),
     }));
-    let slider_shared_data = shared_data_rc.clone();
+
+    let offs = Offscreen::new(WF, HF).unwrap();
+    #[cfg(not(target_os = "macos"))]
+    {
+        offs.begin();
+        set_draw_color(Color::White);
+        draw_rectf(0, 0, WF, HF);
+        offs.end();
+    }
+
+    let offs = Rc::from(RefCell::from(offs));
+    let offs_rc = offs.clone();
+
+    let slider_shared_data = Rc::clone(&shared_data_rc);
     slider.set_callback2(move |b| {
-        let mut shared_data = slider_shared_data.borrow_mut();
-        shared_data.distance = b.value() as f32 * 200.0;
-        frame.set_label(("Distance:".to_string() + &(b.value() as f32*200.0).to_string()).as_str())
-    });
-    add_data(shared_data_rc.clone())?;
+        let shared_data = slider_shared_data.borrow_mut();
 
-    let shared_data_clone = shared_data_rc.clone();
-    // This is called whenever the window is drawn and redrawn (in the event loop)
-    wind.draw(move || {
-        let alg_data_b = shared_data_clone.borrow();
+        let distance = b.value() as f32 * 200.0;
+        b.set_label(
+            ("           Distance:".to_string()
+                + &distance.to_string()
+                + (&"           ".to_string()))
+                .as_str(),
+        );
+        offs_rc.borrow_mut().begin();
+        set_draw_color(Color::White);
+        draw_rectf(0, 0, WF, HF);
+        set_line_style(LineStyle::Solid, 1);
 
-        for l in alg_data_b.lines.iter() {
-            draw::set_draw_color(Color::Green);
+        for l in shared_data.lines.iter() {
+            set_draw_color(Color::Green);
             for a_line in l.as_lines() {
-                draw::draw_line(
+                draw_line(
                     a_line.start.x as i32,
                     a_line.start.y as i32,
                     a_line.end.x as i32,
@@ -106,10 +122,10 @@ fn main() -> Result<(), LinestringError> {
                 );
             }
 
-            draw::set_draw_color(Color::White);
-            let sl = l.simplify(alg_data_b.distance);
+            set_draw_color(Color::Black);
+            let sl = l.simplify(distance);
             for a_line in sl.as_lines() {
-                draw::draw_line(
+                draw_line(
                     a_line.start.x as i32,
                     a_line.start.y as i32,
                     a_line.end.x as i32,
@@ -117,48 +133,68 @@ fn main() -> Result<(), LinestringError> {
                 );
             }
         }
+        redraw();
+        offs_rc.borrow_mut().end();
     });
 
-    wind.handle(move |ev| match ev {
-        enums::Event::Released => {
-            let event = &app::event_coords();
-            println!("mouse at {:?}", event);
+    add_data(shared_data_rc.clone())?;
+
+    let offs_rc = offs.clone();
+
+    frame.draw(move || {
+        if offs_rc.borrow().is_valid() {
+            offs_rc.borrow().copy(5, 5, WF, HF, 0, 0);
+        } else {
+            offs_rc.borrow_mut().begin();
+            set_draw_color(Color::White);
+            draw_rectf(0, 0, WF, HF);
+            offs_rc.borrow_mut().end();
+        }
+    });
+
+    frame.handle2(move |f, ev| match ev {
+        Event::Push => {
+            offs.borrow().begin();
+            set_draw_color(Color::Red);
+            set_line_style(LineStyle::Solid, 3);
+            let coords = app::event_coords();
+            draw_point(coords.0, coords.1);
+            offs.borrow().end();
+            f.redraw();
             true
         }
         _ => false,
     });
 
-    while app.wait() {
-        wind.redraw();
-        if !cfg!(windows) {
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
-    }
+    app.run().unwrap();
     Ok(())
 }
+
 
 fn add_data(data: Rc<RefCell<SharedData>>) -> Result<(), LinestringError> {
     let mut data_b = data.borrow_mut();
     data_b.lines.clear();
 
+    // Add e^-x*cos(2πx)
     let mut line: Vec<cgmath::Point2<f32>> = Vec::new();
     for x in (0..150).skip(1) {
         let x = x as f32 / 20.0;
-        let y: f32 = std::f32::consts::E.powf(-x)*(x*2.0*std::f32::consts::PI).cos();
-       line.push(cgmath::Point2::new(50.0 + x*75.0, 200.0+ y*300.0));
+        let y: f32 = std::f32::consts::E.powf(-x) * (x * 2.0 * std::f32::consts::PI).cos();
+        line.push(cgmath::Point2::new(50.0 + x * 75.0, 200.0 + y * 300.0));
     }
     let line = LineString2::<f32>::default()
         .with_points(line)
         .with_connected(false);
     data_b.lines.push(line);
 
+    // Add a wobbly circle
     let mut line: Vec<cgmath::Point2<f32>> = Vec::new();
     for angle in (0..358).skip(2) {
         let x: f32 = 400.0
             + (angle as f32).to_radians().cos() * 250.0
             + 5.0 * (angle as f32 * 8.523).to_radians().sin();
-        let y: f32 = 500.0
-            + (angle as f32).to_radians().sin() * 200.0
+        let y: f32 = 400.0
+            + (angle as f32).to_radians().sin() * 150.0
             + 5.0 * (angle as f32 * 2.534).to_radians().cos();
         line.push(cgmath::Point2::new(x, y));
     }
@@ -168,6 +204,5 @@ fn add_data(data: Rc<RefCell<SharedData>>) -> Result<(), LinestringError> {
 
     data_b.lines.push(line);
 
-    data_b.distance = 10.0;
     Ok(())
 }
