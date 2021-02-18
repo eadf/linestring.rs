@@ -43,11 +43,11 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
 */
 
+use fltk::*;
+use fltk::{valuator::HorNiceSlider, frame::Frame};
 #[cfg(feature = "impl-cgmath")]
 use linestring::cgmath_2d::LineString2;
 use linestring::LinestringError;
-
-use fltk::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -65,17 +65,29 @@ fn main() -> Result<(), LinestringError> {
     let mut wind = window::Window::default()
         .with_size(WINDOW_SIZE, WINDOW_SIZE)
         .center_screen()
-        .with_label("linestring.simplify() demo");
-
+        .with_label("Ramer–Douglas–Peucker 2d Demo");
+    let mut frame = Frame::new(0, WINDOW_SIZE-50, WINDOW_SIZE, 25, "Distance:0");
+    frame.set_frame(FrameType::PlasticUpBox);
+    let mut slider = HorNiceSlider::default()
+        .size_of(&frame)
+        .below_of(&frame, 0);
+    slider.set_value(0.0);
+    slider.set_frame(FrameType::PlasticUpBox);
     wind.set_color(Color::Black);
     wind.end();
     wind.show();
+
     let shared_data_rc = Rc::from(RefCell::from(SharedData {
-        distance: 1.0,
+        distance: 0.0,
         lines: Vec::new(),
         _window_center: (WINDOW_SIZE / 2, WINDOW_SIZE / 2),
     }));
-
+    let slider_shared_data = shared_data_rc.clone();
+    slider.set_callback2(move |b| {
+        let mut shared_data = slider_shared_data.borrow_mut();
+        shared_data.distance = b.value() as f32 * 200.0;
+        frame.set_label(("Distance:".to_string() + &(b.value() as f32*200.0).to_string()).as_str())
+    });
     add_data(shared_data_rc.clone())?;
 
     let shared_data_clone = shared_data_rc.clone();
@@ -106,6 +118,7 @@ fn main() -> Result<(), LinestringError> {
             }
         }
     });
+
     wind.handle(move |ev| match ev {
         enums::Event::Released => {
             let event = &app::event_coords();
@@ -128,22 +141,25 @@ fn add_data(data: Rc<RefCell<SharedData>>) -> Result<(), LinestringError> {
     let mut data_b = data.borrow_mut();
     data_b.lines.clear();
 
-    let points = vec![
-        [77f32, 613.],
-        [689., 650.],
-        [710., 467.],
-        [220., 200.],
-        [120., 300.],
-        [100., 100.],
-    ];
-    let mut line: LineString2<f32> = points.into_iter().collect();
-    line.connected = true;
+    let mut line: Vec<cgmath::Point2<f32>> = Vec::new();
+    for x in (0..150).skip(1) {
+        let x = x as f32 / 20.0;
+        let y: f32 = std::f32::consts::E.powf(-x)*(x*2.0*std::f32::consts::PI).cos();
+       line.push(cgmath::Point2::new(50.0 + x*75.0, 200.0+ y*300.0));
+    }
+    let line = LineString2::<f32>::default()
+        .with_points(line)
+        .with_connected(false);
     data_b.lines.push(line);
 
     let mut line: Vec<cgmath::Point2<f32>> = Vec::new();
     for angle in (0..358).skip(2) {
-        let x: f32 = 400.0 + (angle as f32).to_radians().cos() * 150.0;
-        let y: f32 = 400.0 + (angle as f32).to_radians().sin() * 100.0;
+        let x: f32 = 400.0
+            + (angle as f32).to_radians().cos() * 250.0
+            + 5.0 * (angle as f32 * 8.523).to_radians().sin();
+        let y: f32 = 500.0
+            + (angle as f32).to_radians().sin() * 200.0
+            + 5.0 * (angle as f32 * 2.534).to_radians().cos();
         line.push(cgmath::Point2::new(x, y));
     }
     let line = LineString2::<f32>::default()

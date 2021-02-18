@@ -392,7 +392,7 @@ where
         // find the point with largest distance to start_point<->endpoint line
         for (i, point) in slice.iter().enumerate().take(slice.len() - 1).skip(1) {
             let sq_d = if identical_points {
-                distance_to_point2_squared(start_point, point)
+                distance_to_point_squared(start_point, point)
             } else {
                 distance_to_line_squared(start_point, end_point, point)
             };
@@ -788,7 +788,7 @@ where
 
 #[inline(always)]
 /// The distance² between the two points
-pub fn distance_to_point2_squared<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> T
+pub fn distance_to_point_squared<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> T
 where
     T: cgmath::BaseFloat,
 {

@@ -28,6 +28,6 @@ name = "fltk_gui"
 path = "example/fltk_gui.rs"
 
 [dev-dependencies]
-fltk = "^0.14.2"
+fltk = "^0.14.12"
 itertools = "^0.10.0"
 cgmath = "^0.18.0"
