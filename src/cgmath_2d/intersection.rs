@@ -50,7 +50,6 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use fnv::FnvHashSet;
-use num_traits::{Float, Zero};
 use ordered_float::OrderedFloat;
 
 use crate::{cgmath_2d, LinestringError};
@@ -58,16 +57,14 @@ use crate::{cgmath_2d, LinestringError};
 #[derive(Clone, Copy)]
 pub struct SiteEventKey<T>
 where
-    T: cgmath::BaseFloat + PartialOrd,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     pub pos: cgmath::Point2<T>,
 }
 
 impl<T> SiteEventKey<T>
 where
-    T: cgmath::BaseFloat  + Copy,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     pub fn new(x: T, y: T) -> Self {
         Self {
@@ -78,8 +75,7 @@ where
 
 impl<T> Debug for SiteEventKey<T>
 where
-    T: cgmath::BaseFloat  + Copy,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("")
@@ -91,8 +87,7 @@ where
 
 impl<T> PartialOrd for SiteEventKey<T>
 where
-    T: cgmath::BaseFloat + PartialOrd + approx::AbsDiffEq + approx::UlpsEq,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         if cgmath_2d::ulps_eq(&self.pos.y, &other.pos.y) {
@@ -108,8 +103,7 @@ where
 
 impl<T> PartialEq for SiteEventKey<T>
 where
-    T: cgmath::BaseFloat + PartialOrd + approx::AbsDiffEq + approx::UlpsEq,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     fn eq(&self, other: &Self) -> bool {
         cgmath_2d::point_ulps_eq(&self.pos, &other.pos)
@@ -122,8 +116,7 @@ where
 /// leaning towards pivot point have priority.
 struct MinMax<T>
 where
-    T: cgmath::BaseFloat ,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     best_left: Option<T>,
     slope: MinMaxSlope<T>,
@@ -132,8 +125,7 @@ where
 
 impl<T> MinMax<T>
 where
-    T: cgmath::BaseFloat + Sized + Float + fmt::Display + approx::UlpsEq,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     fn new() -> Self {
         Self {
@@ -212,8 +204,7 @@ where
 
 struct MinMaxSlope<T>
 where
-    T: cgmath::BaseFloat ,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     best_left: Option<T>, // slope
     candidates_left: Vec<usize>,
@@ -224,8 +215,7 @@ where
 
 impl<T> MinMaxSlope<T>
 where
-    T: cgmath::BaseFloat + Sized + Float + fmt::Display + approx::UlpsEq,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     fn new() -> Self {
         Self {
@@ -345,8 +335,7 @@ where
 ///
 pub struct SiteEvent<T>
 where
-    T: cgmath::BaseFloat ,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     drop: Option<Vec<usize>>,
     add: Option<Vec<usize>>,
@@ -357,7 +346,7 @@ where
 
 impl<T> SiteEvent<T>
 where
-    T: cgmath::BaseFloat ,
+    T: cgmath::BaseFloat,
     T::Epsilon: Copy,
 {
     pub(crate) fn with_intersection(i: &[usize]) -> Self {
@@ -399,8 +388,7 @@ fn sweepline_intersection<T>(
     other: &cgmath_2d::Line2<T>,
 ) -> Option<(T, T)>
 where
-    T: cgmath::BaseFloat + Zero + fmt::Display + PartialOrd + approx::AbsDiffEq + approx::UlpsEq,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
     let y1 = other.start.y;
@@ -435,8 +423,7 @@ where
 /// to take() them and make the borrow-checker happy.
 pub struct IntersectionData<T>
 where
-    T: cgmath::BaseFloat + PartialOrd + approx::AbsDiffEq + approx::UlpsEq,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     // sweep-line position
     sweepline_pos: cgmath::Point2<T>,
@@ -465,13 +452,7 @@ where
 
 impl<T> Default for IntersectionData<T>
 where
-    T: cgmath::BaseFloat
-        + fmt::Display
-        + num_traits::ToPrimitive
-        + PartialOrd
-        + approx::AbsDiffEq
-        + approx::UlpsEq,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     fn default() -> Self {
         Self {
@@ -494,13 +475,7 @@ where
 
 impl<T> IntersectionData<T>
 where
-    T: cgmath::BaseFloat
-        + fmt::Display
-        + num_traits::ToPrimitive
-        + PartialOrd
-        + approx::AbsDiffEq
-        + approx::UlpsEq,
-    T::Epsilon: Copy,
+    T: cgmath::BaseFloat,
 {
     pub fn get_sweepline_pos(&self) -> &cgmath::Point2<T> {
         &self.sweepline_pos
@@ -618,10 +593,7 @@ where
     /// Sort the end point according to the order of SiteEventKey.
     /// Populate the event queue
     /// TODO: is this worth keeping? AlgorithmData always keeps copies of the input geometry anyways
-    pub fn with_ref_lines<'a, I>(
-        &mut self,
-        input_iter: I,
-    ) -> Result<&mut Self, LinestringError>
+    pub fn with_ref_lines<'a, I>(&mut self, input_iter: I) -> Result<&mut Self, LinestringError>
     where
         T: 'a,
         I: Iterator<Item = &'a cgmath_2d::Line2<T>>,
@@ -735,7 +707,6 @@ where
     pub fn compute(
         &mut self,
     ) -> Result<rb_tree::RBMap<SiteEventKey<T>, Vec<usize>>, LinestringError> {
-
         if self.stop_at_first_intersection && self.result.is_some() {
             return self.take_results();
         }

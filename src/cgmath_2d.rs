@@ -45,6 +45,8 @@ licenses /why-not-lgpl.html>.
 
 use std::fmt;
 
+use crate::LinestringError;
+
 use cgmath::Transform;
 use num_traits::Float;
 
@@ -243,6 +245,42 @@ where
         Self {
             points: iter.into_iter().copied().collect(),
             connected: false,
+        }
+    }
+
+    /// Returns true if the lines are self intersecting
+    /// If number of lines < 10 then the intersections are tested using brute force O(n²)
+    /// If more than that a sweep-line algorithm is used O(n*log(n))
+    pub fn is_self_intersecting(&self) -> Result<bool, LinestringError> {
+        if self.points.len() <= 2 {
+            Ok(false)
+        } else if self.points.len() < 10 {
+            // Todo: as_lines() should probably not be used here
+            let lines = self.as_lines();
+            for l1 in lines.iter().enumerate().take(lines.len() - 1) {
+                for l2 in lines.iter().enumerate().skip(l1.0 + 1) {
+                    if l1.0 == l2.0 {
+                        continue;
+                    } else if let Some(point) = l1.1.intersection_point(l2.1) {
+                        let point = point.single();
+                        if !(point_ulps_eq(&point, &l1.1.start)
+                            || point_ulps_eq(&point, &l1.1.end)
+                                && point_ulps_eq(&point, &l2.1.start)
+                            || point_ulps_eq(&point, &l2.1.end))
+                        {
+                            return Ok(true);
+                        }
+                    }
+                }
+            }
+            Ok(false)
+        } else {
+            let result = intersection::IntersectionData::<T>::default()
+                .with_ignore_end_point_intersections(true)?
+                .with_stop_at_first_intersection(true)?
+                .with_lines(self.as_lines().into_iter())?
+                .compute()?;
+            Ok(!result.is_empty())
         }
     }
 

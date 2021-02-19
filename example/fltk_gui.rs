@@ -112,7 +112,12 @@ fn main() -> Result<(), LinestringError> {
         set_line_style(LineStyle::Solid, 1);
 
         for l in shared_data.lines.iter() {
-            set_draw_color(Color::Green);
+            if l.is_self_intersecting().unwrap() {
+                set_draw_color(Color::Red);
+            } else {
+                set_draw_color(Color::Green);
+            }
+
             for a_line in l.as_lines() {
                 draw_line(
                     a_line.start.x as i32,
@@ -123,8 +128,13 @@ fn main() -> Result<(), LinestringError> {
             }
 
             set_draw_color(Color::Black);
-            let sl = l.simplify(distance);
-            for a_line in sl.as_lines() {
+            let simplified_line = l.simplify(distance);
+            if simplified_line.is_self_intersecting().unwrap() {
+                set_draw_color(Color::Red);
+            } else {
+                set_draw_color(Color::Black);
+            }
+            for a_line in simplified_line.as_lines() {
                 draw_line(
                     a_line.start.x as i32,
                     a_line.start.y as i32,
@@ -173,7 +183,7 @@ fn add_data(data: Rc<RefCell<SharedData>>) -> Result<(), LinestringError> {
     data_b.lines.push(line);
 
     // Add a wobbly circle
-    let mut line: Vec<cgmath::Point2<f32>> = Vec::new();
+    let mut line: Vec<cgmath::Point2<f32>> = Vec::with_capacity(360);
     for angle in (0..358).skip(2) {
         let x: f32 = 400.0
             + (angle as f32).to_radians().cos() * 250.0
@@ -183,6 +193,9 @@ fn add_data(data: Rc<RefCell<SharedData>>) -> Result<(), LinestringError> {
             + 5.0 * (angle as f32 * 2.534).to_radians().cos();
         line.push(cgmath::Point2::new(x, y));
     }
+    // Add an extra point that will cause self-intersection when simplified too much
+    line.push(cgmath::Point2::new(250_f32, 300.0));
+
     let line = LineString2::<f32>::default()
         .with_points(line)
         .with_connected(true);
