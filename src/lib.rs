@@ -62,6 +62,9 @@ pub enum LinestringError {
 
     #[error("Invalid data")]
     InvalidData { txt: String },
+
+    #[error("Unkown error")]
+    UnknownError { txt: String },
 }
 
 #[cfg(feature = "impl-nalgebra")]
@@ -83,3 +86,4 @@ pub mod mint_3d;
 pub mod vec_2d;
 #[cfg(feature = "impl-vec")]
 pub mod vec_3d;
+

@@ -43,10 +43,15 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
  */
 
-use super::cgmath_3d;
+use std::fmt;
+
 use cgmath::Transform;
 use num_traits::Float;
-use std::fmt;
+
+use super::cgmath_3d;
+
+#[cfg(feature = "impl-cgmath")]
+pub mod intersection;
 
 /// A 2d line
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]

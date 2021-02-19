@@ -152,20 +152,6 @@ fn main() -> Result<(), LinestringError> {
         }
     });
 
-    frame.handle2(move |f, ev| match ev {
-        Event::Push => {
-            offs.borrow().begin();
-            set_draw_color(Color::Red);
-            set_line_style(LineStyle::Solid, 3);
-            let coords = app::event_coords();
-            draw_point(coords.0, coords.1);
-            offs.borrow().end();
-            f.redraw();
-            true
-        }
-        _ => false,
-    });
-
     app.run().unwrap();
     Ok(())
 }
@@ -174,7 +160,7 @@ fn add_data(data: Rc<RefCell<SharedData>>) -> Result<(), LinestringError> {
     let mut data_b = data.borrow_mut();
     data_b.lines.clear();
 
-    // Add e^-x*cos(2πx)
+    // Add y=e^-x*cos(2πx)
     let mut line: Vec<cgmath::Point2<f32>> = Vec::new();
     for x in (0..150).skip(1) {
         let x = x as f32 / 20.0;
