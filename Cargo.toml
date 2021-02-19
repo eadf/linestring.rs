@@ -1,6 +1,6 @@
 [package]
 name = "linestring"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["eadf"]
 edition = "2018"
 description = "Work in progress"
@@ -13,6 +13,7 @@ keywords = ["geometry", "intersection", "douglas-peucker", "visvalingam-whyatt"]
 impl-cgmath = ["cgmath"]
 impl-nalgebra = ["nalgebra"]
 impl-mint = ["mint"]
+console_trace = []
 #with-rayon = ["rayon"]
 impl-vec = []
 
@@ -33,6 +34,6 @@ name = "fltk_gui"
 path = "example/fltk_gui.rs"
 
 [dev-dependencies]
-fltk = "^0.14.12"
+fltk = "^0.15.0"
 itertools = "^0.10.0"
 cgmath = "^0.18.0"
