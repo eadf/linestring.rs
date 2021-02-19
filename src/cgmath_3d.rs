@@ -45,7 +45,6 @@ licenses /why-not-lgpl.html>.
 
 use super::cgmath_2d;
 use cgmath::Transform;
-use num_traits::Float;
 use std::fmt;
 
 /// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
@@ -73,7 +72,7 @@ impl Plane {
                 let dx = high_bound.x - low_bound.x;
                 let dy = high_bound.y - low_bound.y;
                 let dz = high_bound.z - low_bound.z;
-                let max_delta = Float::max(Float::max(dx, dy), dz);
+                let max_delta = num_traits::Float::max(num_traits::Float::max(dx, dy), dz);
 
                 let dx = T::zero().ulps_eq(
                     &(dx / max_delta),

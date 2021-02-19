@@ -50,61 +50,59 @@ use std::cmp;
 use std::convert::identity;
 use std::marker::PhantomData;
 
-use crate::{cgmath_2d, LinestringError};
+use crate::{vec_2d, LinestringError};
 
 #[derive(Clone, Copy)]
 pub struct SiteEventKey<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    pub pos: cgmath::Point2<T>,
+    pub pos: [T; 2],
 }
 
 impl<T> SiteEventKey<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub fn new(x: T, y: T) -> Self {
-        Self {
-            pos: cgmath::Point2 { x, y },
-        }
+        Self { pos: [x, y] }
     }
 }
 
 impl<T> std::fmt::Debug for SiteEventKey<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("")
-            .field(&self.pos.x)
-            .field(&self.pos.y)
+            .field(&self.pos[0])
+            .field(&self.pos[1])
             .finish()
     }
 }
 
 impl<T> PartialOrd for SiteEventKey<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        if cgmath_2d::ulps_eq(&self.pos.y, &other.pos.y) {
-            if cgmath_2d::ulps_eq(&self.pos.x, &other.pos.x) {
+        if vec_2d::ulps_eq(&self.pos[1], &other.pos[1]) {
+            if vec_2d::ulps_eq(&self.pos[0], &other.pos[0]) {
                 return Some(cmp::Ordering::Equal);
             } else {
-                return Some(OrderedFloat(self.pos.x).cmp(&OrderedFloat(other.pos.x)));
+                return Some(OrderedFloat(self.pos[0]).cmp(&OrderedFloat(other.pos[0])));
             }
         }
-        Some(OrderedFloat(self.pos.y).cmp(&OrderedFloat(other.pos.y)))
+        Some(OrderedFloat(self.pos[1]).cmp(&OrderedFloat(other.pos[1])))
     }
 }
 
 impl<T> PartialEq for SiteEventKey<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        cgmath_2d::point_ulps_eq(&self.pos, &other.pos)
+        vec_2d::point_ulps_eq(&self.pos, &other.pos)
     }
 }
 
@@ -114,7 +112,7 @@ where
 /// leaning towards pivot point have priority.
 struct MinMax<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     best_left: Option<T>,
     slope: MinMaxSlope<T>,
@@ -123,7 +121,7 @@ where
 
 impl<T> MinMax<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn new() -> Self {
         Self {
@@ -142,7 +140,7 @@ where
             );*/
             // handle left side
             if let Some(current_min) = self.best_left {
-                if cgmath_2d::ulps_eq(&current_min, &candidate_x) {
+                if vec_2d::ulps_eq(&current_min, &candidate_x) {
                     self.slope
                         .update_left(false, candidate_slope, candidate_index);
                 } else if current_min < candidate_x {
@@ -169,7 +167,7 @@ where
             );*/
             // handle right side
             if let Some(current_max) = self.best_right {
-                if cgmath_2d::ulps_eq(&current_max, &candidate_x) {
+                if vec_2d::ulps_eq(&current_max, &candidate_x) {
                     self.slope
                         .update_right(false, candidate_slope, candidate_index);
                 } else if current_max > candidate_x {
@@ -202,7 +200,7 @@ where
 
 struct MinMaxSlope<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     best_left: Option<T>, // slope
     candidates_left: Vec<usize>,
@@ -213,7 +211,7 @@ where
 
 impl<T> MinMaxSlope<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn new() -> Self {
         Self {
@@ -225,12 +223,12 @@ where
     }
 
     /// sort candidates based on slope, keep only the ones with 'flattest' angle to the left and right
-    fn update_both(&mut self, candidate_index: usize, lines: &[cgmath_2d::Line2<T>]) {
+    fn update_both(&mut self, candidate_index: usize, lines: &[vec_2d::Line2<T>]) {
         let line = lines[candidate_index];
-        let candidate_slope = if cgmath_2d::ulps_eq(&line.end.y, &line.start.y) {
+        let candidate_slope = if vec_2d::ulps_eq(&line.end[1], &line.start[1]) {
             T::infinity()
         } else {
-            (line.end.x - line.start.x) / (line.end.y - line.start.y)
+            (line.end[0] - line.start[0]) / (line.end[1] - line.start[1])
         };
 
         self.update_left(false, candidate_slope, candidate_index);
@@ -249,7 +247,7 @@ where
         );*/
         // handle left side
         if let Some(current_slope) = self.best_left {
-            if cgmath_2d::ulps_eq(&current_slope, &candidate_slope) {
+            if vec_2d::ulps_eq(&current_slope, &candidate_slope) {
                 // this candidate is just as good as the others already found
                 self.candidates_left.push(candidate_index);
             } else if candidate_slope < current_slope {
@@ -287,7 +285,7 @@ where
         }
         // handle right side
         if let Some(current_slope) = self.best_right {
-            if cgmath_2d::ulps_eq(&current_slope, &candidate_slope) {
+            if vec_2d::ulps_eq(&current_slope, &candidate_slope) {
                 // this candidate is just as good as the others already found
                 self.candidates_right.push(candidate_index);
             } else if candidate_slope > current_slope {
@@ -324,8 +322,8 @@ where
 }
 
 /// SiteEvents contains the events happening at a specific point.
-/// Line segments have their start and end positions arranged so that line.start.y < line.end.y
-/// Sorting is based on their Y-coordinate, secondary the X-coordinate. (line.start.x < line.end.x)
+/// Line segments have their start and end positions arranged so that line.start[1] < line.end[1]
+/// Sorting is based on their Y-coordinate, secondary the X-coordinate. (line.start[0] < line.end[0])
 ///
 /// The 'drop' list contains the line segments that ends in the event point.
 /// The 'add' list contains the line segments that starts in the event point.
@@ -333,7 +331,7 @@ where
 ///
 pub struct SiteEvent<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     drop: Option<Vec<usize>>,
     add: Option<Vec<usize>>,
@@ -344,7 +342,7 @@ where
 
 impl<T> SiteEvent<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub(crate) fn with_intersection(i: &[usize]) -> Self {
         Self {
@@ -380,29 +378,26 @@ where
 
 /// Returns *one* point of intersection between the `sweepline` and `other`
 /// Second return value is the slope of the line
-fn sweepline_intersection<T>(
-    sweepline: cgmath::Point2<T>,
-    other: &cgmath_2d::Line2<T>,
-) -> Option<(T, T)>
+fn sweepline_intersection<T>(sweepline: [T; 2], other: &vec_2d::Line2<T>) -> Option<(T, T)>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
-    let y1 = other.start.y;
-    let y2 = other.end.y;
-    let x1 = other.start.x;
-    let x2 = other.end.x;
-    if cgmath_2d::ulps_eq(&y1, &y2) {
-        // horizontal line: return to the point right of sweepline.x, if any
+    let y1 = other.start[1];
+    let y2 = other.end[1];
+    let x1 = other.start[0];
+    let x2 = other.end[0];
+    if vec_2d::ulps_eq(&y1, &y2) {
+        // horizontal line: return to the point right of sweepline[0], if any
         // Any point to the left are supposedly already handled.
-        if sweepline.x < x2 {
+        if sweepline[0] < x2 {
             return Some((x2, T::zero()));
         } else {
             return None;
         }
     }
 
-    if cgmath_2d::ulps_eq(&x1, &x2) {
+    if vec_2d::ulps_eq(&x1, &x2) {
         return Some((x1, T::infinity()));
     }
 
@@ -412,7 +407,7 @@ where
         //return None;
     }
     let d = y1 - slope * x1;
-    Some(((sweepline.y - d) / slope, slope))
+    Some(((sweepline[1] - d) / slope, slope))
 }
 
 /// Contains the data the sweep-line intersection algorithm needs to operate.
@@ -420,10 +415,10 @@ where
 /// to take() them and make the borrow-checker happy.
 pub struct IntersectionData<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     // sweep-line position
-    sweepline_pos: cgmath::Point2<T>,
+    sweepline_pos: [T; 2],
     // Stop when first intersection is found
     stop_at_first_intersection: bool,
     // Allow start&end points to intersect
@@ -442,25 +437,22 @@ where
     neighbour_priority: Option<MinMax<T>>,
     // The 'best' lines directly connected to the event point.
     connected_priority: Option<MinMaxSlope<T>>,
-    // The input geometry. These lines are re-arranged so that Line.start.y <= Line.end.y
+    // The input geometry. These lines are re-arranged so that Line.start[1] <= Line.end[1]
     // These are never changed while the algorithm is running.
-    lines: Vec<cgmath_2d::Line2<T>>,
+    lines: Vec<vec_2d::Line2<T>>,
 }
 
 impl<T> Default for IntersectionData<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn default() -> Self {
         Self {
-            sweepline_pos: cgmath::Point2 {
-                x: -T::max_value(),
-                y: -T::max_value(),
-            },
+            sweepline_pos: [-T::max_value(), -T::max_value()],
             stop_at_first_intersection: false,
             ignore_end_point_intersections: false,
             site_events: Some(rb_tree::RBMap::new()),
-            lines: Vec::<cgmath_2d::Line2<T>>::new(),
+            lines: Vec::<vec_2d::Line2<T>>::new(),
             result: Some(rb_tree::RBMap::new()),
             active_lines: Some(FnvHashSet::default()),
             intersection_calls: 0,
@@ -472,13 +464,13 @@ where
 
 impl<T> IntersectionData<T>
 where
-    T: cgmath::BaseFloat,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    pub fn get_sweepline_pos(&self) -> &cgmath::Point2<T> {
+    pub fn get_sweepline_pos(&self) -> &[T; 2] {
         &self.sweepline_pos
     }
 
-    pub fn get_lines(&self) -> &Vec<cgmath_2d::Line2<T>> {
+    pub fn get_lines(&self) -> &Vec<vec_2d::Line2<T>> {
         &self.lines
     }
 
@@ -533,15 +525,15 @@ where
     /// Todo: this duplicates functionality of 'with_ref_lines()', try to consolidate..
     pub fn with_lines<I>(&mut self, input_iter: I) -> Result<&mut Self, LinestringError>
     where
-        I: Iterator<Item = cgmath_2d::Line2<T>>,
+        I: Iterator<Item = vec_2d::Line2<T>>,
     {
         let mut site_events = self.site_events.take().unwrap();
 
         for (index, mut aline) in input_iter.enumerate() {
-            if !(aline.start.x.is_finite()
-                && aline.start.y.is_finite()
-                && aline.end.x.is_finite()
-                && aline.end.y.is_finite())
+            if !(aline.start[0].is_finite()
+                && aline.start[1].is_finite()
+                && aline.end[0].is_finite()
+                && aline.end[1].is_finite())
             {
                 return Err(LinestringError::InvalidData {
                     txt: "Some of the points are infinite".to_string(),
@@ -549,7 +541,7 @@ where
             }
 
             // Re-arrange so that:
-            // SiteEvent.pos.start < SiteEvent.pos.end (primary ordering: pos.y, secondary: pos.x)
+            // SiteEvent.pos.start < SiteEvent.pos.end (primary ordering: pos[1], secondary: pos[0])
             if !(SiteEventKey { pos: aline.start }).lt(&(SiteEventKey { pos: aline.end })) {
                 std::mem::swap(&mut aline.start, &mut aline.end);
             };
@@ -593,15 +585,15 @@ where
     pub fn with_ref_lines<'a, I>(&mut self, input_iter: I) -> Result<&mut Self, LinestringError>
     where
         T: 'a,
-        I: Iterator<Item = &'a cgmath_2d::Line2<T>>,
+        I: Iterator<Item = &'a vec_2d::Line2<T>>,
     {
         let mut site_events = self.site_events.take().unwrap();
 
         for (index, aline) in input_iter.enumerate() {
-            if !(aline.start.x.is_finite()
-                && aline.start.y.is_finite()
-                && aline.end.x.is_finite()
-                && aline.end.y.is_finite())
+            if !(aline.start[0].is_finite()
+                && aline.start[1].is_finite()
+                && aline.end[0].is_finite()
+                && aline.end[1].is_finite())
             {
                 return Err(LinestringError::InvalidData {
                     txt: "Input data contains NaN and/or Inf".to_string(),
@@ -609,15 +601,15 @@ where
             }
 
             // Re-arrange so that:
-            // SiteEvent.pos.start < SiteEvent.pos.end (primary ordering: pos.y, secondary: pos.x)
+            // SiteEvent.pos.start < SiteEvent.pos.end (primary ordering: pos[1], secondary: pos[0])
             let aline =
                 if (SiteEventKey { pos: aline.start }).lt(&(SiteEventKey { pos: aline.end })) {
-                    cgmath_2d::Line2 {
+                    vec_2d::Line2 {
                         start: aline.start,
                         end: aline.end,
                     }
                 } else {
-                    cgmath_2d::Line2 {
+                    vec_2d::Line2 {
                         start: aline.end,
                         end: aline.start,
                     }
@@ -671,8 +663,8 @@ where
                 // only add this line as an intersection if the intersection lies
                 // at the interior of the line (no end point)
                 let i_line = self.lines[*new_intersection];
-                if cgmath_2d::point_ulps_eq(&position.pos, &i_line.start)
-                    || cgmath_2d::point_ulps_eq(&position.pos, &i_line.end)
+                if vec_2d::point_ulps_eq(&position.pos, &i_line.start)
+                    || vec_2d::point_ulps_eq(&position.pos, &i_line.end)
                 {
                     continue;
                 }
@@ -724,10 +716,7 @@ where
                     &mut result,
                 );
             } else {
-                self.sweepline_pos = cgmath::Point2 {
-                    x: T::max_value(),
-                    y: T::max_value(),
-                };
+                self.sweepline_pos = [T::max_value(), T::max_value()];
 
                 break;
             }
@@ -765,7 +754,7 @@ where
         #[cfg(feature = "console_trace")]
         print!(
             "handle_event() sweepline=({:?},{:?})",
-            self.sweepline_pos.x, self.sweepline_pos.y,
+            self.sweepline_pos[0], self.sweepline_pos[1],
         );
         #[cfg(feature = "console_trace")]
         print!(
@@ -863,7 +852,7 @@ where
             {
                 //println!(" @{}^{})", intersection_x, intersection_slope);
                 neighbour_priority.update(
-                    self.sweepline_pos.x,
+                    self.sweepline_pos[0],
                     intersection_x,
                     intersection_slope,
                     *line_index,
@@ -961,7 +950,7 @@ where
             for right_i in right.iter() {
                 let left_l = &self.lines[*left_i];
                 let right_l = &self.lines[*right_i];
-                if cgmath_2d::point_ulps_eq(&left_l.end, &right_l.end) {
+                if vec_2d::point_ulps_eq(&left_l.end, &right_l.end) {
                     // if endpoints are equal they will already be in the event queue
                     continue;
                 }
@@ -971,10 +960,10 @@ where
                 if let Some(intersection_p) = left_l.intersection_point(&right_l) {
                     let intersection_p = intersection_p.single();
                     // don't allow intersection 'behind' or 'at' current sweep-line position
-                    if intersection_p.y >= self.sweepline_pos.y
-                        && !(intersection_p.y == self.sweepline_pos.y
-                            && intersection_p.x < self.sweepline_pos.x)
-                        && !cgmath_2d::point_ulps_eq(&intersection_p, &self.sweepline_pos)
+                    if intersection_p[1] >= self.sweepline_pos[1]
+                        && !(intersection_p[1] == self.sweepline_pos[1]
+                            && intersection_p[0] < self.sweepline_pos[0])
+                        && !vec_2d::point_ulps_eq(&intersection_p, &self.sweepline_pos)
                     {
                         #[cfg(feature = "console_trace")]
                         println!(
@@ -1001,7 +990,7 @@ where
     fn report_intersections_to_result<'a, I>(
         &mut self,
         result: &mut rb_tree::RBMap<SiteEventKey<T>, Vec<usize>>,
-        pos: &cgmath::Point2<T>,
+        pos: &[T; 2],
         intersecting_lines: I,
     ) where
         I: Iterator<Item = &'a usize>,

@@ -66,7 +66,13 @@ struct SharedData {
 fn main() -> Result<(), LinestringError> {
     let app = app::App::default().with_scheme(app::Scheme::Gtk);
 
-    let mut wind = Window::new(100, 100, W, H, "Ramer–Douglas–Peucker 2d Demo");
+    let mut wind = Window::new(
+        100,
+        100,
+        W,
+        H,
+        "Ramer–Douglas–Peucker + Self intersection test",
+    );
     let mut frame = Frame::new(5, 5, WF, HF, "");
     frame.set_color(Color::White);
     frame.set_frame(FrameType::DownBox);

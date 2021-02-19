@@ -50,30 +50,30 @@ use std::cmp;
 use std::convert::identity;
 use std::marker::PhantomData;
 
-use crate::{cgmath_2d, LinestringError};
+use crate::{nalgebra_2d, LinestringError};
 
 #[derive(Clone, Copy)]
 pub struct SiteEventKey<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
-    pub pos: cgmath::Point2<T>,
+    pub pos: nalgebra::Point2<T>,
 }
 
 impl<T> SiteEventKey<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     pub fn new(x: T, y: T) -> Self {
         Self {
-            pos: cgmath::Point2 { x, y },
+            pos: nalgebra::Point2::new(x, y),
         }
     }
 }
 
 impl<T> std::fmt::Debug for SiteEventKey<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("")
@@ -85,11 +85,11 @@ where
 
 impl<T> PartialOrd for SiteEventKey<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        if cgmath_2d::ulps_eq(&self.pos.y, &other.pos.y) {
-            if cgmath_2d::ulps_eq(&self.pos.x, &other.pos.x) {
+        if nalgebra_2d::ulps_eq(&self.pos.y, &other.pos.y) {
+            if nalgebra_2d::ulps_eq(&self.pos.x, &other.pos.x) {
                 return Some(cmp::Ordering::Equal);
             } else {
                 return Some(OrderedFloat(self.pos.x).cmp(&OrderedFloat(other.pos.x)));
@@ -101,10 +101,10 @@ where
 
 impl<T> PartialEq for SiteEventKey<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     fn eq(&self, other: &Self) -> bool {
-        cgmath_2d::point_ulps_eq(&self.pos, &other.pos)
+        nalgebra_2d::point_ulps_eq(&self.pos, &other.pos)
     }
 }
 
@@ -114,7 +114,7 @@ where
 /// leaning towards pivot point have priority.
 struct MinMax<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     best_left: Option<T>,
     slope: MinMaxSlope<T>,
@@ -123,7 +123,7 @@ where
 
 impl<T> MinMax<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     fn new() -> Self {
         Self {
@@ -142,7 +142,7 @@ where
             );*/
             // handle left side
             if let Some(current_min) = self.best_left {
-                if cgmath_2d::ulps_eq(&current_min, &candidate_x) {
+                if nalgebra_2d::ulps_eq(&current_min, &candidate_x) {
                     self.slope
                         .update_left(false, candidate_slope, candidate_index);
                 } else if current_min < candidate_x {
@@ -169,7 +169,7 @@ where
             );*/
             // handle right side
             if let Some(current_max) = self.best_right {
-                if cgmath_2d::ulps_eq(&current_max, &candidate_x) {
+                if nalgebra_2d::ulps_eq(&current_max, &candidate_x) {
                     self.slope
                         .update_right(false, candidate_slope, candidate_index);
                 } else if current_max > candidate_x {
@@ -202,7 +202,7 @@ where
 
 struct MinMaxSlope<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     best_left: Option<T>, // slope
     candidates_left: Vec<usize>,
@@ -213,7 +213,7 @@ where
 
 impl<T> MinMaxSlope<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     fn new() -> Self {
         Self {
@@ -225,9 +225,9 @@ where
     }
 
     /// sort candidates based on slope, keep only the ones with 'flattest' angle to the left and right
-    fn update_both(&mut self, candidate_index: usize, lines: &[cgmath_2d::Line2<T>]) {
+    fn update_both(&mut self, candidate_index: usize, lines: &[nalgebra_2d::Line2<T>]) {
         let line = lines[candidate_index];
-        let candidate_slope = if cgmath_2d::ulps_eq(&line.end.y, &line.start.y) {
+        let candidate_slope = if nalgebra_2d::ulps_eq(&line.end.y, &line.start.y) {
             T::infinity()
         } else {
             (line.end.x - line.start.x) / (line.end.y - line.start.y)
@@ -249,7 +249,7 @@ where
         );*/
         // handle left side
         if let Some(current_slope) = self.best_left {
-            if cgmath_2d::ulps_eq(&current_slope, &candidate_slope) {
+            if nalgebra_2d::ulps_eq(&current_slope, &candidate_slope) {
                 // this candidate is just as good as the others already found
                 self.candidates_left.push(candidate_index);
             } else if candidate_slope < current_slope {
@@ -287,7 +287,7 @@ where
         }
         // handle right side
         if let Some(current_slope) = self.best_right {
-            if cgmath_2d::ulps_eq(&current_slope, &candidate_slope) {
+            if nalgebra_2d::ulps_eq(&current_slope, &candidate_slope) {
                 // this candidate is just as good as the others already found
                 self.candidates_right.push(candidate_index);
             } else if candidate_slope > current_slope {
@@ -333,7 +333,7 @@ where
 ///
 pub struct SiteEvent<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     drop: Option<Vec<usize>>,
     add: Option<Vec<usize>>,
@@ -344,7 +344,7 @@ where
 
 impl<T> SiteEvent<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     pub(crate) fn with_intersection(i: &[usize]) -> Self {
         Self {
@@ -381,18 +381,18 @@ where
 /// Returns *one* point of intersection between the `sweepline` and `other`
 /// Second return value is the slope of the line
 fn sweepline_intersection<T>(
-    sweepline: cgmath::Point2<T>,
-    other: &cgmath_2d::Line2<T>,
+    sweepline: nalgebra::Point2<T>,
+    other: &nalgebra_2d::Line2<T>,
 ) -> Option<(T, T)>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
     let y1 = other.start.y;
     let y2 = other.end.y;
     let x1 = other.start.x;
     let x2 = other.end.x;
-    if cgmath_2d::ulps_eq(&y1, &y2) {
+    if nalgebra_2d::ulps_eq(&y1, &y2) {
         // horizontal line: return to the point right of sweepline.x, if any
         // Any point to the left are supposedly already handled.
         if sweepline.x < x2 {
@@ -402,7 +402,7 @@ where
         }
     }
 
-    if cgmath_2d::ulps_eq(&x1, &x2) {
+    if nalgebra_2d::ulps_eq(&x1, &x2) {
         return Some((x1, T::infinity()));
     }
 
@@ -420,10 +420,10 @@ where
 /// to take() them and make the borrow-checker happy.
 pub struct IntersectionData<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     // sweep-line position
-    sweepline_pos: cgmath::Point2<T>,
+    sweepline_pos: nalgebra::Point2<T>,
     // Stop when first intersection is found
     stop_at_first_intersection: bool,
     // Allow start&end points to intersect
@@ -444,23 +444,20 @@ where
     connected_priority: Option<MinMaxSlope<T>>,
     // The input geometry. These lines are re-arranged so that Line.start.y <= Line.end.y
     // These are never changed while the algorithm is running.
-    lines: Vec<cgmath_2d::Line2<T>>,
+    lines: Vec<nalgebra_2d::Line2<T>>,
 }
 
 impl<T> Default for IntersectionData<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
     fn default() -> Self {
         Self {
-            sweepline_pos: cgmath::Point2 {
-                x: -T::max_value(),
-                y: -T::max_value(),
-            },
+            sweepline_pos: nalgebra::Point2::<T>::new(-T::max_value(), -T::max_value()),
             stop_at_first_intersection: false,
             ignore_end_point_intersections: false,
             site_events: Some(rb_tree::RBMap::new()),
-            lines: Vec::<cgmath_2d::Line2<T>>::new(),
+            lines: Vec::<nalgebra_2d::Line2<T>>::new(),
             result: Some(rb_tree::RBMap::new()),
             active_lines: Some(FnvHashSet::default()),
             intersection_calls: 0,
@@ -472,13 +469,13 @@ where
 
 impl<T> IntersectionData<T>
 where
-    T: cgmath::BaseFloat,
+    T: nalgebra::RealField,
 {
-    pub fn get_sweepline_pos(&self) -> &cgmath::Point2<T> {
+    pub fn get_sweepline_pos(&self) -> &nalgebra::Point2<T> {
         &self.sweepline_pos
     }
 
-    pub fn get_lines(&self) -> &Vec<cgmath_2d::Line2<T>> {
+    pub fn get_lines(&self) -> &Vec<nalgebra_2d::Line2<T>> {
         &self.lines
     }
 
@@ -533,7 +530,7 @@ where
     /// Todo: this duplicates functionality of 'with_ref_lines()', try to consolidate..
     pub fn with_lines<I>(&mut self, input_iter: I) -> Result<&mut Self, LinestringError>
     where
-        I: Iterator<Item = cgmath_2d::Line2<T>>,
+        I: Iterator<Item = nalgebra_2d::Line2<T>>,
     {
         let mut site_events = self.site_events.take().unwrap();
 
@@ -593,7 +590,7 @@ where
     pub fn with_ref_lines<'a, I>(&mut self, input_iter: I) -> Result<&mut Self, LinestringError>
     where
         T: 'a,
-        I: Iterator<Item = &'a cgmath_2d::Line2<T>>,
+        I: Iterator<Item = &'a nalgebra_2d::Line2<T>>,
     {
         let mut site_events = self.site_events.take().unwrap();
 
@@ -612,12 +609,12 @@ where
             // SiteEvent.pos.start < SiteEvent.pos.end (primary ordering: pos.y, secondary: pos.x)
             let aline =
                 if (SiteEventKey { pos: aline.start }).lt(&(SiteEventKey { pos: aline.end })) {
-                    cgmath_2d::Line2 {
+                    nalgebra_2d::Line2 {
                         start: aline.start,
                         end: aline.end,
                     }
                 } else {
-                    cgmath_2d::Line2 {
+                    nalgebra_2d::Line2 {
                         start: aline.end,
                         end: aline.start,
                     }
@@ -671,8 +668,8 @@ where
                 // only add this line as an intersection if the intersection lies
                 // at the interior of the line (no end point)
                 let i_line = self.lines[*new_intersection];
-                if cgmath_2d::point_ulps_eq(&position.pos, &i_line.start)
-                    || cgmath_2d::point_ulps_eq(&position.pos, &i_line.end)
+                if nalgebra_2d::point_ulps_eq(&position.pos, &i_line.start)
+                    || nalgebra_2d::point_ulps_eq(&position.pos, &i_line.end)
                 {
                     continue;
                 }
@@ -724,10 +721,7 @@ where
                     &mut result,
                 );
             } else {
-                self.sweepline_pos = cgmath::Point2 {
-                    x: T::max_value(),
-                    y: T::max_value(),
-                };
+                self.sweepline_pos = nalgebra::Point2::<T>::new(T::max_value(), T::max_value());
 
                 break;
             }
@@ -961,7 +955,7 @@ where
             for right_i in right.iter() {
                 let left_l = &self.lines[*left_i];
                 let right_l = &self.lines[*right_i];
-                if cgmath_2d::point_ulps_eq(&left_l.end, &right_l.end) {
+                if nalgebra_2d::point_ulps_eq(&left_l.end, &right_l.end) {
                     // if endpoints are equal they will already be in the event queue
                     continue;
                 }
@@ -974,7 +968,7 @@ where
                     if intersection_p.y >= self.sweepline_pos.y
                         && !(intersection_p.y == self.sweepline_pos.y
                             && intersection_p.x < self.sweepline_pos.x)
-                        && !cgmath_2d::point_ulps_eq(&intersection_p, &self.sweepline_pos)
+                        && !nalgebra_2d::point_ulps_eq(&intersection_p, &self.sweepline_pos)
                     {
                         #[cfg(feature = "console_trace")]
                         println!(
@@ -1001,7 +995,7 @@ where
     fn report_intersections_to_result<'a, I>(
         &mut self,
         result: &mut rb_tree::RBMap<SiteEventKey<T>, Vec<usize>>,
-        pos: &cgmath::Point2<T>,
+        pos: &nalgebra::Point2<T>,
         intersecting_lines: I,
     ) where
         I: Iterator<Item = &'a usize>,

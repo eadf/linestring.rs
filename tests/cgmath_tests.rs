@@ -314,3 +314,23 @@ fn simplify_3() {
     line.connected = false;
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn a_test() -> Result<(), linestring::LinestringError> {
+    let _l: Vec<[f32; 2]> = vec![
+        [651.3134, 410.21536],
+        [335.7384, 544.54614],
+        [154.29922, 363.10654],
+        [425.06284, 255.50153],
+        [651.1434, 387.16595],
+        [250.0, 300.0],
+    ];
+
+    let mut l: cgmath_2d::LineString2<f32> = _l.into_iter().collect();
+    l.connected = true;
+    let result = l.is_self_intersecting()?;
+
+    assert!(result);
+    Ok(())
+}

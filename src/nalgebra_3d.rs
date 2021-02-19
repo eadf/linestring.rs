@@ -45,7 +45,6 @@ licenses /why-not-lgpl.html>.
 
 use super::nalgebra_2d;
 
-use num_traits::Float;
 use std::fmt;
 
 /// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
@@ -66,14 +65,14 @@ impl Plane {
     /// leaves some decimal in coordinates that's suppose to be zero.
     pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
     where
-        T: nalgebra::RealField + Float,
+        T: nalgebra::RealField,
     {
         if let Some(low_bound) = aabb.get_low() {
             if let Some(high_bound) = aabb.get_high() {
                 let dx = high_bound.x - low_bound.x;
                 let dy = high_bound.y - low_bound.y;
                 let dz = high_bound.z - low_bound.z;
-                let max_delta = Float::max(Float::max(dx, dy), dz);
+                let max_delta = nalgebra::RealField::max(nalgebra::RealField::max(dx, dy), dz);
 
                 let dx = T::zero().ulps_eq(
                     &(dx / max_delta),
@@ -110,7 +109,7 @@ impl Plane {
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     pub start: nalgebra::Point3<T>,
     pub end: nalgebra::Point3<T>,
@@ -118,7 +117,7 @@ where
 
 impl<T> Line3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     pub fn new(start: nalgebra::Point3<T>, end: nalgebra::Point3<T>) -> Self {
         Self { start, end }
@@ -128,7 +127,7 @@ where
 #[allow(clippy::from_over_into)]
 impl<T> Into<[T; 6]> for Line3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     fn into(self) -> [T; 6] {
         [
@@ -144,7 +143,7 @@ where
 
 impl<T, IT> From<[IT; 2]> for Line3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
     IT: Copy + Into<nalgebra::Point3<T>>,
 {
     fn from(pos: [IT; 2]) -> Line3<T> {
@@ -155,7 +154,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     points: Vec<nalgebra::Point3<T>>,
 
@@ -169,7 +168,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     pub set: Vec<LineString3<T>>,
     pub aabb: Aabb3<T>,
@@ -180,14 +179,14 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Aabb3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     min_max: Option<(nalgebra::Point3<T>, nalgebra::Point3<T>)>,
 }
 
 impl<T> LineString3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     pub fn default() -> Self {
         Self {
@@ -398,7 +397,7 @@ where
 
 impl<T, IC: Into<nalgebra::Point3<T>>> std::iter::FromIterator<IC> for LineString3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString3 {
@@ -410,7 +409,7 @@ where
 
 impl<T> LineStringSet3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     pub fn default() -> Self {
         Self {
@@ -475,7 +474,7 @@ where
 
 impl<T, IT> From<[IT; 2]> for Aabb3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
     IT: Copy + Into<nalgebra::Point3<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb3<T> {
@@ -487,7 +486,7 @@ where
 
 impl<T> From<[T; 6]> for Aabb3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     fn from(coordinate: [T; 6]) -> Aabb3<T> {
         Aabb3 {
@@ -501,7 +500,7 @@ where
 
 impl<T> Aabb3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     pub fn default() -> Self {
         Self { min_max: None }
@@ -618,7 +617,7 @@ where
 #[inline(always)]
 pub fn point_ulps_eq<T>(a: &nalgebra::Point3<T>, b: &nalgebra::Point3<T>) -> bool
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     nalgebra_2d::ulps_eq(&a.x, &b.x)
         && nalgebra_2d::ulps_eq(&a.y, &b.y)
@@ -629,7 +628,7 @@ where
 /// subtracts point b from point a resulting in a vector
 fn sub<T>(a: &nalgebra::Point3<T>, b: &nalgebra::Point3<T>) -> nalgebra::Vector3<T>
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     a - b
 }
@@ -638,7 +637,7 @@ where
 #[inline(always)]
 fn cross_abs_squared<T>(a: &nalgebra::Vector3<T>, b: &nalgebra::Vector3<T>) -> T
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     let x = a.y * b.z - a.z * b.y;
     let y = a.z * b.x - a.x * b.z;
@@ -658,7 +657,7 @@ pub fn distance_to_line_squared<T>(
     p: &nalgebra::Point3<T>,
 ) -> T
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     let a_sub_b = sub(a, b);
     let a_sub_p = sub(a, p);
@@ -671,7 +670,7 @@ where
 /// The distance² between the two points
 pub fn distance_to_point_squared<T>(a: &nalgebra::Point3<T>, b: &nalgebra::Point3<T>) -> T
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField,
 {
     let v = sub(a, b);
     v.x * v.x + v.y * v.y + v.z * v.z

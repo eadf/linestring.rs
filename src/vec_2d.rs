@@ -44,15 +44,19 @@ licenses /why-not-lgpl.html>.
  */
 
 use super::vec_3d;
+#[allow(unused_imports)]
+use crate::LinestringError;
 
-use num_traits::Float;
 use std::fmt;
+
+#[cfg(feature = "impl-vec")]
+pub mod intersection;
 
 /// A 2d line
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub start: [T; 2],
     pub end: [T; 2],
@@ -60,7 +64,7 @@ where
 
 impl<T> Line2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub fn new(start: [T; 2], end: [T; 2]) -> Self {
         Self { start, end }
@@ -72,7 +76,7 @@ where
     #[allow(clippy::many_single_char_names)]
     pub fn intersection_point(&self, other: &Self) -> Option<Intersection<T>>
     where
-        T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+        T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
     {
         let p = self.start;
         let q = other.start;
@@ -130,13 +134,76 @@ where
             }
         }
     }
+
+    /// Intersection test for lines known to be connected by a middle point.
+    /// This function will *not* report the middle-point as an intersection.
+    pub fn intersection_point3(
+        start: &[T; 2],
+        middle: &[T; 2],
+        end: &[T; 2],
+    ) -> Result<Option<Intersection<T>>, LinestringError> {
+        let middle_sub_start = [middle[0] - start[0], middle[1] - start[0]];
+        let middle_sub_end = [middle[0] - end[0], middle[1] - end[1]];
+        let start_is_vertical = ulps_eq(&middle_sub_start[0], &T::zero());
+        let end_is_vertical = ulps_eq(&middle_sub_end[0], &T::zero());
+
+        if start_is_vertical && end_is_vertical {
+            // both lines are vertical
+            if middle_sub_start[1].is_sign_negative() && !middle_sub_end[1].is_sign_negative() {
+                // opposite direction
+                return Ok(None);
+            } else {
+                // pick the shortest vector for overlap point
+                if (middle_sub_start[0] * middle_sub_start[0]
+                    + middle_sub_start[1] * middle_sub_start[1])
+                    < (middle_sub_end[0] * middle_sub_end[0]
+                        + middle_sub_end[1] * middle_sub_end[1])
+                {
+                    return Ok(Some(Intersection::OverLap(Line2 {
+                        start: *start,
+                        end: *middle,
+                    })));
+                } else {
+                    return Ok(Some(Intersection::OverLap(Line2 {
+                        start: *middle,
+                        end: *end,
+                    })));
+                }
+            }
+        } else if start_is_vertical || end_is_vertical {
+            return Ok(None);
+        }
+
+        // both lines should now be non-vertical, we can compare their slope
+        let start_slope = middle_sub_start[0] / middle_sub_start[1];
+        let end_slope = middle_sub_end[0] / middle_sub_end[1];
+
+        if !ulps_eq(&start_slope, &end_slope) {
+            return Ok(None);
+        }
+
+        // Slope identical, pick the shortest vector for overlap point
+        if (middle_sub_start[0] * middle_sub_start[0] + middle_sub_start[1] * middle_sub_start[1])
+            < (middle_sub_end[0] * middle_sub_end[0] + middle_sub_end[1] * middle_sub_end[1])
+        {
+            Ok(Some(Intersection::OverLap(Line2 {
+                start: *start,
+                end: *middle,
+            })))
+        } else {
+            Ok(Some(Intersection::OverLap(Line2 {
+                start: *middle,
+                end: *end,
+            })))
+        }
+    }
 }
 
 #[allow(clippy::from_over_into)]
 // Todo is this a subset of "impl<T> From<[T; 4]> for Line2<T>"?
 impl<T> Into<[T; 4]> for Line2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn into(self) -> [T; 4] {
         [self.start[0], self.start[1], self.end[0], self.end[1]]
@@ -146,7 +213,7 @@ where
 // [Into<Point<T>>,Into<Point<T>>] -> Line2<T>
 impl<T, IT> From<[IT; 2]> for Line2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
     IT: Copy + Into<[T; 2]>,
 {
     fn from(coordinate: [IT; 2]) -> Line2<T> {
@@ -157,7 +224,7 @@ where
 // [T,T,T,T] -> Line2<T>
 impl<T> From<[T; 4]> for Line2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn from(coordinate: [T; 4]) -> Line2<T> {
         Line2::<T>::new(
@@ -172,7 +239,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     set: Vec<LineString2<T>>,
     aabb: Aabb2<T>,
@@ -183,7 +250,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     min_max: Option<([T; 2], [T; 2])>,
 }
@@ -191,7 +258,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     points: Vec<[T; 2]>,
 
@@ -202,7 +269,7 @@ where
 
 impl<T> LineString2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub fn default() -> Self {
         Self {
@@ -241,6 +308,59 @@ where
         }
     }
 
+    /// Returns true if the lines are self intersecting
+    /// If number of points < 10 then the intersections are tested using brute force O(n²)
+    /// If more than that a sweep-line algorithm is used O(n*log(n))
+    pub fn is_self_intersecting(&self) -> Result<bool, LinestringError> {
+        if self.points.len() <= 2 {
+            Ok(false)
+        } else if self.points.len() < 10 {
+            let lines = self.as_lines();
+            for l0 in lines.iter().enumerate().take(lines.len() - 1) {
+                for l1 in lines.iter().enumerate().skip(l0.0 + 1) {
+                    if l0.0 == l1.0 {
+                        continue;
+                    } else if l0.0 + 1 == l1.0 {
+                        // consecutive line: l0.0.start <-> l0.0.end_point <-> l2.0.end_point
+                        if Line2::intersection_point3(&l0.1.start, &l0.1.end, &l1.1.end)?.is_some()
+                        {
+                            return Ok(true);
+                        }
+                    } else if let Some(point) = l0.1.intersection_point(l1.1) {
+                        let point = point.single();
+                        if (point_ulps_eq(&point, &l0.1.start) || point_ulps_eq(&point, &l0.1.end))
+                            && (point_ulps_eq(&point, &l1.1.start)
+                                || point_ulps_eq(&point, &l1.1.end))
+                        {
+                            continue;
+                        } else {
+                            println!(
+                                "intersection at {:?} {}:{:?}, {}:{:?}",
+                                point, l0.0, l0.1, l1.0, l1.1
+                            );
+                            return Ok(true);
+                        }
+                    }
+                }
+            }
+            Ok(false)
+        } else {
+            let result = intersection::IntersectionData::<T>::default()
+                .with_ignore_end_point_intersections(true)?
+                .with_stop_at_first_intersection(true)?
+                .with_lines(self.as_lines().into_iter())?
+                .compute()?;
+            //print!("Lines rv={} [", result.is_empty());
+            //for p in self.as_lines().iter() {
+            //print!("[{:?},{:?}]-[{:?},{:?}],", p.start[0], p.start[1], p.end[0], p.end[1]);
+            //    print!("[{:?},{:?},{:?},{:?}],", p.start[0], p.start[1], p.end[0], p.end[1]);
+            //print!("[{:?},{:?}],", p[0], p[1],);
+            //}
+            //println!("]");
+            Ok(!result.is_empty())
+        }
+    }
+
     pub fn points(&self) -> &Vec<[T; 2]> {
         &self.points
     }
@@ -258,8 +378,8 @@ where
             return vec![];
         } else if self.points.len() == 1 {
             return vec![Line2 {
-                start: *self.points.first().unwrap(),
-                end: *self.points.first().unwrap(),
+                start: self.points[0],
+                end: self.points[0],
             }];
         }
         let iter1 = self.points.iter().skip(1);
@@ -415,7 +535,7 @@ where
 
 impl<T, IC> std::iter::FromIterator<IC> for LineString2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
     IC: Into<[T; 2]>,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
@@ -428,7 +548,7 @@ where
 
 impl<T> LineStringSet2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub fn default() -> Self {
         Self {
@@ -495,7 +615,7 @@ where
 
 impl<T, IT> From<[IT; 2]> for Aabb2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
     IT: Copy + Into<[T; 2]>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb2<T> {
@@ -507,7 +627,7 @@ where
 
 impl<T> From<[T; 4]> for Aabb2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn from(coordinate: [T; 4]) -> Aabb2<T> {
         Aabb2 {
@@ -521,7 +641,7 @@ where
 
 impl<T> Aabb2<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     pub fn default() -> Self {
         Self { min_max: None }
@@ -635,7 +755,7 @@ where
 /// Inspired by https://stackoverflow.com/a/17590923
 pub fn intersect_line_point<T>(line: &Line2<T>, point: &[T; 2]) -> Option<Intersection<T>>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     // take care of end point equality
     if ulps_eq(&line.start[0], &point[0]) && ulps_eq(&line.start[1], &point[1]) {
@@ -652,12 +772,12 @@ where
     let x = point[0];
     let y = point[1];
 
-    let ab = Float::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-    let ap = Float::sqrt((x - x1) * (x - x1) + (y - y1) * (y - y1));
-    let pb = Float::sqrt((x2 - x) * (x2 - x) + (y2 - y) * (y2 - y));
+    let ab = ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)).sqrt();
+    let ap = ((x - x1) * (x - x1) + (y - y1) * (y - y1)).sqrt();
+    let pb = ((x2 - x) * (x2 - x) + (y2 - y) * (y2 - y)).sqrt();
 
     #[cfg(feature = "console_trace")]
-    println!("ab={}, ap={}, pb={}, ap+pb={}", ab, ap, pb, ap + pb);
+    println!("ab={:?}, ap={:?}, pb={:?}, ap+pb={:?}", ab, ap, pb, ap + pb);
     if ulps_eq(&ab, &(ap + pb)) {
         return Some(Intersection::Intersection(*point));
     }
@@ -667,7 +787,7 @@ where
 #[allow(dead_code)]
 pub enum Intersection<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     // Normal one point intersection
     Intersection([T; 2]),
@@ -677,7 +797,7 @@ where
 
 impl<T> Intersection<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     /// return a single, simple intersection point
     pub fn single(&self) -> [T; 2] {
@@ -690,7 +810,7 @@ where
 
 impl<T> fmt::Debug for Intersection<T>
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -703,7 +823,7 @@ where
 #[inline(always)]
 pub fn scale_to_coordinate<T>(point: &[T; 2], vector: &[T; 2], scale: T) -> [T; 2]
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     [point[0] + scale * vector[0], point[1] + scale * vector[1]]
 }
@@ -712,7 +832,7 @@ where
 /// Divides a 'vector' by 'b'. Obviously, don't feed this with 'b' == 0
 fn div<T>(a: &[T; 2], b: T) -> [T; 2]
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     [a[0] / b, a[1] / b]
 }
@@ -721,7 +841,7 @@ where
 /// subtracts point b from point a resulting in a vector
 fn sub<T>(a: &[T; 2], b: &[T; 2]) -> [T; 2]
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     [a[0] - b[0], a[1] - b[1]]
 }
@@ -732,7 +852,7 @@ where
 /// This function returns the z component of v × w (if we pretend v and w are two dimensional)
 fn cross_z<T>(v: &[T; 2], w: &[T; 2]) -> T
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     v[0] * w[1] - v[1] * w[0]
 }
@@ -745,7 +865,7 @@ where
 /// This function returns the distance²
 pub fn distance_to_line_squared<T>(a: &[T; 2], b: &[T; 2], p: &[T; 2]) -> T
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     let a_sub_b = sub(a, b);
     let a_sub_p = sub(a, p);
@@ -758,7 +878,7 @@ where
 /// The distance² between the two points
 pub fn distance_to_point_squared<T>(a: &[T; 2], b: &[T; 2]) -> T
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     let v = sub(a, b);
     v[0] * v[0] + v[1] * v[1]
@@ -768,7 +888,7 @@ where
 /// calculate the dot product of two vectors
 fn dot<T>(a: &[T; 2], b: &[T; 2]) -> T
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     a[0] * b[0] + a[1] * b[1]
 }
@@ -776,7 +896,7 @@ where
 #[inline(always)]
 pub fn point_ulps_eq<T>(a: &[T; 2], b: &[T; 2]) -> bool
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     ulps_eq(&a[0], &b[0]) && ulps_eq(&a[1], &b[1])
 }
@@ -784,7 +904,7 @@ where
 #[inline(always)]
 pub fn ulps_eq<T>(a: &T, b: &T) -> bool
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     T::ulps_eq(a, b, T::default_epsilon(), T::default_max_ulps())
 }

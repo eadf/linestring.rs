@@ -86,4 +86,3 @@ pub mod mint_3d;
 pub mod vec_2d;
 #[cfg(feature = "impl-vec")]
 pub mod vec_3d;
-

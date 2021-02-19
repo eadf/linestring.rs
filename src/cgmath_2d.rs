@@ -43,14 +43,11 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
  */
 
-use std::fmt;
-
-use crate::LinestringError;
-
-use cgmath::Transform;
-use num_traits::Float;
-
 use super::cgmath_3d;
+#[allow(unused_imports)]
+use crate::LinestringError;
+use cgmath::Transform;
+use std::fmt;
 
 #[cfg(feature = "impl-cgmath")]
 pub mod intersection;
@@ -135,6 +132,74 @@ where
             } else {
                 None
             }
+        }
+    }
+
+    /// Intersection test for lines known to be connected by a middle point.
+    /// This function will *not* report the middle-point as an intersection.
+    pub fn intersection_point3(
+        start: &cgmath::Point2<T>,
+        middle: &cgmath::Point2<T>,
+        end: &cgmath::Point2<T>,
+    ) -> Result<Option<Intersection<T>>, LinestringError> {
+        let middle_sub_start = cgmath::Vector2 {
+            x: middle.x - start.x,
+            y: middle.y - start.x,
+        };
+        let middle_sub_end = cgmath::Vector2 {
+            x: middle.x - end.x,
+            y: middle.y - end.y,
+        };
+        let start_is_vertical = ulps_eq(&middle_sub_start.x, &T::zero());
+        let end_is_vertical = ulps_eq(&middle_sub_end.x, &T::zero());
+
+        if start_is_vertical && end_is_vertical {
+            // both lines are vertical
+            if middle_sub_start.y.is_sign_negative() && !middle_sub_end.y.is_sign_negative() {
+                // opposite direction
+                return Ok(None);
+            } else {
+                // pick the shortest vector for overlap point
+                if (middle_sub_start.x * middle_sub_start.x
+                    + middle_sub_start.y * middle_sub_start.y)
+                    < (middle_sub_end.x * middle_sub_end.x + middle_sub_end.y * middle_sub_end.y)
+                {
+                    return Ok(Some(Intersection::OverLap(Line2 {
+                        start: *start,
+                        end: *middle,
+                    })));
+                } else {
+                    return Ok(Some(Intersection::OverLap(Line2 {
+                        start: *middle,
+                        end: *end,
+                    })));
+                }
+            }
+        } else if start_is_vertical || end_is_vertical {
+            return Ok(None);
+        }
+
+        // both lines should now be non-vertical, we can compare their slope
+        let start_slope = middle_sub_start.x / middle_sub_start.y;
+        let end_slope = middle_sub_end.x / middle_sub_end.y;
+
+        if !ulps_eq(&start_slope, &end_slope) {
+            return Ok(None);
+        }
+
+        // Slope identical, pick the shortest vector for overlap point
+        if (middle_sub_start.x * middle_sub_start.x + middle_sub_start.y * middle_sub_start.y)
+            < (middle_sub_end.x * middle_sub_end.x + middle_sub_end.y * middle_sub_end.y)
+        {
+            Ok(Some(Intersection::OverLap(Line2 {
+                start: *start,
+                end: *middle,
+            })))
+        } else {
+            Ok(Some(Intersection::OverLap(Line2 {
+                start: *middle,
+                end: *end,
+            })))
         }
     }
 }
@@ -249,25 +314,35 @@ where
     }
 
     /// Returns true if the lines are self intersecting
-    /// If number of lines < 10 then the intersections are tested using brute force O(n²)
+    /// If number of points < 10 then the intersections are tested using brute force O(n²)
     /// If more than that a sweep-line algorithm is used O(n*log(n))
     pub fn is_self_intersecting(&self) -> Result<bool, LinestringError> {
         if self.points.len() <= 2 {
             Ok(false)
         } else if self.points.len() < 10 {
-            // Todo: as_lines() should probably not be used here
             let lines = self.as_lines();
-            for l1 in lines.iter().enumerate().take(lines.len() - 1) {
-                for l2 in lines.iter().enumerate().skip(l1.0 + 1) {
-                    if l1.0 == l2.0 {
+            for l0 in lines.iter().enumerate().take(lines.len() - 1) {
+                for l1 in lines.iter().enumerate().skip(l0.0 + 1) {
+                    if l0.0 == l1.0 {
                         continue;
-                    } else if let Some(point) = l1.1.intersection_point(l2.1) {
-                        let point = point.single();
-                        if !(point_ulps_eq(&point, &l1.1.start)
-                            || point_ulps_eq(&point, &l1.1.end)
-                                && point_ulps_eq(&point, &l2.1.start)
-                            || point_ulps_eq(&point, &l2.1.end))
+                    } else if l0.0 + 1 == l1.0 {
+                        // consecutive line: l0.0.start <-> l0.0.end_point <-> l2.0.end_point
+                        if Line2::intersection_point3(&l0.1.start, &l0.1.end, &l1.1.end)?.is_some()
                         {
+                            return Ok(true);
+                        }
+                    } else if let Some(point) = l0.1.intersection_point(l1.1) {
+                        let point = point.single();
+                        if (point_ulps_eq(&point, &l0.1.start) || point_ulps_eq(&point, &l0.1.end))
+                            && (point_ulps_eq(&point, &l1.1.start)
+                                || point_ulps_eq(&point, &l1.1.end))
+                        {
+                            continue;
+                        } else {
+                            println!(
+                                "intersection at {:?} {}:{:?}, {}:{:?}",
+                                point, l0.0, l0.1, l1.0, l1.1
+                            );
                             return Ok(true);
                         }
                     }
@@ -280,6 +355,13 @@ where
                 .with_stop_at_first_intersection(true)?
                 .with_lines(self.as_lines().into_iter())?
                 .compute()?;
+            //print!("Lines rv={} [", result.is_empty());
+            //for p in self.as_lines().iter() {
+            //print!("[{:?},{:?}]-[{:?},{:?}],", p.start.x, p.start.y, p.end.x, p.end.y);
+            //    print!("[{:?},{:?},{:?},{:?}],", p.start.x, p.start.y, p.end.x, p.end.y);
+            //print!("[{:?},{:?}],", p.x, p.y,);
+            //}
+            //println!("]");
             Ok(!result.is_empty())
         }
     }
@@ -301,8 +383,8 @@ where
             return vec![];
         } else if self.points.len() == 1 {
             return vec![Line2 {
-                start: *self.points.first().unwrap(),
-                end: *self.points.first().unwrap(),
+                start: self.points[0],
+                end: self.points[0],
             }];
         }
         let iter1 = self.points.iter().skip(1);
@@ -713,12 +795,12 @@ where
     let x = point.x;
     let y = point.y;
 
-    let ab = Float::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-    let ap = Float::sqrt((x - x1) * (x - x1) + (y - y1) * (y - y1));
-    let pb = Float::sqrt((x2 - x) * (x2 - x) + (y2 - y) * (y2 - y));
+    let ab = ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)).sqrt();
+    let ap = ((x - x1) * (x - x1) + (y - y1) * (y - y1)).sqrt();
+    let pb = ((x2 - x) * (x2 - x) + (y2 - y) * (y2 - y)).sqrt();
 
     #[cfg(feature = "console_trace")]
-    println!("ab={}, ap={}, pb={}, ap+pb={}", ab, ap, pb, ap + pb);
+    println!("ab={:?}, ap={:?}, pb={:?}, ap+pb={:?}", ab, ap, pb, ap + pb);
     if ulps_eq(&ab, &(ap + pb)) {
         return Some(Intersection::Intersection(*point));
     }
