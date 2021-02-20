@@ -137,6 +137,7 @@ where
 
     /// Intersection test for lines known to be connected by a middle point.
     /// This function will *not* report the middle-point as an intersection.
+    /// Todo: how to handle start==middle||middle==end
     pub fn intersection_point3(
         start: &nalgebra::Point2<T>,
         middle: &nalgebra::Point2<T>,
@@ -195,6 +196,18 @@ where
                 end: *end,
             })))
         }
+    }
+
+    /// returns (area of a triangle)²*4
+    /// https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm#Algorithm
+    pub fn triangle_area_squared_times_4(
+        p1: &nalgebra::Point2<T>,
+        p2: &nalgebra::Point2<T>,
+        p3: &nalgebra::Point2<T>,
+    ) -> T {
+        let area =
+            p1.x * p2.y + p2.x * p3.y + p3.x * p1.y - p1.x * p3.y - p2.x * p1.y - p3.x * p2.y;
+        area * area
     }
 }
 
@@ -524,8 +537,9 @@ where
         rv
     }
 
-    /// Simplify using Visvalingam–Whyatt algorithm
-    pub fn simplify_vw(&self, _d: T) -> Self {
+    /// Simplify using Visvalingam–Whyatt algorithm. This algorithm will delete 'number' of points
+    /// from the polyline with the smallest area defined by one point and it's neighbours.
+    pub fn simplify_vw(&self, number: usize) -> Self {
         unimplemented!();
     }
 }

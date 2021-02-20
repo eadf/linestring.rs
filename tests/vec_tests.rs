@@ -176,3 +176,27 @@ fn simplify_2() {
     line.connected = false;
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
+
+#[cfg(feature = "impl-vec")]
+#[test]
+fn triangle_area() {
+    for x in -10..10 {
+        for y in -10..10 {
+            let p1 = [x as f32, 7.0];
+            let p2 = [6_f32, 0.0];
+            let p3 = [0_f32, y as f32];
+
+            let area1 = vec_2d::Line2::triangle_area_squared_times_4(&p1, &p2, &p3);
+            //println!("area1 = {}", area1);
+
+            let p1 = [x as f32, 7.0, 0.0];
+            let p2 = [6_f32, 0.0, 0.0];
+            let p3 = [0_f32, y as f32, 0.0];
+
+            let area2 = vec_3d::Line3::triangle_area_squared_times_4(&p1, &p2, &p3);
+            //println!("area3 = {}", area2);
+
+            assert!(vec_2d::ulps_eq(&area1, &area2));
+        }
+    }
+}

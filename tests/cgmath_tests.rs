@@ -334,3 +334,45 @@ fn a_test() -> Result<(), linestring::LinestringError> {
     assert!(result);
     Ok(())
 }
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn triangle_area() {
+    for x in -10..10 {
+        for y in -10..10 {
+            let p1 = cgmath::Point2 {
+                x: x as f32,
+                y: 7.0,
+            };
+            let p2 = cgmath::Point2 { x: 6_f32, y: 0.0 };
+            let p3 = cgmath::Point2 {
+                x: 0_f32,
+                y: y as f32,
+            };
+
+            let area1 = cgmath_2d::Line2::triangle_area_squared_times_4(&p1, &p2, &p3);
+            //println!("area1 = {}", area1);
+
+            let p1 = cgmath::Point3 {
+                x: x as f32,
+                y: 7.0,
+                z: 0.0,
+            };
+            let p2 = cgmath::Point3 {
+                x: 6_f32,
+                y: 0.0,
+                z: 0.0,
+            };
+            let p3 = cgmath::Point3 {
+                x: 0_f32,
+                y: y as f32,
+                z: 0.0,
+            };
+
+            let area2 = cgmath_3d::Line3::triangle_area_squared_times_4(&p1, &p2, &p3);
+            //println!("area3 = {}", area2);
+
+            assert!(cgmath_2d::ulps_eq(&area1, &area2));
+        }
+    }
+}

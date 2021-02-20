@@ -175,3 +175,45 @@ fn simplify_2() {
     line.connected = false;
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn triangle_area() {
+    for x in -10..10 {
+        for y in -10..10 {
+            let p1 = mint::Point2 {
+                x: x as f32,
+                y: 7.0,
+            };
+            let p2 = mint::Point2 { x: 6_f32, y: 0.0 };
+            let p3 = mint::Point2 {
+                x: 0_f32,
+                y: y as f32,
+            };
+
+            let area1 = mint_2d::Line2::triangle_area_squared_times_4(&p1, &p2, &p3);
+            //println!("area1 = {}", area1);
+
+            let p1 = mint::Point3 {
+                x: x as f32,
+                y: 7.0,
+                z: 0.0,
+            };
+            let p2 = mint::Point3 {
+                x: 6_f32,
+                y: 0.0,
+                z: 0.0,
+            };
+            let p3 = mint::Point3 {
+                x: 0_f32,
+                y: y as f32,
+                z: 0.0,
+            };
+
+            let area2 = mint_3d::Line3::triangle_area_squared_times_4(&p1, &p2, &p3);
+            //println!("area3 = {}", area2);
+
+            assert!(mint_2d::ulps_eq(&area1, &area2));
+        }
+    }
+}

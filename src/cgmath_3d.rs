@@ -122,6 +122,26 @@ where
     pub fn new(start: cgmath::Point3<T>, end: cgmath::Point3<T>) -> Self {
         Self { start, end }
     }
+
+    /// returns (area of a triangle)²*4
+    pub fn triangle_area_squared_times_4(
+        p1: &cgmath::Point3<T>,
+        p2: &cgmath::Point3<T>,
+        p3: &cgmath::Point3<T>,
+    ) -> T {
+        let v1_x = p1.x - p2.x;
+        let v1_y = p1.y - p2.y;
+        let v1_z = p1.z - p2.z;
+
+        let v2_x = p3.x - p2.x;
+        let v2_y = p3.y - p2.y;
+        let v2_z = p3.z - p2.z;
+
+        let x = v1_y * v2_z - v2_y * v1_z;
+        let y = v1_x * v2_z - v2_x * v1_z;
+        let z = v1_x * v2_y - v2_x * v1_y;
+        x * x + y * y + z * z
+    }
 }
 
 #[allow(clippy::from_over_into)]
