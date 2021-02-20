@@ -339,10 +339,10 @@ where
                         {
                             continue;
                         } else {
-                            println!(
+                            /*println!(
                                 "intersection at {:?} {}:{:?}, {}:{:?}",
                                 point, l0.0, l0.1, l1.0, l1.1
-                            );
+                            );*/
                             return Ok(true);
                         }
                     }

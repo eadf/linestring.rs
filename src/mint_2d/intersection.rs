@@ -407,10 +407,7 @@ where
     }
 
     let slope: T = (y2 - y1) / (x2 - x1);
-    if slope.is_nan() {
-        panic!("D==0 should not happen!");
-        //return None;
-    }
+
     let d = y1 - slope * x1;
     Some(((sweepline.y - d) / slope, slope))
 }
@@ -437,7 +434,6 @@ where
     active_lines: Option<FnvHashSet<usize>>,
     // A list of intersection points and the line segments involved in each intersection
     result: Option<rb_tree::RBMap<SiteEventKey<T>, Vec<usize>>>,
-    intersection_calls: usize,
     // The 'best' lines surrounding the event point but not directly connected to the point.
     neighbour_priority: Option<MinMax<T>>,
     // The 'best' lines directly connected to the event point.
@@ -463,7 +459,6 @@ where
             lines: Vec::<mint_2d::Line2<T>>::new(),
             result: Some(rb_tree::RBMap::new()),
             active_lines: Some(FnvHashSet::default()),
-            intersection_calls: 0,
             neighbour_priority: Some(MinMax::new()),
             connected_priority: Some(MinMaxSlope::new()),
         }
@@ -505,10 +500,6 @@ where
 
     pub fn get_active_lines(&self) -> &Option<FnvHashSet<usize>> {
         &self.active_lines
-    }
-
-    pub fn get_intersection_calls(&self) -> usize {
-        self.intersection_calls
     }
 
     pub fn with_stop_at_first_intersection(
@@ -967,7 +958,7 @@ where
                 }
                 #[cfg(feature = "console_trace")]
                 print!("testing intersection between {} and {}: ", left_i, right_i);
-                self.intersection_calls += 1;
+
                 if let Some(intersection_p) = left_l.intersection_point(&right_l) {
                     let intersection_p = intersection_p.single();
                     // don't allow intersection 'behind' or 'at' current sweep-line position

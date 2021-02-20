@@ -49,7 +49,7 @@ use crate::LinestringError;
 
 use std::fmt;
 
-#[cfg(not(feature = "impl-nalgebra"))]
+#[cfg(feature = "impl-nalgebra")]
 pub mod intersection;
 
 /// A 2d line
@@ -310,7 +310,6 @@ where
     /// Returns true if the lines are self intersecting
     /// If number of points < 10 then the intersections are tested using brute force O(n²)
     /// If more than that a sweep-line algorithm is used O(n*log(n))
-    #[cfg(not(feature = "impl-nalgebra"))]
     pub fn is_self_intersecting(&self) -> Result<bool, LinestringError> {
         if self.points.len() <= 2 {
             Ok(false)
@@ -334,10 +333,10 @@ where
                         {
                             continue;
                         } else {
-                            println!(
+                            /*println!(
                                 "intersection at {:?} {}:{:?}, {}:{:?}",
                                 point, l0.0, l0.1, l1.0, l1.1
-                            );
+                            );*/
                             return Ok(true);
                         }
                     }
