@@ -12,7 +12,7 @@ This crate will contain data structures and methods that deals with lines in 2d 
 
 There will be 3d and 2d implementations of:
 - [x] LineString, a sequence of points, aka Polyline.
-- [x] Self intersection tests
+- [x] Self intersection tests in 2d
 - [x] Line, a finite two-point struct (no rays)
 - [x] [Ramer–Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm) and
 - [x] [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
