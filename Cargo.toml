@@ -33,5 +33,5 @@ name = "fltk_gui"
 path = "example/fltk_gui.rs"
 
 [dev-dependencies]
-fltk = "^0.15.0"
+fltk = "^0.15.1"
 cgmath = "^0.18.0"
