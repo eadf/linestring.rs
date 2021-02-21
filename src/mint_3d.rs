@@ -45,6 +45,7 @@ licenses /why-not-lgpl.html>.
 
 use super::mint_2d;
 
+use itertools::Itertools;
 use std::fmt;
 
 /// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
@@ -411,9 +412,238 @@ where
         rv
     }
 
-    /// Simplify using Visvalingam–Whyatt algorithm adapted for 3d
-    pub fn simplify_vw(&self, _d: T) -> Self {
-        unimplemented!();
+    /// Simplify using Visvalingam–Whyatt algorithm adapted for 3d.
+    /// This algorithm will delete 'points_to_delete' of points from the polyline with the smallest
+    /// area defined by one point and it's neighbours.
+    pub fn simplify_vw(&self, points_to_delete: usize) -> Self {
+        if (self.connected && self.points.len() <= 1) || (!self.connected && self.points.len() <= 2)
+        {
+            // Nothing to do here, we can't delete endpoints if not connected,
+            // and we must leave at least one point if connected.
+            return self.clone();
+        }
+        // priority queue key: area, value: indices of self.points + a copy of area.
+        // When a point is removed it's previously calculated area-to-neighbour value will not be
+        // removed. Instead new areas will simply be added to the priority queue.
+        // If a removed node is pop():ed it will be checked against the link_tree hash map.
+        // If it is not in there or if the area doesn't match it will simply be ignored and a
+        // new value pop():ed.
+
+        /*
+                println!("input: n={} start={}, end={} :", points_to_delete, 0, self.points.len()-1);
+                for i in self.points.iter().enumerate() {
+                    print!("{}:[{:?},{:?}],", i.0, i.1.x, i.1.y);
+                }
+                println!();
+        */
+
+        // A tuple is PartOrd:end by the first element
+        // RBTree::<(area:T, node_id:usize)>
+        let mut search_tree = rb_tree::RBTree::<(T, usize)>::new();
+        // map from node number to remaining neighbours of that node. All indices of self.points
+        // FnvHashMap::<node_id:usize, (prev_node_id:usize, next_node_id:usize, area:T)>
+        let mut link_tree = fnv::FnvHashMap::<usize, (usize, usize, T)>::default();
+        {
+            let mut iter_i = self.points.iter().enumerate();
+            let mut iter_j = self.points.iter().enumerate().skip(1);
+            // the k iterator will terminate before i & j, so the iter_i & iter_j unwrap()s are safe
+            for k in self.points.iter().enumerate().skip(2) {
+                let i = iter_i.next().unwrap();
+                let j = iter_j.next().unwrap();
+                // define the area between point i, j & k as search criteria
+                let area = Line3::triangle_area_squared_times_4(i.1, j.1, k.1);
+                let _ = search_tree.insert((area, j.0));
+                // point j is connected to point i and k
+                //println!("link_tree.insert({},0);", j.0);
+                let _ = link_tree.insert(j.0, (i.0, k.0, area));
+            }
+        }
+        if self.connected {
+            // add an extra point at the end, faking the loop
+            let i = self.points.len() - 2;
+            let j = self.points.len() - 1;
+            let k = self.points.len();
+            let area = Line3::triangle_area_squared_times_4(
+                &self.points[i],
+                &self.points[j],
+                &self.points[0],
+            );
+            let _ = search_tree.insert((area, j));
+            let _ = link_tree.insert(j, (i, k, area));
+        }
+        /*
+                println!("search_tree= {}", search_tree.len());
+                for i in search_tree.iter() {
+                    println!("{:?} -> {:?}", i.0, i.1);
+                }
+                println!("0link_tree:{:?}", link_tree.iter().sorted_unstable_by_key(|x|x.0).collect_vec());
+        */
+        //let start = 0_usize;
+        //let end = self.points.len() - 1;
+        //println!("start={}, end={}", start, end);
+        let self_points_len = self.points.len();
+
+        let mut deleted_nodes: usize = 0;
+        loop {
+            if search_tree.is_empty() || deleted_nodes >= points_to_delete {
+                break;
+            }
+            if let Some(smallest) = search_tree.pop() {
+                if let Some(old_links) = link_tree.get(&smallest.1).copied() {
+                    let area = old_links.2;
+                    if smallest.0 != area {
+                        // we hit a lazily deleted node, try again
+                        //println!("hit a dud: {:?} != {:?}", smallest, area);
+                        continue;
+                    } else {
+                        let _ = link_tree.remove(&smallest.1);
+                    }
+                    deleted_nodes = deleted_nodes + 1;
+                    //println!("dropped {:?}", smallest.1);
+
+                    let prev = old_links.0;
+                    let next = old_links.1;
+
+                    let prev_prev: Option<usize> = if let Some(link) = link_tree.get(&prev) {
+                        Some(link.0)
+                    } else {
+                        None
+                    };
+
+                    let next_next: Option<usize> = if let Some(link) = link_tree.get(&next) {
+                        Some(link.1)
+                    } else {
+                        None
+                    };
+                    /*println!(
+                        "pop()={:?} prev2={:?} prev={:?} next={:?} next2=={:?}",
+                        smallest, prev_prev, prev, next, next_next
+                    );*/
+
+                    if prev_prev.is_some() && next_next.is_some() {
+                        let next_next = next_next.unwrap();
+                        let prev_prev = prev_prev.unwrap();
+                        let area = Line3::triangle_area_squared_times_4(
+                            &self.points[prev],
+                            &self.points[next % self_points_len],
+                            &self.points[next_next % self_points_len],
+                        );
+                        let _ = search_tree.insert((area, next));
+                        //println!("1inserted {:?}->{:?} for {}", area, [prev, next_next], next);
+                        let _ = link_tree.insert(next, (prev, next_next, area));
+
+                        /*if next_next != start
+                            && next_next != end
+                            && !link_tree.contains_key(&next_next)
+                        {
+                            println!("next_next={:?} is missing", next_next);
+                        }*/
+                        /*if prev != start && prev != end && !link_tree.contains_key(&prev) {
+                            println!("prev={:?} is missing", prev);
+                        }*/
+
+                        let area = Line3::triangle_area_squared_times_4(
+                            &self.points[prev_prev],
+                            &self.points[prev],
+                            &self.points[next % self_points_len],
+                        );
+                        let _ = search_tree.insert((area, prev));
+                        //println!("1inserted {:?}->{:?} for {}", area, [prev_prev, next], prev);
+
+                        let _ = link_tree.insert(prev, (prev_prev, next, area));
+                        /*if prev_prev != start
+                            && prev_prev != end
+                            && !link_tree.contains_key(&prev_prev)
+                        {
+                            println!("prev_prev={:?} is missing", prev_prev);
+                        }*/
+                        /*if next != start && next != end && !link_tree.contains_key(&next) {
+                            println!("next={:?} is missing", next);
+                        }*/
+                        //println!("1link_tree:{:?}", link_tree.iter().sorted_unstable_by_key(|x|x.0).collect_vec());
+                        continue;
+                    }
+
+                    if let Some(prev_prev) = prev_prev {
+                        let area = Line3::triangle_area_squared_times_4(
+                            &self.points[prev_prev],
+                            &self.points[prev],
+                            &self.points[next % self_points_len],
+                        );
+                        let _ = search_tree.insert((area, prev));
+                        //println!("2inserted {:?}->{:?} for {}", area, [prev_prev, next], prev);
+
+                        let _ = link_tree.insert(prev, (prev_prev, next, area));
+                        /*if prev_prev != start
+                            && prev_prev != end
+                            && !link_tree.contains_key(&prev_prev)
+                        {
+                            println!("prev_prev={:?} is missing", prev_prev);
+                        }*/
+                        /*if next != start && next != end && !link_tree.contains_key(&next) {
+                            println!("next={:?} is missing", next);
+                        }*/
+                        //println!("2link_tree:{:?}", link_tree.iter().sorted_unstable_by_key(|x|x.0).collect_vec());
+                        continue;
+                    };
+
+                    if let Some(next_next) = next_next {
+                        let area = Line3::triangle_area_squared_times_4(
+                            &self.points[prev],
+                            &self.points[next % self_points_len],
+                            &self.points[next_next % self_points_len],
+                        );
+                        let _ = search_tree.insert((area, next));
+                        let _ = link_tree.insert(next, (prev, next_next, area));
+                        /*println!("3inserted {:?}->{:?} for {}", area, [prev, next_next], next);
+                        if next_next != start
+                            && next_next != end
+                            && !link_tree.contains_key(&next_next)
+                        {
+                            println!("next_next={:?} is missing", next_next);
+                        }
+                        if prev != start && prev != end && !link_tree.contains_key(&prev) {
+                            println!("prev={:?} is missing", prev);
+                        }*/
+                        //println!("3link_tree:{:?}", link_tree.iter().sorted_unstable_by_key(|x|x.0).collect_vec());
+                        continue;
+                    };
+                } else {
+                    // we hit a lazily deleted node, try again
+                    //println!("hit a dud: {:?}", smallest);
+                    continue;
+                }
+            }
+        }
+
+        //println!("result link_tree:{:?}", link_tree.iter().sorted_unstable_by_key(|x|x.0).collect_vec());
+        // Todo: we *know* the order of the points, remove sorted_unstable()
+        // we just don't know the first non-deleted point after start :/
+        let rv: Self = if !self.connected {
+            [0_usize]
+                .iter()
+                .copied()
+                .chain(
+                    link_tree
+                        .keys()
+                        .sorted_unstable()
+                        .map(|x| *x)
+                        .chain([self.points.len() - 1].iter().copied()),
+                )
+                .map(|x| self.points[x])
+                .collect()
+        } else {
+            [0_usize]
+                .iter()
+                .copied()
+                .chain(link_tree.keys().sorted_unstable().map(|x| *x))
+                .map(|x| self.points[x])
+                .collect::<Self>()
+                .with_connected(true)
+        };
+
+        //println!("rv={:?}", rv.points);
+        rv
     }
 }
 

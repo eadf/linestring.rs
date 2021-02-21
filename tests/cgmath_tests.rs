@@ -376,3 +376,90 @@ fn triangle_area() {
         }
     }
 }
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn simplif_vw_1() {
+    let line = vec![
+        [77f32, 613.],
+        [689., 650.],
+        [710., 467.],
+        [220., 200.],
+        [120., 300.],
+        [100., 100.],
+        [77., 613.],
+    ];
+    let mut line: cgmath_2d::LineString2<f32> = line.into_iter().collect();
+    line.connected = false;
+    assert_eq!(3, line.simplify_vw(4).points().len());
+}
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn simplif_vw_2() {
+    let line = vec![[0f32, 0.], [100., 0.], [100., 100.], [0., 100.], [0., 0.]];
+    let mut line: cgmath_2d::LineString2<f32> = line.into_iter().collect();
+    line.connected = false;
+
+    let l = line.simplify_vw(2);
+    println!("Result: {:?}", l);
+    assert_eq!(line.points().len() - 2, l.points().len());
+}
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn simplif_vw_3() {
+    let line = vec![
+        [0f32, 0.],
+        [100., 0.],
+        [100., 100.],
+        [0., 100.],
+        [10., 11.],
+        [1., 12.],
+        [3., 1.],
+    ];
+    let mut line: cgmath_2d::LineString2<f32> = line.into_iter().collect();
+    line.connected = false;
+
+    let l = line.simplify_vw(5);
+    println!("Result: {:?}", l);
+    assert_eq!(line.points().len() - 5, l.points().len());
+}
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn simplif_vw_4() {
+    let mut line: Vec<[f32; 2]> = Vec::with_capacity(360);
+    for i in (0..360).step_by(40) {
+        let i = i as f32;
+        line.push([i.to_radians().cos() * 100f32, i.to_radians().sin() * 100f32])
+    }
+
+    let mut line: cgmath_2d::LineString2<f32> = line.into_iter().collect();
+    line.connected = true;
+
+    let l = line.simplify_vw(6);
+    println!("Result: {:?}", l);
+    assert_eq!(line.points().len() - 6, l.points().len());
+}
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn simplif_vw_5() {
+    let mut line: Vec<[f32; 3]> = Vec::with_capacity(360);
+    for i in (0..360).step_by(40) {
+        let i = i as f32;
+        line.push([
+            i.to_radians().cos() * 100f32,
+            i.to_radians().sin() * 100f32,
+            1f32,
+        ])
+    }
+
+    let mut line: cgmath_3d::LineString3<f32> = line.into_iter().collect();
+    line.connected = true;
+
+    let l = line.simplify_vw(6);
+    println!("Result: {:?}", l);
+    assert_eq!(line.points().len() - 6, l.points().len());
+}

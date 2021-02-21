@@ -711,6 +711,9 @@ where
                     &mut site_events,
                     &mut result,
                 );
+                if !result.is_empty() && self.stop_at_first_intersection {
+                    break;
+                }
             } else {
                 self.sweepline_pos = nalgebra::Point2::<T>::new(T::max_value(), T::max_value());
 

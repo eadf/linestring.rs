@@ -11,11 +11,13 @@ Anything in this API ~~may~~ *will* change without notice.
 This crate will contain data structures and methods that deals with lines in 2d and 3d space.
 
 There will be 3d and 2d implementations of:
-* LineString, a sequence of points, aka Polyline.
-* Self intersection tests
-* Line, a finite two-point struct (no rays)
-* [Ramer–Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm) and [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
-* Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box)
+- [x] LineString, a sequence of points, aka Polyline.
+- [x] Self intersection tests
+- [x] Line, a finite two-point struct (no rays)
+- [x] [Ramer–Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm) and
+- [x] [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
+- [x] Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box)
+- [ ] Polynomial/spline/bezier curves
 
 This will be implemented (feature gated) for [cgmath](https://crates.io/crates/cgmath), 
 [nalgebra](https://crates.io/crates/nalgebra) and limited versions for [mint](https://crates.io/crates/nalgebra) and plain vector scalars (no transformations etc).
@@ -47,6 +49,6 @@ cargo run --example fltk_gui --features impl-cgmath
 - [ ] Improve on error handling
 - [ ] Benchmark and optimize (add smallvec to simplify?)
 - [ ] optimize Ramer–Douglas-Peucker 2d & 3d
-- [ ] Visvalingam-Whyatt 2d & 3d
+- [ ] optimize Visvalingam-Whyatt 2d & 3d
 - [ ] Figure out why workflows refuse to start
 

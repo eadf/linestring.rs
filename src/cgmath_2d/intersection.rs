@@ -714,6 +714,9 @@ where
                     &mut site_events,
                     &mut result,
                 );
+                if !result.is_empty() && self.stop_at_first_intersection {
+                    break;
+                }
             } else {
                 self.sweepline_pos = cgmath::Point2 {
                     x: T::max_value(),

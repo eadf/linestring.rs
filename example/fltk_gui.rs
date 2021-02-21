@@ -45,6 +45,7 @@ licenses /why-not-lgpl.html>.
 use fltk::app::redraw;
 use fltk::valuator::HorNiceSlider;
 use fltk::{app, button::*, draw::*, frame::*, window::*};
+//use itertools::Itertools;
 use linestring::cgmath_2d::LineString2;
 use linestring::LinestringError;
 use std::cell::RefCell;
@@ -59,7 +60,8 @@ const H: i32 = 650;
 const W: i32 = 800;
 
 struct SharedData {
-    //distance: f32,
+    distance: f32,
+    number_to_remove: usize,
     lines: Vec<LineString2<f32>>,
 }
 
@@ -70,22 +72,27 @@ fn main() -> Result<(), LinestringError> {
         100,
         100,
         W,
-        H,
-        "Ramer–Douglas–Peucker + Self intersection test",
+        H + 50,
+        "Ramer–Douglas–Peucker & Visvalingam–Whyatt simplification + Self intersection test",
     );
-    let mut frame = Frame::new(5, 5, WF, HF, "");
+    let mut frame = Frame::new(5, 5, WF, HF + 50, "");
     frame.set_color(Color::White);
     frame.set_frame(FrameType::DownBox);
 
-    let mut slider = HorNiceSlider::new(5, 5 + HF, WF, 25, "Move the slider to draw!!!");
-    slider.set_value(0.0);
-    slider.set_frame(FrameType::PlasticUpBox);
+    let mut slider_d = HorNiceSlider::new(5, 5 + HF, WF, 25, "Move the slider to draw!!!");
+    slider_d.set_value(0.0);
+    slider_d.set_frame(FrameType::PlasticUpBox);
+
+    let mut slider_n = HorNiceSlider::new(5, 5 + HF + 50, WF, 25, "Move the slider to draw!!!");
+    slider_n.set_value(0.0);
+    slider_n.set_frame(FrameType::PlasticUpBox);
 
     wind.end();
     wind.show();
 
     let shared_data_rc = Rc::from(RefCell::from(SharedData {
-        //distance: 0.0,
+        distance: 0.0,
+        number_to_remove: 0,
         lines: Vec::new(),
     }));
 
@@ -101,14 +108,79 @@ fn main() -> Result<(), LinestringError> {
     let offs = Rc::from(RefCell::from(offs));
     let offs_rc = offs.clone();
 
-    let slider_shared_data = Rc::clone(&shared_data_rc);
-    slider.set_callback2(move |b| {
-        let shared_data = slider_shared_data.borrow_mut();
+    let slider_d_shared_data = Rc::clone(&shared_data_rc);
+    slider_d.set_callback2(move |s| {
+        let mut shared_data = slider_d_shared_data.borrow_mut();
 
-        let distance = b.value() as f32 * 200.0;
-        b.set_label(
-            ("           Distance:".to_string()
-                + &distance.to_string()
+        shared_data.distance = s.value() as f32 * 400.0;
+        s.set_label(
+            ("           Ramer–Douglas–Peucker distance:".to_string()
+                + &shared_data.distance.to_string()
+                + (&"           ".to_string()))
+                .as_str(),
+        );
+        s.set_color(Color::Green);
+        offs_rc.borrow_mut().begin();
+        set_draw_color(Color::White);
+        draw_rectf(0, 0, WF, HF);
+        set_line_style(LineStyle::Solid, 1);
+
+        for l in shared_data.lines.iter() {
+            if l.is_self_intersecting().unwrap() {
+                set_draw_color(Color::Red);
+            } else {
+                set_draw_color(Color::Black);
+            }
+
+            for a_line in l.as_lines() {
+                draw_line(
+                    a_line.start.x as i32,
+                    a_line.start.y as i32,
+                    a_line.end.x as i32,
+                    a_line.end.y as i32,
+                );
+            }
+
+            let simplified_line = l.simplify(shared_data.distance);
+            if simplified_line.is_self_intersecting().unwrap() {
+                set_draw_color(Color::Red);
+            } else {
+                set_draw_color(Color::Green);
+            }
+            for a_line in simplified_line.as_lines() {
+                draw_line(
+                    a_line.start.x as i32,
+                    a_line.start.y as i32,
+                    a_line.end.x as i32,
+                    a_line.end.y as i32,
+                );
+                draw_line(
+                    a_line.start.x as i32 - 2,
+                    a_line.start.y as i32 - 2,
+                    a_line.start.x as i32 + 2,
+                    a_line.start.y as i32 + 2,
+                );
+                draw_line(
+                    a_line.start.x as i32 + 2,
+                    a_line.start.y as i32 - 2,
+                    a_line.start.x as i32 - 2,
+                    a_line.start.y as i32 + 2,
+                );
+            }
+        }
+        redraw();
+        offs_rc.borrow_mut().end();
+    });
+
+    let slider_n_shared_data = Rc::clone(&shared_data_rc);
+    let offs_rc = offs.clone();
+    slider_n.set_callback2(move |s| {
+        let mut shared_data = slider_n_shared_data.borrow_mut();
+        shared_data.number_to_remove = (s.value() as f32 * 200.0) as usize;
+        s.set_color(Color::Blue);
+        s.set_label(
+            ("           Visvalingam–Whyatt deleted points:".to_string()
+                + &shared_data.number_to_remove.to_string()
                 + (&"           ".to_string()))
                 .as_str(),
         );
@@ -121,7 +193,7 @@ fn main() -> Result<(), LinestringError> {
             if l.is_self_intersecting().unwrap() {
                 set_draw_color(Color::Red);
             } else {
-                set_draw_color(Color::Green);
+                set_draw_color(Color::Black);
             }
 
             for a_line in l.as_lines() {
@@ -133,12 +205,11 @@ fn main() -> Result<(), LinestringError> {
                 );
             }
 
-            set_draw_color(Color::Black);
-            let simplified_line = l.simplify(distance);
+            let simplified_line = l.simplify_vw(shared_data.number_to_remove);
             if simplified_line.is_self_intersecting().unwrap() {
                 set_draw_color(Color::Red);
             } else {
-                set_draw_color(Color::Black);
+                set_draw_color(Color::Blue);
             }
             for a_line in simplified_line.as_lines() {
                 draw_line(
@@ -146,6 +217,18 @@ fn main() -> Result<(), LinestringError> {
                     a_line.start.y as i32,
                     a_line.end.x as i32,
                     a_line.end.y as i32,
+                );
+                draw_line(
+                    a_line.start.x as i32 - 2,
+                    a_line.start.y as i32 - 2,
+                    a_line.start.x as i32 + 2,
+                    a_line.start.y as i32 + 2,
+                );
+                draw_line(
+                    a_line.start.x as i32 + 2,
+                    a_line.start.y as i32 - 2,
+                    a_line.start.x as i32 - 2,
+                    a_line.start.y as i32 + 2,
                 );
             }
         }
@@ -190,7 +273,7 @@ fn add_data(data: Rc<RefCell<SharedData>>) -> Result<(), LinestringError> {
 
     // Add a wobbly circle
     let mut line: Vec<cgmath::Point2<f32>> = Vec::with_capacity(360);
-    for angle in (0..358).skip(2) {
+    for angle in (0..358).step_by(2) {
         let x: f32 = 400.0
             + (angle as f32).to_radians().cos() * 250.0
             + 5.0 * (angle as f32 * 8.523).to_radians().sin();
