@@ -253,6 +253,257 @@ where
     }
 }
 
+/// A parabolic arc as used in https://github.com/eadf/boostvoronoi.rs
+/// This struct contains the parameters for the arc + the functionality to convert it to a
+/// LineString2 or LineString3.
+///
+/// This parabola describes the equidistant curve between a point and a segment starting
+/// at 'start_point' and ending at 'end_point'
+/// This also mean that the distance between 'start_point'<->cell_point and
+/// 'end_point'<->cell_point must be the same distance as 'start_point'<->segment &
+/// 'end_point'<->segment
+#[derive(Clone, Hash, fmt::Debug)]
+pub struct VoronoiParabolicArc<T>
+where
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    // input geometry of voronoi graph
+    pub segment: Line2<T>,
+    pub cell_point: mint::Point2<T>,
+
+    // vertex points in voronoi diagram. Aka edge start and end points. (Also called circle events)
+    pub start_point: mint::Point2<T>,
+    pub end_point: mint::Point2<T>,
+}
+
+impl<T> VoronoiParabolicArc<T>
+where
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    pub fn new(
+        segment: Line2<T>,
+        cell_point: mint::Point2<T>,
+        start_point: mint::Point2<T>,
+        end_point: mint::Point2<T>,
+    ) -> Self {
+        Self {
+            segment,
+            cell_point,
+            start_point,
+            end_point,
+        }
+    }
+
+    /// Convert this parable abstraction into discrete line segment sample points.
+    /// All of this code is ported from C++ boost 1.75.0
+    /// https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm
+    pub fn discretise_2d(&self, max_dist: T) -> LineString2<T> {
+        let mut rv = LineString2::default().with_connected(false);
+        rv.points.push(self.start_point);
+        rv.points.push(self.end_point);
+
+        // Apply the linear transformation to move start point of the segment to
+        // the point with coordinates (0, 0) and the direction of the segment to
+        // coincide the positive direction of the x-axis.
+        let segm_vec_x = self.segment.end.x - self.segment.start.x;
+        let segm_vec_y = self.segment.end.y - self.segment.start.y;
+        let sqr_segment_length = segm_vec_x * segm_vec_x + segm_vec_y * segm_vec_y;
+
+        // Compute x-coordinates of the endpoints of the edge
+        // in the transformed space.
+        let projection_start =
+            sqr_segment_length * Self::get_point_projection(&rv.points[0], &self.segment);
+        let projection_end =
+            sqr_segment_length * Self::get_point_projection(&rv.points[1], &self.segment);
+
+        // Compute parabola parameters in the transformed space.
+        // Parabola has next representation:
+        // f(x) = ((x-rot_x)^2 + rot_y^2) / (2.0*rot_y).
+        let point_vec_x = self.cell_point.x - self.segment.start.x;
+        let point_vec_y = self.cell_point.y - self.segment.start.y;
+        let rot_x = segm_vec_x * point_vec_x + segm_vec_y * point_vec_y;
+        let rot_y = segm_vec_x * point_vec_y - segm_vec_y * point_vec_x;
+
+        // Save the last point.
+        let last_point = (*rv.points)[1];
+        let _ = rv.points.pop();
+
+        // Use stack to avoid recursion.
+        let mut point_stack = vec![projection_end];
+        let mut cur_x = projection_start;
+        let mut cur_y = Self::parabola_y(cur_x, rot_x, rot_y);
+
+        // Adjust max_dist parameter in the transformed space.
+        let max_dist_transformed = max_dist * max_dist * sqr_segment_length;
+        while !point_stack.is_empty() {
+            let new_x = point_stack[point_stack.len() - 1]; // was .top();
+            let new_y = Self::parabola_y(new_x, rot_x, rot_y);
+
+            // Compute coordinates of the point of the parabola that is
+            // furthest from the current line segment.
+            let mid_x = (new_y - cur_y) / (new_x - cur_x) * rot_y + rot_x;
+            let mid_y = Self::parabola_y(mid_x, rot_x, rot_y);
+
+            // Compute maximum distance between the given parabolic arc
+            // and line segment that discretize it.
+            let mut dist = (new_y - cur_y) * (mid_x - cur_x) - (new_x - cur_x) * (mid_y - cur_y);
+            #[allow(clippy::suspicious_operation_groupings)]
+            {
+                dist = dist * dist
+                    / ((new_y - cur_y) * (new_y - cur_y) + (new_x - cur_x) * (new_x - cur_x));
+            }
+            if dist <= max_dist_transformed {
+                // Distance between parabola and line segment is less than max_dist.
+                let _ = point_stack.pop();
+                let inter_x = (segm_vec_x * new_x - segm_vec_y * new_y) / sqr_segment_length
+                    + self.segment.start.x;
+                let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
+                    + self.segment.start.y;
+                rv.points.push(mint::Point2 {
+                    x: inter_x,
+                    y: inter_y,
+                });
+                cur_x = new_x;
+                cur_y = new_y;
+            } else {
+                point_stack.push(mid_x);
+            }
+        }
+
+        // Update last point.
+        let last_position = rv.points.len() - 1;
+        rv.points[last_position] = last_point;
+        rv
+    }
+
+    /// Convert this parable abstraction into discrete line segment sample points.
+    /// The Z component of the coordinates is the constant distance from the edge to point and
+    /// line segment (should be the same value)
+    ///
+    /// All of this code is ported from C++ boost 1.75.0
+    /// https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm
+    pub fn discretise_3d(&self, max_dist: T) -> mint_3d::LineString3<T> {
+        let mut rv = mint_3d::LineString3::default().with_connected(false);
+        let distance = distance_to_point_squared(&self.start_point, &self.cell_point).sqrt();
+        // assert!(ulps_eq(&distance, &distance_to_point_squared(&self.end_point, &self.cell_point).sqrt()));
+
+        rv.points
+            .push([self.start_point.x, self.start_point.y, distance].into());
+        rv.points
+            .push([self.end_point.x, self.end_point.y, distance].into());
+
+        // Apply the linear transformation to move start point of the segment to
+        // the point with coordinates (0, 0) and the direction of the segment to
+        // coincide the positive direction of the x-axis.
+        let segm_vec_x = self.segment.end.x - self.segment.start.x;
+        let segm_vec_y = self.segment.end.y - self.segment.start.y;
+        let sqr_segment_length = segm_vec_x * segm_vec_x + segm_vec_y * segm_vec_y;
+
+        // Compute x-coordinates of the endpoints of the edge
+        // in the transformed space.
+        let projection_start =
+            sqr_segment_length * Self::get_point_projection_3d(&rv.points[0], &self.segment);
+        let projection_end =
+            sqr_segment_length * Self::get_point_projection_3d(&rv.points[1], &self.segment);
+
+        // Compute parabola parameters in the transformed space.
+        // Parabola has next representation:
+        // f(x) = ((x-rot_x)^2 + rot_y^2) / (2.0*rot_y).
+        let point_vec_x = self.cell_point.x - self.segment.start.x;
+        let point_vec_y = self.cell_point.y - self.segment.start.y;
+        let rot_x = segm_vec_x * point_vec_x + segm_vec_y * point_vec_y;
+        let rot_y = segm_vec_x * point_vec_y - segm_vec_y * point_vec_x;
+
+        // Save the last point.
+        let last_point = (*rv.points)[1];
+        let _ = rv.points.pop();
+
+        // Use stack to avoid recursion.
+        let mut point_stack = vec![projection_end];
+        let mut cur_x = projection_start;
+        let mut cur_y = Self::parabola_y(cur_x, rot_x, rot_y);
+
+        // Adjust max_dist parameter in the transformed space.
+        let max_dist_transformed = max_dist * max_dist * sqr_segment_length;
+        while !point_stack.is_empty() {
+            let new_x = point_stack[point_stack.len() - 1]; // was .top();
+            let new_y = Self::parabola_y(new_x, rot_x, rot_y);
+
+            // Compute coordinates of the point of the parabola that is
+            // furthest from the current line segment.
+            let mid_x = (new_y - cur_y) / (new_x - cur_x) * rot_y + rot_x;
+            let mid_y = Self::parabola_y(mid_x, rot_x, rot_y);
+
+            // Compute maximum distance between the given parabolic arc
+            // and line segment that discretize it.
+            let mut dist = (new_y - cur_y) * (mid_x - cur_x) - (new_x - cur_x) * (mid_y - cur_y);
+            #[allow(clippy::suspicious_operation_groupings)]
+            {
+                dist = dist * dist
+                    / ((new_y - cur_y) * (new_y - cur_y) + (new_x - cur_x) * (new_x - cur_x));
+            }
+            if dist <= max_dist_transformed {
+                // Distance between parabola and line segment is less than max_dist.
+                let _ = point_stack.pop();
+                let inter_x = (segm_vec_x * new_x - segm_vec_y * new_y) / sqr_segment_length
+                    + self.segment.start.x;
+                let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
+                    + self.segment.start.y;
+                rv.points.push(mint::Point3 {
+                    x: inter_x,
+                    y: inter_y,
+                    z: distance,
+                });
+                cur_x = new_x;
+                cur_y = new_y;
+            } else {
+                point_stack.push(mid_x);
+            }
+        }
+
+        // Update last point.
+        let last_position = rv.points.len() - 1;
+        rv.points[last_position] = last_point;
+        rv
+    }
+
+    /// Compute y(x) = ((x - a) * (x - a) + b * b) / (2 * b).
+    #[inline(always)]
+    #[allow(clippy::suspicious_operation_groupings)]
+    fn parabola_y(x: T, a: T, b: T) -> T {
+        ((x - a) * (x - a) + b * b) / (b + b)
+    }
+
+    /// Get normalized length of the distance between:
+    ///   1) point projection onto the segment
+    ///   2) start point of the segment
+    /// Return this length divided by the segment length. This is made to avoid
+    /// sqrt computation during transformation from the initial space to the
+    /// transformed one and vice versa. The assumption is made that projection of
+    /// the point lies between the start-point and endpoint of the segment.
+    #[inline(always)]
+    fn get_point_projection(point: &mint::Point2<T>, segment: &Line2<T>) -> T {
+        let segment_vec_x = segment.end.x - segment.start.x;
+        let segment_vec_y = segment.end.y - segment.start.y;
+        let point_vec_x = point.x - segment.start.x;
+        let point_vec_y = point.y - segment.start.y;
+        let sqr_segment_length = segment_vec_x * segment_vec_x + segment_vec_y * segment_vec_y;
+        let vec_dot = segment_vec_x * point_vec_x + segment_vec_y * point_vec_y;
+        vec_dot / sqr_segment_length
+    }
+
+    // exactly the same as get_point_projection but with a Point3 (Z component will be ignored)
+    fn get_point_projection_3d(point: &mint::Point3<T>, segment: &Line2<T>) -> T {
+        let segment_vec_x = segment.end.x - segment.start.x;
+        let segment_vec_y = segment.end.y - segment.start.y;
+        let point_vec_x = point.x - segment.start.x;
+        let point_vec_y = point.y - segment.start.y;
+        let sqr_segment_length = segment_vec_x * segment_vec_x + segment_vec_y * segment_vec_y;
+        let vec_dot = segment_vec_x * point_vec_x + segment_vec_y * point_vec_y;
+        vec_dot / sqr_segment_length
+    }
+}
+
 /// A set of 2d linestrings + an aabb
 /// Intended to contain related shapes. E.g. outlines of letters with holes
 #[derive(PartialEq, Eq, Clone, Hash)]

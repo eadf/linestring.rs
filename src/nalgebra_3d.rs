@@ -178,7 +178,7 @@ pub struct LineString3<T>
 where
     T: nalgebra::RealField,
 {
-    points: Vec<nalgebra::Point3<T>>,
+    pub(crate) points: Vec<nalgebra::Point3<T>>,
 
     /// if connected is set the as_lines() method will add an extra line connecting
     /// the first and last point
@@ -801,7 +801,7 @@ where
 {
     nalgebra_2d::ulps_eq(&a.x, &b.x)
         && nalgebra_2d::ulps_eq(&a.y, &b.y)
-        && nalgebra_2d::ulps_eq(&a.y, &b.y)
+        && nalgebra_2d::ulps_eq(&a.z, &b.z)
 }
 
 #[inline(always)]

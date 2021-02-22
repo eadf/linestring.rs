@@ -45,9 +45,7 @@ licenses /why-not-lgpl.html>.
 use fltk::app::redraw;
 use fltk::valuator::HorNiceSlider;
 use fltk::{app, button::*, draw::*, frame::*, window::*};
-//use itertools::Itertools;
 use linestring::cgmath_2d::LineString2;
-use linestring::LinestringError;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -65,7 +63,7 @@ struct SharedData {
     lines: Vec<LineString2<f32>>,
 }
 
-fn main() -> Result<(), LinestringError> {
+fn main() {
     let app = app::App::default().with_scheme(app::Scheme::Gtk);
 
     let mut wind = Window::new(
@@ -236,10 +234,9 @@ fn main() -> Result<(), LinestringError> {
         offs_rc.borrow_mut().end();
     });
 
-    add_data(shared_data_rc.clone())?;
+    add_data(Rc::clone(&shared_data_rc));
 
-    let offs_rc = offs.clone();
-
+    let offs_rc = Rc::clone(&offs);
     frame.draw(move || {
         if offs_rc.borrow().is_valid() {
             offs_rc.borrow().copy(5, 5, WF, HF, 0, 0);
@@ -252,10 +249,9 @@ fn main() -> Result<(), LinestringError> {
     });
 
     app.run().unwrap();
-    Ok(())
 }
 
-fn add_data(data: Rc<RefCell<SharedData>>) -> Result<(), LinestringError> {
+fn add_data(data: Rc<RefCell<SharedData>>) {
     let mut data_b = data.borrow_mut();
     data_b.lines.clear();
 
@@ -290,6 +286,4 @@ fn add_data(data: Rc<RefCell<SharedData>>) -> Result<(), LinestringError> {
         .with_connected(true);
 
     data_b.lines.push(line);
-
-    Ok(())
 }

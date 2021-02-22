@@ -178,7 +178,7 @@ pub struct LineString3<T>
 where
     T: cgmath::BaseFloat,
 {
-    points: Vec<cgmath::Point3<T>>,
+    pub(crate) points: Vec<cgmath::Point3<T>>,
 
     /// if connected is set the as_lines() method will add an extra line connecting
     /// the first and last point
@@ -810,7 +810,7 @@ where
 {
     cgmath_2d::ulps_eq(&a.x, &b.x)
         && cgmath_2d::ulps_eq(&a.y, &b.y)
-        && cgmath_2d::ulps_eq(&a.y, &b.y)
+        && cgmath_2d::ulps_eq(&a.z, &b.z)
 }
 
 #[inline(always)]

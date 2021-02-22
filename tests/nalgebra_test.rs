@@ -180,3 +180,121 @@ fn triangle_area() {
         }
     }
 }
+
+#[cfg(feature = "impl-nalgebra")]
+#[test]
+fn voronoiparabolicarc_1() {
+    /*
+    point1:Point { x: 200, y: 200 },
+    segment:Line { start: Point { x: 100, y: 100 }, end: Point { x: 300, y: 100 } },
+    max_dist:0.800000037997961,
+    discretization:[[100.0, 200.0], [300.0, 200.0]]
+    discretize: result:[[100.0, 200.0], [125.0, 178.125], [150.0, 162.5], [175.0, 153.125], [200.0, 150.0], [225.0, 153.125], [250.0, 162.5], [275.0, 178.125], [300.0, 200.0]]
+    */
+    let cell_point: nalgebra::Point2<f32> = [200.0, 200.0].into();
+    let segment: nalgebra_2d::Line2<f32> = [[100.0, 100.0], [300.0, 100.0]].into();
+    let max_dist: f32 = 0.800000037997961;
+    let start_point: nalgebra::Point2<f32> = [100.0, 200.0].into();
+    let end_point: nalgebra::Point2<f32> = [300.0, 200.0].into();
+
+    let vpa =
+        nalgebra_2d::VoronoiParabolicArc::<f32>::new(segment, cell_point, start_point, end_point);
+    let result = vpa.discretise_2d(max_dist);
+    println!("result: {:?}", result);
+
+    assert!(nalgebra_2d::point_ulps_eq(
+        &result.points()[0],
+        &[100.0, 200.0].into()
+    ));
+    assert!(nalgebra_2d::point_ulps_eq(
+        &result.points()[1],
+        &[125.0, 178.125].into()
+    ));
+    assert!(nalgebra_2d::point_ulps_eq(
+        &result.points()[2],
+        &[150.0, 162.5].into()
+    ));
+    assert!(nalgebra_2d::point_ulps_eq(
+        &result.points()[3],
+        &[175.0, 153.125].into()
+    ));
+    assert!(nalgebra_2d::point_ulps_eq(
+        &result.points()[4],
+        &[200.0, 150.0].into()
+    ));
+    assert!(nalgebra_2d::point_ulps_eq(
+        &result.points()[5],
+        &[225.0, 153.125].into()
+    ));
+    assert!(nalgebra_2d::point_ulps_eq(
+        &result.points()[6],
+        &[250.0, 162.5].into()
+    ));
+    assert!(nalgebra_2d::point_ulps_eq(
+        &result.points()[7],
+        &[275.0, 178.125].into()
+    ));
+    assert!(nalgebra_2d::point_ulps_eq(
+        &result.points()[8],
+        &[300.0, 200.0].into()
+    ));
+    println!("result: {:?}", result);
+}
+
+#[cfg(feature = "impl-nalgebra")]
+#[test]
+fn voronoiparabolicarc_2() {
+    /*
+    point1:Point { x: 200, y: 200 },
+    segment:Line { start: Point { x: 100, y: 100 }, end: Point { x: 300, y: 100 } },
+    max_dist:0.800000037997961,
+    discretization:[[100.0, 200.0], [300.0, 200.0]]
+    discretize: result:[[100.0, 200.0], [125.0, 178.125], [150.0, 162.5], [175.0, 153.125], [200.0, 150.0], [225.0, 153.125], [250.0, 162.5], [275.0, 178.125], [300.0, 200.0]]
+    */
+    let cell_point: nalgebra::Point2<f32> = [200.0, 200.0].into();
+    let segment: nalgebra_2d::Line2<f32> = [[100.0, 100.0], [300.0, 100.0]].into();
+    let max_dist: f32 = 0.800000037997961;
+    let start_point: nalgebra::Point2<f32> = [100.0, 200.0].into();
+    let end_point: nalgebra::Point2<f32> = [300.0, 200.0].into();
+
+    let vpa =
+        nalgebra_2d::VoronoiParabolicArc::<f32>::new(segment, cell_point, start_point, end_point);
+    let result = vpa.discretise_3d(max_dist);
+    assert!(nalgebra_3d::point_ulps_eq(
+        &result.points()[0],
+        &[100.0, 200.0, 100.].into()
+    ));
+    assert!(nalgebra_3d::point_ulps_eq(
+        &result.points()[1],
+        &[125.0, 178.125, 100.].into()
+    ));
+    assert!(nalgebra_3d::point_ulps_eq(
+        &result.points()[2],
+        &[150.0, 162.5, 100.].into()
+    ));
+    assert!(nalgebra_3d::point_ulps_eq(
+        &result.points()[3],
+        &[175.0, 153.125, 100.].into()
+    ));
+    assert!(nalgebra_3d::point_ulps_eq(
+        &result.points()[4],
+        &[200.0, 150.0, 100.].into()
+    ));
+    assert!(nalgebra_3d::point_ulps_eq(
+        &result.points()[5],
+        &[225.0, 153.125, 100.].into()
+    ));
+    assert!(nalgebra_3d::point_ulps_eq(
+        &result.points()[6],
+        &[250.0, 162.5, 100.].into()
+    ));
+    assert!(nalgebra_3d::point_ulps_eq(
+        &result.points()[7],
+        &[275.0, 178.125, 100.].into()
+    ));
+    assert!(nalgebra_3d::point_ulps_eq(
+        &result.points()[8],
+        &[300.0, 200.0, 100.].into()
+    ));
+    println!("result: {:?}", result);
+}

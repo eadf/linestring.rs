@@ -1,4 +1,3 @@
-use approx;
 #[cfg(feature = "impl-vec")]
 use linestring::vec_2d;
 #[cfg(feature = "impl-vec")]

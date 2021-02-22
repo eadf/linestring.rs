@@ -178,7 +178,7 @@ pub struct LineString3<T>
 where
     T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    points: Vec<mint::Point3<T>>,
+    pub(crate) points: Vec<mint::Point3<T>>,
 
     /// if connected is set the as_lines() method will add an extra line connecting
     /// the first and last point
@@ -808,7 +808,7 @@ pub fn point_ulps_eq<T>(a: &mint::Point3<T>, b: &mint::Point3<T>) -> bool
 where
     T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    mint_2d::ulps_eq(&a.x, &b.x) && mint_2d::ulps_eq(&a.y, &b.y) && mint_2d::ulps_eq(&a.y, &b.y)
+    mint_2d::ulps_eq(&a.x, &b.x) && mint_2d::ulps_eq(&a.y, &b.y) && mint_2d::ulps_eq(&a.z, &b.z)
 }
 
 #[inline(always)]
