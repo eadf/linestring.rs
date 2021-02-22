@@ -20,7 +20,7 @@ There will be 3d and 2d implementations of:
 - [ ] [boostvoronoi](https://github.com/eadf/boostvoronoi.rs) parabolic arc curves
 
 This will be implemented (feature gated) for [cgmath](https://crates.io/crates/cgmath), 
-[nalgebra](https://crates.io/crates/nalgebra) and limited versions for [mint](https://crates.io/crates/nalgebra) and plain vector scalars (no transformations etc).
+[nalgebra](https://crates.io/crates/nalgebra) and limited versions for [mint](https://crates.io/crates/mint) and plain vector scalars (no transformations etc).
 More implementations could be added if required.
 
 If you want to use this library in your cgmath project you add this to your Cargo.toml:
@@ -50,5 +50,4 @@ cargo run --example fltk_gui --features impl-cgmath
 - [ ] Benchmark and optimize (add smallvec to simplify rdp?)
 - [ ] optimize Ramer–Douglas-Peucker 2d & 3d
 - [ ] optimize Visvalingam-Whyatt 2d & 3d
-- [ ] Figure out why workflows refuse to start
 
