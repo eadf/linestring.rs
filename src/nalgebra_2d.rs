@@ -50,7 +50,6 @@ use crate::LinestringError;
 use itertools::Itertools;
 use std::fmt;
 
-#[cfg(feature = "impl-nalgebra")]
 pub mod intersection;
 
 /// A 2d line
@@ -691,9 +690,13 @@ where
         self.points.push(point);
     }
 
-    pub fn transform(&self, mat: &nalgebra::Matrix3<T>) -> Self {
+    pub fn transform(&self, matrix3x3: &nalgebra::Matrix3<T>) -> Self {
         Self {
-            points: self.points.iter().map(|x| mat.transform_point(x)).collect(),
+            points: self
+                .points
+                .iter()
+                .map(|x| matrix3x3.transform_point(x))
+                .collect(),
             connected: self.connected,
         }
     }
@@ -997,10 +1000,10 @@ where
         &self.aabb
     }
 
-    pub fn transform(&self, mat: &nalgebra::Matrix3<T>) -> Self {
+    pub fn transform(&self, matrix3x3: &nalgebra::Matrix3<T>) -> Self {
         Self {
-            aabb: self.aabb.transform(mat),
-            set: self.set.iter().map(|x| x.transform(mat)).collect(),
+            aabb: self.aabb.transform(matrix3x3),
+            set: self.set.iter().map(|x| x.transform(matrix3x3)).collect(),
         }
     }
 
@@ -1106,12 +1109,12 @@ where
         None
     }
 
-    pub fn transform(&self, mat: &nalgebra::Matrix3<T>) -> Self {
+    pub fn transform(&self, matrix3x3: &nalgebra::Matrix3<T>) -> Self {
         if let Some(min_max) = self.min_max {
             Self {
                 min_max: Some((
-                    mat.transform_point(&min_max.0),
-                    mat.transform_point(&min_max.1),
+                    matrix3x3.transform_point(&min_max.0),
+                    matrix3x3.transform_point(&min_max.1),
                 )),
             }
         } else {

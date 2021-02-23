@@ -319,9 +319,13 @@ where
         self.points.push(point);
     }
 
-    pub fn transform(&self, mat: &nalgebra::Matrix4<T>) -> Self {
+    pub fn transform(&self, matrix4x4: &nalgebra::Matrix4<T>) -> Self {
         Self {
-            points: self.points.iter().map(|x| mat.transform_point(x)).collect(),
+            points: self
+                .points
+                .iter()
+                .map(|x| matrix4x4.transform_point(x))
+                .collect(),
             connected: self.connected,
         }
     }
@@ -735,12 +739,12 @@ where
         None
     }
 
-    pub fn transform(&self, mat: &nalgebra::Matrix4<T>) -> Self {
+    pub fn transform(&self, matrix4x4: &nalgebra::Matrix4<T>) -> Self {
         if let Some(min_max) = self.min_max {
             Self {
                 min_max: Some((
-                    mat.transform_point(&min_max.0),
-                    mat.transform_point(&min_max.1),
+                    matrix4x4.transform_point(&min_max.0),
+                    matrix4x4.transform_point(&min_max.1),
                 )),
             }
         } else {

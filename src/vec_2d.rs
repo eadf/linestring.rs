@@ -46,11 +46,11 @@ licenses /why-not-lgpl.html>.
 use super::vec_3d;
 #[allow(unused_imports)]
 use crate::LinestringError;
-
+//#[cfg(feature = "impl-vecmath")]
+//use vecmath::Matrix4;
 use itertools::Itertools;
 use std::fmt;
 
-#[cfg(feature = "impl-vec")]
 pub mod intersection;
 
 /// A 2d line
@@ -378,9 +378,9 @@ where
         // assert!(ulps_eq(&distance, &distance_to_point_squared(&self.end_point, &self.cell_point).sqrt()));
 
         rv.points
-            .push([self.start_point[0], self.start_point[1], distance].into());
+            .push([self.start_point[0], self.start_point[1], distance]);
         rv.points
-            .push([self.end_point[0], self.end_point[1], distance].into());
+            .push([self.end_point[0], self.end_point[1], distance]);
 
         // Apply the linear transformation to move start point of the segment to
         // the point with coordinates (0, 0) and the direction of the segment to
@@ -689,13 +689,13 @@ where
         self.points.push(point);
     }
 
-    #[cfg(not(feature = "impl-vec"))]
-    pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
+    #[cfg(feature = "impl-vecmath")]
+    pub fn transform(&self, matrix3x3: &vecmath::Matrix3<T>) -> Self {
         Self {
             points: self
                 .points
                 .iter()
-                .map(|x| mat.transform_point(*x))
+                .map(|x| vecmath::col_mat3_transform_pos2(*matrix3x3, *x))
                 .collect(),
             connected: self.connected,
         }
@@ -997,11 +997,11 @@ where
         &self.aabb
     }
 
-    #[cfg(not(feature = "impl-vec"))]
-    pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
+    #[cfg(feature = "impl-vecmath")]
+    pub fn transform(&self, matrix3x3: &vecmath::Matrix3<T>) -> Self {
         Self {
-            aabb: self.aabb.transform(mat),
-            set: self.set.iter().map(|x| x.transform(mat)).collect(),
+            aabb: self.aabb.transform(matrix3x3),
+            set: self.set.iter().map(|x| x.transform(matrix3x3)).collect(),
         }
     }
 
@@ -1107,13 +1107,13 @@ where
         None
     }
 
-    #[cfg(not(feature = "impl-vec"))]
-    pub fn transform(&self, mat: &cgmath::Matrix3<T>) -> Self {
+    #[cfg(feature = "impl-vecmath")]
+    pub fn transform(&self, matrix3x3: &vecmath::Matrix3<T>) -> Self {
         if let Some(min_max) = self.min_max {
             Self {
                 min_max: Some((
-                    mat.transform_point(min_max.0),
-                    mat.transform_point(min_max.1),
+                    vecmath::col_mat3_transform_pos2(*matrix3x3, min_max.0),
+                    vecmath::col_mat3_transform_pos2(*matrix3x3, min_max.1),
                 )),
             }
         } else {

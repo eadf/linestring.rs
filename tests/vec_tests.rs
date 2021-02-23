@@ -1,3 +1,4 @@
+use cgmath::{SquareMatrix, Transform};
 #[cfg(feature = "impl-vec")]
 use linestring::vec_2d;
 #[cfg(feature = "impl-vec")]
@@ -198,4 +199,35 @@ fn triangle_area() {
             assert!(vec_2d::ulps_eq(&area1, &area2));
         }
     }
+}
+
+#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "impl-vecmath")]
+#[test]
+fn transform_1() {
+    let m = [
+        [1., 0., 6., 0.],
+        [0., 1., 0., 0.],
+        [0., 0., 1., 0.],
+        [10., 10., 0., 1.],
+    ];
+    let p = [1., 2., 3.];
+
+    let mc: cgmath::Matrix4<f64> = m.into();
+    let pc: cgmath::Point3<f64> = p.into();
+    let pc1 = mc.transform_point(pc);
+    println!("Pc1 = {:?}, mc1={:?}", pc1, mc);
+
+    let r1 = linestring::vecmath_3d::col_mat4_transform_pos3(&m, p);
+    println!("Result1 = {:?}", r1);
+    let mi = vecmath::mat4_inv(m);
+    let mci = mc.invert().unwrap();
+    println!("mci={:?}", mci);
+    println!("mi={:?}", mi);
+    let rc1 = mci.transform_point(pc1);
+
+    let r2 = linestring::vecmath_3d::col_mat4_transform_pos3(&mi, r1);
+    println!("r2={:?}, rc1={:?}", r2, rc1);
+    assert!(linestring::vec_3d::point_ulps_eq(&r2, &rc1.into()));
+    assert!(linestring::vec_3d::point_ulps_eq(&r2, &p));
 }

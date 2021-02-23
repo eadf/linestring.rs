@@ -43,49 +43,25 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
  */
 
-#![deny(non_camel_case_types)]
-#![deny(unused_parens)]
-#![deny(non_upper_case_globals)]
-#![deny(unused_qualifications)]
-#![deny(unused_results)]
-#![deny(unused_imports)]
-
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum LinestringError {
-    #[error("Your line-strings are self-intersecting.")]
-    SelfIntersectingData { txt: String },
-
-    #[error("The input data is not 2D")]
-    InputNotPLane { txt: String },
-
-    #[error("Invalid data")]
-    InvalidData { txt: String },
-
-    #[error("Unkown error")]
-    UnknownError { txt: String },
-}
-
-#[cfg(feature = "impl-nalgebra")]
-pub mod nalgebra_2d;
-#[cfg(feature = "impl-nalgebra")]
-pub mod nalgebra_3d;
-
-#[cfg(feature = "impl-cgmath")]
-pub mod cgmath_2d;
-#[cfg(feature = "impl-cgmath")]
-pub mod cgmath_3d;
-
-#[cfg(feature = "impl-mint")]
-pub mod mint_2d;
-#[cfg(feature = "impl-mint")]
-pub mod mint_3d;
-
-#[cfg(any(feature = "impl-vec", feature = "impl-vecmath"))]
-pub mod vec_2d;
-#[cfg(any(feature = "impl-vec", feature = "impl-vecmath"))]
-pub mod vec_3d;
-
+#[inline(always)]
 #[cfg(feature = "impl-vecmath")]
-pub mod vecmath_3d;
+/// vec_math seems to lack the affine-transform-of-3d-point (matrix4x4) function i need.
+/// In order to make vec_math work the same way as cgmath and nalgebra i had to do this little
+/// hack.
+/// Todo: vecmath does not use & references to stack-objects, not even for objects as large as a
+/// 4x4 f64 matrix. nalgebra does. I wonder what's the best choice..
+pub fn col_mat4_transform_pos3<T>(matrix4x4: &vecmath::Matrix4<T>, pos: [T; 3]) -> [T; 3]
+where
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    // homogeneous point
+    let x = pos[0];
+    let y = pos[1];
+    let z = pos[2];
+    let w = T::one();
+    [
+        matrix4x4[0][0] * x + matrix4x4[1][0] * y + matrix4x4[2][0] * z + matrix4x4[3][0] * w,
+        matrix4x4[0][1] * x + matrix4x4[1][1] * y + matrix4x4[2][1] * z + matrix4x4[3][1] * w,
+        matrix4x4[0][2] * x + matrix4x4[1][2] * y + matrix4x4[2][2] * z + matrix4x4[3][2] * w,
+    ]
+}

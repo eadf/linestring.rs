@@ -44,7 +44,8 @@ licenses /why-not-lgpl.html>.
  */
 
 use super::vec_2d;
-
+//#[cfg(feature = "impl-vecmath")]
+//use vecmath::Matrix4;
 use itertools::Itertools;
 use std::fmt;
 
@@ -303,13 +304,13 @@ where
         self.points.push(point);
     }
 
-    #[cfg(not(feature = "impl-vec"))]
-    pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
+    #[cfg(feature = "impl-vecmath")]
+    pub fn transform(&self, matrix4x4: &vecmath::Matrix4<T>) -> Self {
         Self {
             points: self
                 .points
                 .iter()
-                .map(|x| mat.transform_point(*x))
+                .map(|x| crate::vecmath_3d::col_mat4_transform_pos3(matrix4x4, *x))
                 .collect(),
             connected: self.connected,
         }
@@ -613,8 +614,8 @@ where
         &self.aabb
     }
 
-    #[cfg(not(feature = "impl-vec"))]
-    pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
+    #[cfg(feature = "impl-vecmath")]
+    pub fn transform(&self, mat: &vecmath::Matrix4<T>) -> Self {
         Self {
             set: self.set.iter().map(|x| x.transform(mat)).collect(),
             aabb: self.aabb.transform(mat),
@@ -722,13 +723,13 @@ where
         None
     }
 
-    #[cfg(not(feature = "impl-vec"))]
-    pub fn transform(&self, mat: &cgmath::Matrix4<T>) -> Self {
+    #[cfg(feature = "impl-vecmath")]
+    pub fn transform(&self, matrix4x4: &vecmath::Matrix4<T>) -> Self {
         if let Some(min_max) = self.min_max {
             Self {
                 min_max: Some((
-                    mat.transform_point(min_max.0),
-                    mat.transform_point(min_max.1),
+                    crate::vecmath_3d::col_mat4_transform_pos3(matrix4x4, min_max.0),
+                    crate::vecmath_3d::col_mat4_transform_pos3(matrix4x4, min_max.1),
                 )),
             }
         } else {

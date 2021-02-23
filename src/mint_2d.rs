@@ -50,7 +50,6 @@ use crate::LinestringError;
 use itertools::Itertools;
 use std::fmt;
 
-#[cfg(feature = "impl-mint")]
 pub mod intersection;
 
 /// A 2d line
@@ -716,12 +715,12 @@ where
     }
 
     #[cfg(not(feature = "impl-mint"))]
-    pub fn transform(&self, mat: &mint::ColumnMatrix3<T>) -> Self {
+    pub fn transform(&self, matrix3x3: &mint::ColumnMatrix3<T>) -> Self {
         Self {
             points: self
                 .points
                 .iter()
-                .map(|x| mat.transform_point(*x))
+                .map(|x| matrix3x3.transform_point(*x))
                 .collect(),
             connected: self.connected,
         }
@@ -1024,10 +1023,10 @@ where
     }
 
     #[cfg(not(feature = "impl-mint"))]
-    pub fn transform(&self, mat: &mint::ColumnMatrix3<T>) -> Self {
+    pub fn transform(&self, matrix3x3: &mint::ColumnMatrix3<T>) -> Self {
         Self {
-            aabb: self.aabb.transform(mat),
-            set: self.set.iter().map(|x| x.transform(mat)).collect(),
+            aabb: self.aabb.transform(matrix3x3),
+            set: self.set.iter().map(|x| x.transform(matrix3x3)).collect(),
         }
     }
 
@@ -1140,12 +1139,12 @@ where
     }
 
     #[cfg(not(feature = "impl-mint"))]
-    pub fn transform(&self, mat: &mint::ColumnMatrix3<T>) -> Self {
+    pub fn transform(&self, matrix3x3: &mint::ColumnMatrix3<T>) -> Self {
         if let Some(min_max) = self.min_max {
             Self {
                 min_max: Some((
-                    mat.transform_point(min_max.0),
-                    mat.transform_point(min_max.1),
+                    matrix3x3.transform_point(min_max.0),
+                    matrix3x3.transform_point(min_max.1),
                 )),
             }
         } else {

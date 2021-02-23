@@ -19,6 +19,6 @@ jobs:
     - name: Download deps
       run: sudo apt-get update && sudo apt-get install -y libpango1.0-dev libx11-dev libxext-dev libxft-dev libxinerama-dev libxcursor-dev libxrender-dev libxfixes-dev
     - name: Build
-      run: cargo build --verbose --features impl-cgmath,impl-nalgebra,impl-mint,impl-vec
+      run: cargo build --verbose --features impl-cgmath,impl-nalgebra,impl-mint,impl-vec,impl-vecmath
     - name: Run tests
-      run: cargo test --verbose --features impl-cgmath,impl-nalgebra,impl-mint,impl-vec
+      run: cargo test --verbose --features impl-cgmath,impl-nalgebra,impl-mint,impl-vec,impl-vecmath
