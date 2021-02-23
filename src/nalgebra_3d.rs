@@ -48,6 +48,16 @@ use super::nalgebra_2d;
 use itertools::Itertools;
 use std::fmt;
 
+/// Placeholder for different 3d shapes
+pub enum Shape3d<T>
+where
+    T: nalgebra::RealField,
+{
+    Line(Line3<T>),
+    Linestring(LineString3<T>),
+    ParabolicArc(crate::nalgebra_2d::VoronoiParabolicArc<T>),
+}
+
 /// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
 #[allow(clippy::upper_case_acronyms)]
 #[derive(fmt::Debug, Copy, Clone)]

@@ -4,11 +4,11 @@
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)
 [![dependency status](https://deps.rs/crate/linestring/0.0.7/status.svg)](https://deps.rs/crate/linestring/0.0.7)
 
-# Moar rusty lines
+# 2D & 3D Line utilities for Rust
 
-This crate contains data structures and methods that deals with lines in 2d and 3d space.
+This crate contains data structures and methods that deals with lines in 2D and 3D space.
 
-There are 3d and 2d implementations of:
+There are 3D and 2D implementations of:
 - [x] LineString, a sequence of points, aka Polyline.
 - [x] Self intersection tests for lines in 2d, O( n log n + k).
 - [x] Line, a finite two-point struct (no rays).
@@ -16,6 +16,7 @@ There are 3d and 2d implementations of:
 - [x] [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
 - [x] Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box).
 - [x] sampling of [boostvoronoi](https://github.com/eadf/boostvoronoi.rs) parabolic arc curves.
+- [ ] 2D Convex hull and containment tests
 
 This is implemented for [cgmath](https://crates.io/crates/cgmath), 
 [nalgebra](https://crates.io/crates/nalgebra), [vecmath](https://crates.io/crates/vecmath) 
@@ -43,7 +44,7 @@ linestring = {version = "^0.0.7", features = ["impl-vecmath"]}
 ```cargo
 linestring = {version = "^0.0.7", features = ["impl-vec"]}
 ```
-The difference between ```impl-vecmath``` and ```impl-vec``` is that the ```impl-vecmath``` feature implements 
+The difference between ```impl-vecmath``` and ```impl-vec``` is that the ```impl-vecmath``` feature supports 
 affine transformations.
 
 ##Demo

@@ -48,6 +48,16 @@ use super::mint_2d;
 use itertools::Itertools;
 use std::fmt;
 
+/// Placeholder for different 3d shapes
+pub enum Shape3d<T>
+where
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    Line(Line3<T>),
+    Linestring(LineString3<T>),
+    ParabolicArc(crate::mint_2d::VoronoiParabolicArc<T>),
+}
+
 /// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
 #[allow(clippy::upper_case_acronyms)]
 #[derive(fmt::Debug, Copy, Clone)]

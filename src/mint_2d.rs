@@ -52,6 +52,16 @@ use std::fmt;
 
 pub mod intersection;
 
+/// Placeholder for different 2d shapes
+pub enum Shape2d<T>
+where
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    Line(Line2<T>),
+    Linestring(LineString2<T>),
+    ParabolicArc(VoronoiParabolicArc<T>),
+}
+
 /// A 2d line
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line2<T>
