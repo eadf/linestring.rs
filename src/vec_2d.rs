@@ -85,10 +85,41 @@ where
     /// Note that this function always detects endpoint-to-endpoint intersections.
     /// Most of this is from https://stackoverflow.com/a/565282
     #[allow(clippy::many_single_char_names)]
+    #[allow(clippy::suspicious_operation_groupings)]
     pub fn intersection_point(&self, other: &Self) -> Option<Intersection<T>>
     where
         T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
     {
+        // AABB tests
+        if self.end[0] > other.end[0]
+            && self.end[0] > other.start[0]
+            && self.start[0] > other.end[0]
+            && self.start[0] > other.start[0]
+        {
+            return None;
+        }
+        if self.end[0] < other.end[0]
+            && self.end[0] < other.start[0]
+            && self.start[0] < other.end[0]
+            && self.start[0] < other.start[0]
+        {
+            return None;
+        }
+        if self.end[1] > other.end[1]
+            && self.end[1] > other.start[1]
+            && self.start[1] > other.end[1]
+            && self.start[1] > other.start[1]
+        {
+            return None;
+        }
+        if self.end[1] < other.end[1]
+            && self.end[1] < other.start[1]
+            && self.start[1] < other.end[1]
+            && self.start[1] < other.start[1]
+        {
+            return None;
+        }
+
         let p = self.start;
         let q = other.start;
         let r = sub(&self.end, &p);

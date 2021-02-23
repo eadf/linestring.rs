@@ -870,8 +870,6 @@ where
             let _ = active_lines.insert(*l);
         }
 
-        //println!("Mid active lines: {:?}", active_lines);
-
         if intersections_found + added_active_lines == 0 {
             #[cfg(feature = "console_trace")]
             println!(
