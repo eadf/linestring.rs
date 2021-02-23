@@ -2,9 +2,9 @@
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)
-[![dependency status](https://deps.rs/crate/linestring/0.0.7/status.svg)](https://deps.rs/crate/linestring/0.0.7)
+[![dependency status](https://deps.rs/crate/linestring/0.0.8/status.svg)](https://deps.rs/crate/linestring/0.0.8)
 
-# 2D & 3D Line utilities for Rust
+# Line library for Rust
 
 This crate contains data structures and methods that deals with lines in 2D and 3D space.
 
@@ -27,22 +27,22 @@ More implementations could be added if required.
 
 If you want to use this library in your cgmath project you add this to your Cargo.toml:
 ```cargo
-linestring = {version = "^0.0.7", features = ["impl-cgmath"]}
+linestring = {version = "^0.0.8", features = ["impl-cgmath"]}
 ```
 Same thing for the other supported 2d/3d libraries: 
 ```cargo
-linestring = {version = "^0.0.7", features = ["impl-nalgebra"]}
+linestring = {version = "^0.0.8", features = ["impl-nalgebra"]}
 ```
 
 ```cargo
-linestring = {version = "^0.0.7", features = ["impl-mint"]}
+linestring = {version = "^0.0.8", features = ["impl-mint"]}
 ```
 
 ```cargo
-linestring = {version = "^0.0.7", features = ["impl-vecmath"]}
+linestring = {version = "^0.0.8", features = ["impl-vecmath"]}
 ```
 ```cargo
-linestring = {version = "^0.0.7", features = ["impl-vec"]}
+linestring = {version = "^0.0.8", features = ["impl-vec"]}
 ```
 The difference between ```impl-vecmath``` and ```impl-vec``` is that the ```impl-vecmath``` feature supports 
 affine transformations.
@@ -58,4 +58,5 @@ cargo run --example fltk_gui --features impl-cgmath
 - [ ] Benchmark and optimize (add smallvec to simplify rdp?)
 - [ ] optimize Ramer–Douglas-Peucker
 - [ ] optimize Visvalingam-Whyatt
+- [ ] figure out how to deal with rustdoc (the feature gates disables it). 
 

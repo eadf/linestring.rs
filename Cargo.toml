@@ -1,6 +1,6 @@
 [package]
 name = "linestring"
-version = "0.0.7"
+version = "0.0.8"
 authors = ["eadf"]
 edition = "2018"
 description = "2d and 3d polylines"

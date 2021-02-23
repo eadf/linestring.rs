@@ -50,6 +50,12 @@ licenses /why-not-lgpl.html>.
 #![deny(unused_results)]
 #![deny(unused_imports)]
 
+//! This is a library that deals with lines in 2D and 3D space.
+//! The library is implemented for a couple of independent 2d/3d packages:nalgebra,cgmath,vecmath and mint.
+//! Those implementations are feature gated so you only need to import the package you really use.
+//! Unfortunately this means the rustdoc is also feature gated, and as a default none of
+//! the implementations are part of the documentation. I'm trying to find a solution to this.
+
 use thiserror::Error;
 
 #[derive(Error, Debug)]
