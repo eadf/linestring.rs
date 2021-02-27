@@ -16,7 +16,6 @@ There are 3D and 2D implementations of:
 - [x] [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
 - [x] Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box).
 - [x] sampling of [boostvoronoi](https://github.com/eadf/boostvoronoi.rs) parabolic arc curves.
-- [ ] 2D Convex hull and containment tests
 
 This is implemented for [cgmath](https://crates.io/crates/cgmath), 
 [nalgebra](https://crates.io/crates/nalgebra), [vecmath](https://crates.io/crates/vecmath) 
@@ -58,5 +57,7 @@ cargo run --example fltk_gui --features impl-cgmath
 - [ ] Benchmark and optimize (add smallvec to simplify rdp?)
 - [ ] optimize Ramer–Douglas-Peucker
 - [ ] optimize Visvalingam-Whyatt
-- [ ] figure out how to deal with rustdoc (the feature gates disables it). 
+- [ ] figure out how to deal with rustdoc (the feature gates disables it).
+- [ ] Add 2D Convex hull and containment tests
+- [ ] Stable overlapping co-linear line detection, (is it even possible numerically)?
 
