@@ -1,6 +1,6 @@
 [package]
 name = "linestring"
-version = "0.0.8"
+version = "0.0.9"
 authors = ["eadf"]
 edition = "2018"
 description = "2d and 3d polylines"
@@ -26,7 +26,7 @@ vecmath = { version = "^1.0.0", optional = true }
 num-traits = "^0.2.14"
 approx = "^0.4.0"
 fnv = "^1.0.7"
-rb_tree = "^0.3.3"
+rb_tree = "^0.3.5"
 thiserror = "^1.0.24"
 ordered-float = "^2.1.1"
 itertools = "^0.10.0"
@@ -34,7 +34,8 @@ itertools = "^0.10.0"
 [[example]]
 name = "fltk_gui"
 path = "example/fltk_gui.rs"
+required-features = ["impl-cgmath"]
 
 [dev-dependencies]
-fltk = "^0.15.2"
+fltk = "^0.15.5"
 cgmath = "^0.18.0"
