@@ -1,9 +1,13 @@
+#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "impl-vecmath")]
 use cgmath::{SquareMatrix, Transform};
 #[cfg(feature = "impl-vec")]
 use linestring::vec_2d;
 #[cfg(feature = "impl-vec")]
 use linestring::vec_3d;
+#[cfg(feature = "impl-vec")]
 use num_traits::Float;
+#[cfg(feature = "impl-vec")]
 use std::fmt;
 
 #[cfg(feature = "impl-vec")]

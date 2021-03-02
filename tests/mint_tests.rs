@@ -2,7 +2,9 @@
 use linestring::mint_2d;
 #[cfg(feature = "impl-mint")]
 use linestring::mint_3d;
+#[cfg(feature = "impl-mint")]
 use num_traits::Float;
+#[cfg(feature = "impl-mint")]
 use std::fmt;
 
 #[cfg(feature = "impl-mint")]
@@ -176,7 +178,7 @@ fn simplify_2() {
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "impl-mint")]
 #[test]
 fn triangle_area() {
     for x in -10..10 {

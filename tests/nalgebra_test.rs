@@ -2,6 +2,7 @@
 use linestring::nalgebra_2d;
 #[cfg(feature = "impl-nalgebra")]
 use linestring::nalgebra_3d;
+#[cfg(feature = "impl-nalgebra")]
 use num_traits::Float;
 
 #[cfg(feature = "impl-nalgebra")]
