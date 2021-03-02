@@ -49,7 +49,7 @@ affine transformations.
 ##Demo
 Run the line simplification example with :
 ```fish
-cargo run --example fltk_gui --features impl-cgmath
+cargo run --example fltk_gui --no-default-features --features impl-cgmath
 ```
 
 ## Todo
