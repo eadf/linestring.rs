@@ -53,14 +53,25 @@ use std::rc::Rc;
 const HF: i32 = 590;
 const WF: i32 = 790;
 
+// Frame offset (border size)
+const FO: i32 = 5;
+
 // window size
 const H: i32 = 650;
 const W: i32 = 800;
 
+// Slider height
+const SH:i32 = 25;
+
+#[derive(Debug, Clone, Copy)]
+pub enum GuiMessage {
+    SliderRdpChanged(f32),
+    SliderVwChanged(usize),
+}
+
 struct SharedData {
-    distance: f32,
-    number_to_remove: usize,
     lines: Vec<LineString2<f32>>,
+    last_message: Option<GuiMessage>,
 }
 
 fn main() {
@@ -70,31 +81,31 @@ fn main() {
         100,
         100,
         W,
-        H + 50,
+        H + SH*1,
         "Ramer–Douglas–Peucker & Visvalingam–Whyatt simplification + Self intersection test",
     );
-    let mut frame = Frame::new(5, 5, WF, HF + 50, "");
+    let mut frame = Frame::new(FO, FO, WF, HF + SH*1, "");
     frame.set_color(Color::White);
     frame.set_frame(FrameType::DownBox);
 
-    let mut slider_d = HorNiceSlider::new(5, 5 + HF, WF, 25, "Move the slider to draw!!!");
+    let mut slider_d = HorNiceSlider::new(FO, FO + HF, WF, SH, "Ramer–Douglas–Peucker distance:0.0");
     slider_d.set_value(0.0);
+    slider_d.set_color(Color::Green);
     slider_d.set_frame(FrameType::PlasticUpBox);
 
-    let mut slider_n = HorNiceSlider::new(5, 5 + HF + 50, WF, 25, "Move the slider to draw!!!");
+    let mut slider_n = HorNiceSlider::new(FO, FO + HF + SH*1, WF, SH, "Visvalingam–Whyatt deleted points:0");
     slider_n.set_value(0.0);
+    slider_n.set_color(Color::Blue);
     slider_n.set_frame(FrameType::PlasticUpBox);
 
     wind.end();
     wind.show();
 
     let shared_data_rc = Rc::from(RefCell::from(SharedData {
-        distance: 0.0,
-        number_to_remove: 0,
         lines: Vec::new(),
+        last_message: None,
     }));
 
-    let offs = Offscreen::new(WF, HF).unwrap();
     #[cfg(not(target_os = "macos"))]
     {
         offs.begin();
@@ -103,152 +114,148 @@ fn main() {
         offs.end();
     }
 
-    let offs = Rc::from(RefCell::from(offs));
-    let offs_rc = offs.clone();
+    let (sender, receiver) = app::channel::<GuiMessage>();
+    sender.send(GuiMessage::SliderRdpChanged(0.0));
 
-    let slider_d_shared_data = Rc::clone(&shared_data_rc);
     slider_d.set_callback2(move |s| {
-        let mut shared_data = slider_d_shared_data.borrow_mut();
-
-        shared_data.distance = s.value() as f32 * 400.0;
+        let distance = s.value() as f32 * 400.0;
         s.set_label(
             ("           Ramer–Douglas–Peucker distance:".to_string()
-                + &shared_data.distance.to_string()
+                + &distance.to_string()
                 + (&"           ".to_string()))
                 .as_str(),
         );
-        s.set_color(Color::Green);
-        offs_rc.borrow_mut().begin();
-        set_draw_color(Color::White);
-        draw_rectf(0, 0, WF, HF);
-        set_line_style(LineStyle::Solid, 1);
-
-        for l in shared_data.lines.iter() {
-            if l.is_self_intersecting().unwrap() {
-                set_draw_color(Color::Red);
-            } else {
-                set_draw_color(Color::Black);
-            }
-
-            for a_line in l.as_lines() {
-                draw_line(
-                    a_line.start.x as i32,
-                    a_line.start.y as i32,
-                    a_line.end.x as i32,
-                    a_line.end.y as i32,
-                );
-            }
-
-            let simplified_line = l.simplify(shared_data.distance);
-            if simplified_line.is_self_intersecting().unwrap() {
-                set_draw_color(Color::Red);
-            } else {
-                set_draw_color(Color::Green);
-            }
-            for a_line in simplified_line.as_lines() {
-                draw_line(
-                    a_line.start.x as i32,
-                    a_line.start.y as i32,
-                    a_line.end.x as i32,
-                    a_line.end.y as i32,
-                );
-                draw_line(
-                    a_line.start.x as i32 - 2,
-                    a_line.start.y as i32 - 2,
-                    a_line.start.x as i32 + 2,
-                    a_line.start.y as i32 + 2,
-                );
-                draw_line(
-                    a_line.start.x as i32 + 2,
-                    a_line.start.y as i32 - 2,
-                    a_line.start.x as i32 - 2,
-                    a_line.start.y as i32 + 2,
-                );
-            }
-        }
-        redraw();
-        offs_rc.borrow_mut().end();
+        sender.send(GuiMessage::SliderRdpChanged(distance));
     });
 
-    let slider_n_shared_data = Rc::clone(&shared_data_rc);
-    let offs_rc = offs.clone();
     slider_n.set_callback2(move |s| {
-        let mut shared_data = slider_n_shared_data.borrow_mut();
-        shared_data.number_to_remove = (s.value() as f32 * 200.0) as usize;
+        let number_to_remove = (s.value() as f32 * 200.0) as usize;
         s.set_color(Color::Blue);
         s.set_label(
             ("           Visvalingam–Whyatt deleted points:".to_string()
-                + &shared_data.number_to_remove.to_string()
+                + &number_to_remove.to_string()
                 + (&"           ".to_string()))
                 .as_str(),
         );
-        offs_rc.borrow_mut().begin();
-        set_draw_color(Color::White);
-        draw_rectf(0, 0, WF, HF);
-        set_line_style(LineStyle::Solid, 1);
-
-        for l in shared_data.lines.iter() {
-            if l.is_self_intersecting().unwrap() {
-                set_draw_color(Color::Red);
-            } else {
-                set_draw_color(Color::Black);
-            }
-
-            for a_line in l.as_lines() {
-                draw_line(
-                    a_line.start.x as i32,
-                    a_line.start.y as i32,
-                    a_line.end.x as i32,
-                    a_line.end.y as i32,
-                );
-            }
-
-            let simplified_line = l.simplify_vw(shared_data.number_to_remove);
-            if simplified_line.is_self_intersecting().unwrap() {
-                set_draw_color(Color::Red);
-            } else {
-                set_draw_color(Color::Blue);
-            }
-            for a_line in simplified_line.as_lines() {
-                draw_line(
-                    a_line.start.x as i32,
-                    a_line.start.y as i32,
-                    a_line.end.x as i32,
-                    a_line.end.y as i32,
-                );
-                draw_line(
-                    a_line.start.x as i32 - 2,
-                    a_line.start.y as i32 - 2,
-                    a_line.start.x as i32 + 2,
-                    a_line.start.y as i32 + 2,
-                );
-                draw_line(
-                    a_line.start.x as i32 + 2,
-                    a_line.start.y as i32 - 2,
-                    a_line.start.x as i32 - 2,
-                    a_line.start.y as i32 + 2,
-                );
-            }
-        }
-        redraw();
-        offs_rc.borrow_mut().end();
+        sender.send(GuiMessage::SliderVwChanged(number_to_remove));
     });
 
     add_data(Rc::clone(&shared_data_rc));
 
-    let offs_rc = Rc::clone(&offs);
+    let shared_data_c = Rc::clone(&shared_data_rc);
     frame.draw(move || {
-        if offs_rc.borrow().is_valid() {
-            offs_rc.borrow().copy(5, 5, WF, HF, 0, 0);
-        } else {
-            offs_rc.borrow_mut().begin();
-            set_draw_color(Color::White);
-            draw_rectf(0, 0, WF, HF);
-            offs_rc.borrow_mut().end();
+        let shared_data_b = shared_data_c.borrow();
+        match shared_data_b.last_message {
+            Some(GuiMessage::SliderRdpChanged(distance)) => {
+                set_draw_color(Color::White);
+                draw_rectf(6, 6, WF - 6, HF - 6);
+                set_line_style(LineStyle::Solid, 1);
+
+                for l in shared_data_b.lines.iter() {
+                    if l.is_self_intersecting().unwrap() {
+                        set_draw_color(Color::Red);
+                    } else {
+                        set_draw_color(Color::Black);
+                    }
+
+                    for a_line in l.as_lines() {
+                        draw_line(
+                            a_line.start.x as i32,
+                            a_line.start.y as i32,
+                            a_line.end.x as i32,
+                            a_line.end.y as i32,
+                        );
+                    }
+
+                    let simplified_line = l.simplify(distance);
+                    if simplified_line.is_self_intersecting().unwrap() {
+                        set_draw_color(Color::Red);
+                    } else {
+                        set_draw_color(Color::Green);
+                    }
+                    for a_line in simplified_line.as_lines() {
+                        draw_line(
+                            a_line.start.x as i32,
+                            a_line.start.y as i32,
+                            a_line.end.x as i32,
+                            a_line.end.y as i32,
+                        );
+                        draw_line(
+                            a_line.start.x as i32 - 2,
+                            a_line.start.y as i32 - 2,
+                            a_line.start.x as i32 + 2,
+                            a_line.start.y as i32 + 2,
+                        );
+                        draw_line(
+                            a_line.start.x as i32 + 2,
+                            a_line.start.y as i32 - 2,
+                            a_line.start.x as i32 - 2,
+                            a_line.start.y as i32 + 2,
+                        );
+                    }
+                }
+            }
+            Some(GuiMessage::SliderVwChanged(number_to_remove)) => {
+                set_draw_color(Color::White);
+                draw_rectf(6, 6, WF - 6, HF - 6);
+                set_line_style(LineStyle::Solid, 1);
+
+                for l in shared_data_b.lines.iter() {
+                    if l.is_self_intersecting().unwrap() {
+                        set_draw_color(Color::Red);
+                    } else {
+                        set_draw_color(Color::Black);
+                    }
+
+                    for a_line in l.as_lines() {
+                        draw_line(
+                            a_line.start.x as i32,
+                            a_line.start.y as i32,
+                            a_line.end.x as i32,
+                            a_line.end.y as i32,
+                        );
+                    }
+
+                    let simplified_line = l.simplify_vw(number_to_remove);
+                    if simplified_line.is_self_intersecting().unwrap() {
+                        set_draw_color(Color::Red);
+                    } else {
+                        set_draw_color(Color::Blue);
+                    }
+                    for a_line in simplified_line.as_lines() {
+                        draw_line(
+                            a_line.start.x as i32,
+                            a_line.start.y as i32,
+                            a_line.end.x as i32,
+                            a_line.end.y as i32,
+                        );
+                        draw_line(
+                            a_line.start.x as i32 - 2,
+                            a_line.start.y as i32 - 2,
+                            a_line.start.x as i32 + 2,
+                            a_line.start.y as i32 + 2,
+                        );
+                        draw_line(
+                            a_line.start.x as i32 + 2,
+                            a_line.start.y as i32 - 2,
+                            a_line.start.x as i32 - 2,
+                            a_line.start.y as i32 + 2,
+                        );
+                    }
+                }
+            }
+            None => (),
         }
     });
 
-    app.run().unwrap();
+    let shared_data_c = Rc::clone(&shared_data_rc);
+    while app.wait() {
+        if let Some(msg) = receiver.recv() {
+            let mut shared_data_bm = shared_data_c.borrow_mut();
+            shared_data_bm.last_message = Some(msg);
+            redraw();
+        }
+    }
 }
 
 fn add_data(data: Rc<RefCell<SharedData>>) {
@@ -272,10 +279,10 @@ fn add_data(data: Rc<RefCell<SharedData>>) {
     for angle in (0..358).step_by(2) {
         let x: f32 = 400.0
             + (angle as f32).to_radians().cos() * 250.0
-            + 5.0 * (angle as f32 * 8.523).to_radians().sin();
+            + (FO as f32) * (angle as f32 * 8.523).to_radians().sin();
         let y: f32 = 400.0
             + (angle as f32).to_radians().sin() * 150.0
-            + 5.0 * (angle as f32 * 2.534).to_radians().cos();
+            + (FO as f32) * (angle as f32 * 2.534).to_radians().cos();
         line.push(cgmath::Point2::new(x, y));
     }
     // Add an extra point that will cause self-intersection when simplified too much
