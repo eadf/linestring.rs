@@ -108,10 +108,8 @@ fn main() {
 
     #[cfg(not(target_os = "macos"))]
     {
-        offs.begin();
         set_draw_color(Color::White);
         draw_rectf(0, 0, WF, HF);
-        offs.end();
     }
 
     let (sender, receiver) = app::channel::<GuiMessage>();

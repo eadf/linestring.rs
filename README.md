@@ -60,5 +60,5 @@ cargo run --example fltk_gui --no-default-features --features impl-cgmath
 - [x] figure out how to deal with rustdoc (the feature gates disables it).
 - [ ] Add 2D Convex hull and containment tests
 - [ ] Stable overlapping co-linear line detection
-- [ ] Better event handling in fltk_gui
+- [x] Better event handling in fltk_gui
 
