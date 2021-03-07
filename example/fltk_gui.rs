@@ -61,7 +61,7 @@ const H: i32 = 650;
 const W: i32 = 800;
 
 // Slider height
-const SH:i32 = 25;
+const SH: i32 = 25;
 
 #[derive(Debug, Clone, Copy)]
 pub enum GuiMessage {
@@ -81,19 +81,26 @@ fn main() {
         100,
         100,
         W,
-        H + SH*1,
+        H + SH * 1,
         "Ramer–Douglas–Peucker & Visvalingam–Whyatt simplification + Self intersection test",
     );
-    let mut frame = Frame::new(FO, FO, WF, HF + SH*1, "");
+    let mut frame = Frame::new(FO, FO, WF, HF + SH * 1, "");
     frame.set_color(Color::White);
     frame.set_frame(FrameType::DownBox);
 
-    let mut slider_d = HorNiceSlider::new(FO, FO + HF, WF, SH, "Ramer–Douglas–Peucker distance:0.0");
+    let mut slider_d =
+        HorNiceSlider::new(FO, FO + HF, WF, SH, "Ramer–Douglas–Peucker distance:0.0");
     slider_d.set_value(0.0);
     slider_d.set_color(Color::Green);
     slider_d.set_frame(FrameType::PlasticUpBox);
 
-    let mut slider_n = HorNiceSlider::new(FO, FO + HF + SH*1, WF, SH, "Visvalingam–Whyatt deleted points:0");
+    let mut slider_n = HorNiceSlider::new(
+        FO,
+        FO + HF + SH * 1,
+        WF,
+        SH,
+        "Visvalingam–Whyatt deleted points:0",
+    );
     slider_n.set_value(0.0);
     slider_n.set_color(Color::Blue);
     slider_n.set_frame(FrameType::PlasticUpBox);

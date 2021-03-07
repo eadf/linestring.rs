@@ -336,11 +336,10 @@ where
 
     /// Convert this parable abstraction into discrete line segment sample points.
     /// All of this code is ported from C++ boost 1.75.0
-    /// https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm
+    /// <https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm>
     pub fn discretise_2d(&self, max_dist: T) -> LineString2<T> {
         let mut rv = LineString2::default().with_connected(false);
         rv.points.push(self.start_point);
-        rv.points.push(self.end_point);
 
         // Apply the linear transformation to move start point of the segment to
         // the point with coordinates (0, 0) and the direction of the segment to
@@ -352,9 +351,9 @@ where
         // Compute x-coordinates of the endpoints of the edge
         // in the transformed space.
         let projection_start =
-            sqr_segment_length * Self::get_point_projection(&rv.points[0], &self.segment);
+            sqr_segment_length * Self::get_point_projection(&self.start_point, &self.segment);
         let projection_end =
-            sqr_segment_length * Self::get_point_projection(&rv.points[1], &self.segment);
+            sqr_segment_length * Self::get_point_projection(&self.end_point, &self.segment);
 
         // Compute parabola parameters in the transformed space.
         // Parabola has next representation:
@@ -363,10 +362,6 @@ where
         let point_vec_y = self.cell_point.y - self.segment.start.y;
         let rot_x = segm_vec_x * point_vec_x + segm_vec_y * point_vec_y;
         let rot_y = segm_vec_x * point_vec_y - segm_vec_y * point_vec_x;
-
-        // Save the last point.
-        let last_point = (*rv.points)[1];
-        let _ = rv.points.pop();
 
         // Use stack to avoid recursion.
         let mut point_stack = vec![projection_end];
@@ -399,10 +394,11 @@ where
                     + self.segment.start.x;
                 let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
                     + self.segment.start.y;
-                rv.points.push(mint::Point2 {
+                let p = mint::Point2 {
                     x: inter_x,
                     y: inter_y,
-                });
+                };
+                rv.points.push(p);
                 cur_x = new_x;
                 cur_y = new_y;
             } else {
@@ -412,7 +408,7 @@ where
 
         // Update last point.
         let last_position = rv.points.len() - 1;
-        rv.points[last_position] = last_point;
+        rv.points[last_position] = self.end_point;
         rv
     }
 
@@ -920,17 +916,8 @@ where
                     let prev = old_links.0;
                     let next = old_links.1;
 
-                    let prev_prev: Option<usize> = if let Some(link) = link_tree.get(&prev) {
-                        Some(link.0)
-                    } else {
-                        None
-                    };
-
-                    let next_next: Option<usize> = if let Some(link) = link_tree.get(&next) {
-                        Some(link.1)
-                    } else {
-                        None
-                    };
+                    let prev_prev: Option<usize> = link_tree.get(&prev).map(|link| link.0);
+                    let next_next: Option<usize> = link_tree.get(&next).map(|link| link.1);
 
                     if let Some(next_next) = next_next {
                         if let Some(prev_prev) = prev_prev {

@@ -499,17 +499,8 @@ where
                     let prev = old_links.0;
                     let next = old_links.1;
 
-                    let prev_prev: Option<usize> = if let Some(link) = link_tree.get(&prev) {
-                        Some(link.0)
-                    } else {
-                        None
-                    };
-
-                    let next_next: Option<usize> = if let Some(link) = link_tree.get(&next) {
-                        Some(link.1)
-                    } else {
-                        None
-                    };
+                    let prev_prev: Option<usize> = link_tree.get(&prev).map(|link| link.0);
+                    let next_next: Option<usize> = link_tree.get(&next).map(|link| link.1);
 
                     if let Some(next_next) = next_next {
                         if let Some(prev_prev) = prev_prev {

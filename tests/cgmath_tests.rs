@@ -466,7 +466,7 @@ fn simplify_vw_5() {
 
 #[cfg(feature = "impl-cgmath")]
 #[test]
-fn voronoiparabolicarc_1() {
+fn voronoi_parabolic_arc_1() {
     /*
     point1:Point { x: 200, y: 200 },
     segment:Line { start: Point { x: 100, y: 100 }, end: Point { x: 300, y: 100 } },
@@ -526,7 +526,7 @@ fn voronoiparabolicarc_1() {
 
 #[cfg(feature = "impl-cgmath")]
 #[test]
-fn voronoiparabolicarc_2() {
+fn voronoi_parabolic_arc_2() {
     /*
     point1:Point { x: 200, y: 200 },
     segment:Line { start: Point { x: 100, y: 100 }, end: Point { x: 300, y: 100 } },
