@@ -614,6 +614,14 @@ where
         }
     }
 
+    /// Moves all the elements of `other` into `Self`, leaving `other` empty.
+    /// TODO: currently ignores if `other` is connected or not.
+    /// # Panics
+    /// Panics if the number of elements in the points vector overflows a `usize`.
+    pub fn append(&mut self, mut other: Self) {
+        self.points.append(&mut other.points);
+    }
+
     /// Returns true if the lines are self intersecting
     /// If number of points < 10 then the intersections are tested using brute force O(n²)
     /// If more than that a sweep-line algorithm is used O(n*log(n))

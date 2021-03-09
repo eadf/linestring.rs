@@ -340,6 +340,14 @@ where
         }
     }
 
+    /// Moves all the elements of `other` into `Self`, leaving `other` empty.
+    /// TODO: currently ignores if `other` is connected or not.
+    /// # Panics
+    /// Panics if the number of elements in the points vector overflows a `usize`.
+    pub fn append(&mut self, mut other: Self) {
+        self.points.append(&mut other.points);
+    }
+
     /// Simplify using Ramer–Douglas–Peucker algorithm adapted for 3d
     pub fn simplify(&self, distance_predicate: T) -> Self {
         //println!("input dist:{:?} slice{:?}", distance_predicate, self.points);
