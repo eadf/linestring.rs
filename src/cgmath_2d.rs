@@ -1367,6 +1367,27 @@ where
 }
 
 #[inline(always)]
+pub fn distance_to_line_squared_safe<T>(
+    a: &cgmath::Point2<T>,
+    b: &cgmath::Point2<T>,
+    p: &cgmath::Point2<T>,
+) -> T
+where
+    T: cgmath::BaseFloat,
+{
+    if point_ulps_eq(a, b) {
+        // give the point-to-point answer if the segment is a point
+        distance_to_point_squared(a, p)
+    } else {
+        let a_sub_b = sub(a, b);
+        let a_sub_p = sub(a, p);
+        let a_sub_p_cross_a_sub_b = cross_z(&a_sub_p, &a_sub_b);
+        (a_sub_p_cross_a_sub_b * a_sub_p_cross_a_sub_b)
+            / (a_sub_b.x * a_sub_b.x + a_sub_b.y * a_sub_b.y)
+    }
+}
+
+#[inline(always)]
 /// The distance² between the two points
 pub fn distance_to_point_squared<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> T
 where

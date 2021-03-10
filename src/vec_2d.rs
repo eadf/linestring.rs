@@ -1322,6 +1322,23 @@ where
 }
 
 #[inline(always)]
+pub fn distance_to_line_squared_safe<T>(a: &[T; 2], b: &[T; 2], p: &[T; 2]) -> T
+where
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    if point_ulps_eq(a, b) {
+        // give the point-to-point answer if the segment is a point
+        distance_to_point_squared(a, p)
+    } else {
+        let a_sub_b = sub(a, b);
+        let a_sub_p = sub(a, p);
+        let a_sub_p_cross_a_sub_b = cross_z(&a_sub_p, &a_sub_b);
+        (a_sub_p_cross_a_sub_b * a_sub_p_cross_a_sub_b)
+            / (a_sub_b[0] * a_sub_b[0] + a_sub_b[1] * a_sub_b[1])
+    }
+}
+
+#[inline(always)]
 /// The distance² between the two points
 pub fn distance_to_point_squared<T>(a: &[T; 2], b: &[T; 2]) -> T
 where
