@@ -573,17 +573,23 @@ where
     pub connected: bool,
 }
 
-impl<T> LineString2<T>
+impl<T> Default for LineString2<T>
 where
     T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    pub fn default() -> Self {
+    #[inline]
+    fn default() -> Self {
         Self {
             points: Vec::<mint::Point2<T>>::new(),
             connected: false,
         }
     }
+}
 
+impl<T> LineString2<T>
+where
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             points: Vec::<mint::Point2<T>>::with_capacity(capacity),
@@ -624,7 +630,7 @@ where
 
     /// Returns true if the lines are self intersecting
     /// If number of points < 10 then the intersections are tested using brute force O(n²)
-    /// If more than that a sweep-line algorithm is used O(n*log(n))
+    /// If more than that a sweep-line algorithm is used O(n*log(n)+i*log(n))
     pub fn is_self_intersecting(&self) -> Result<bool, LinestringError> {
         if self.points.len() <= 2 {
             Ok(false)
@@ -1018,17 +1024,23 @@ where
     }
 }
 
-impl<T> LineStringSet2<T>
+impl<T> Default for LineStringSet2<T>
 where
     T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    pub fn default() -> Self {
+    #[inline]
+    fn default() -> Self {
         Self {
             set: Vec::<LineString2<T>>::new(),
             aabb: Aabb2::default(),
         }
     }
+}
 
+impl<T> LineStringSet2<T>
+where
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
     pub fn set(&self) -> &Vec<LineString2<T>> {
         &self.set
     }
@@ -1117,14 +1129,20 @@ where
     }
 }
 
+impl<T> Default for Aabb2<T>
+where
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    #[inline]
+    fn default() -> Self {
+        Self { min_max: None }
+    }
+}
+
 impl<T> Aabb2<T>
 where
     T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    pub fn default() -> Self {
-        Self { min_max: None }
-    }
-
     pub fn new(point: &mint::Point2<T>) -> Self {
         Self {
             min_max: Some((*point, *point)),

@@ -10,7 +10,7 @@ This crate contains data structures and methods that deals with lines in 2D and 
 
 There are 3D and 2D implementations of:
 - [x] LineString, a sequence of points, aka Polyline.
-- [x] Self intersection tests for lines in 2d, O( n log n + k).
+- [x] Self intersection tests for lines in 2d, O( n log n + i log n).
 - [x] Line, a finite two-point struct (no rays).
 - [x] [Ramer–Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm) and
 - [x] [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
@@ -46,7 +46,7 @@ linestring = {version="^0.0.11",default-features=false,features=["impl-vec"]}
 The difference between ```impl-vecmath``` and ```impl-vec``` is that the ```impl-vecmath``` feature supports 
 affine transformations.
 
-##Demo
+## Demo GUI
 Run the line simplification example with :
 ```fish
 cargo run --example fltk_gui --no-default-features --features impl-cgmath
