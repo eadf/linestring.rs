@@ -43,5 +43,5 @@ path = "example/fltk_gui.rs"
 required-features = ["impl-cgmath"]
 
 [dev-dependencies]
-fltk = "^0.15.5"
+fltk = "^0.16.2"
 cgmath = "^0.18.0"

@@ -1392,18 +1392,19 @@ where
 }
 
 /// This is a simple but efficient affine transformation object.
-/// It can pan and zoom but not rotate.
+/// It can pan and zoom points but not rotate.
+/// It does not handle vector transformation.
 #[derive(PartialEq, Clone, fmt::Debug)]
 pub struct SimpleAffine<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq>
 {
     /// The offsets used to center the 'source' coordinate system. Typically the input geometry
     /// in this case.
-    to_center: [T; 2],
+    a_offset: [T; 2],
     /// A zoom scale
     pub scale: T,
     /// The offsets needed to center coordinates of interest on the 'dest' coordinate system.
     /// i.e. the screen coordinate system.
-    pub to_offset: [T; 2],
+    pub b_offset: [T; 2],
 }
 
 impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq> Default
@@ -1412,9 +1413,9 @@ impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq
     #[inline]
     fn default() -> Self {
         Self {
-            to_center: [T::zero(), T::zero()],
+            a_offset: [T::zero(), T::zero()],
             scale: T::one(),
-            to_offset: [T::zero(), T::zero()],
+            b_offset: [T::zero(), T::zero()],
         }
     }
 }
@@ -1427,14 +1428,14 @@ impl<
             + num_traits::cast::NumCast,
     > SimpleAffine<T>
 {
-    pub fn new(source_aabb: &Aabb2<T>, dest_aabb: &Aabb2<T>) -> Result<Self, LinestringError> {
+    pub fn new(a_aabb: &Aabb2<T>, b_aabb: &Aabb2<T>) -> Result<Self, LinestringError> {
         let min_dim = T::from(1.0).unwrap();
         let two = T::from(2.0).unwrap();
 
-        if let Some(source_low) = source_aabb.get_low() {
-            if let Some(source_high) = source_aabb.get_high() {
-                if let Some(destination_low) = dest_aabb.get_low() {
-                    if let Some(destination_high) = dest_aabb.get_high() {
+        if let Some(source_low) = a_aabb.get_low() {
+            if let Some(source_high) = a_aabb.get_high() {
+                if let Some(destination_low) = b_aabb.get_low() {
+                    if let Some(destination_high) = b_aabb.get_high() {
                         let source_aabb_center = [
                             -(source_low[0] + source_high[0]) / two,
                             -(source_low[1] + source_high[1]) / two,
@@ -1458,9 +1459,9 @@ impl<
                         let dest_aabb_size = dest_aabb_size[0].min(dest_aabb_size[1]);
 
                         return Ok(Self {
-                            to_center: source_aabb_center,
+                            a_offset: source_aabb_center,
                             scale: dest_aabb_size / source_aabb_size,
-                            to_offset: dest_aabb_center,
+                            b_offset: dest_aabb_center,
                         });
                     }
                 }
@@ -1471,20 +1472,13 @@ impl<
         })
     }
 
-    /// transform from dest coordinate system to source coordinate system
+    /// transform from dest (b) coordinate system to source (a) coordinate system
     #[inline(always)]
-    pub fn reverse_transform(&self, p: &[T; 2]) -> Result<[T; 2], LinestringError> {
-        let x = self.reverse_transform_x(p[0])?;
-        let y = self.reverse_transform_y(p[1])?;
-        Ok([x, y])
-    }
-
-    /// transform from X in dest coordinate system to X in source coordinate system
-    #[inline(always)]
-    pub fn reverse_transform_x(&self, x: T) -> Result<T, LinestringError> {
-        let rv = (x - self.to_offset[0]) / self.scale - self.to_center[0];
-        if rv.is_finite() {
-            Ok(rv)
+    pub fn transform_ba(&self, point: &[T; 2]) -> Result<[T; 2], LinestringError> {
+        let x = (point[0] - self.b_offset[0]) / self.scale - self.a_offset[0];
+        let y = (point[1] - self.b_offset[1]) / self.scale - self.a_offset[1];
+        if x.is_finite() && y.is_finite() {
+            Ok([x, y])
         } else {
             Err(LinestringError::TransformError {
                 txt: "Transformation out of bounds".to_string(),
@@ -1492,51 +1486,17 @@ impl<
         }
     }
 
-    /// transform from Y in dest coordinate system to Y in source coordinate system
+    /// transform from source (a) coordinate system to dest (b) coordinate system
     #[inline(always)]
-    pub fn reverse_transform_y(&self, y: T) -> Result<T, LinestringError> {
-        let rv = (y - self.to_offset[1]) / self.scale - self.to_center[1];
-        if rv.is_finite() {
-            Ok(rv)
+    pub fn transform_ab(&self, point: &[T; 2]) -> Result<[T; 2], LinestringError> {
+        let x = (point[0] + self.a_offset[0]) * self.scale + self.b_offset[0];
+        let y = (point[1] + self.a_offset[1]) * self.scale + self.b_offset[1];
+        if x.is_finite() && y.is_finite() {
+            Ok([x, y])
         } else {
             Err(LinestringError::TransformError {
                 txt: "Transformation out of bounds".to_string(),
             })
         }
-    }
-
-    /// transform from X in source coordinate system to X in dest coordinate system
-    #[inline(always)]
-    pub fn transform_x(&self, x: T) -> Result<T, LinestringError> {
-        let rv = (x + self.to_center[0]) * self.scale + self.to_offset[0];
-        if rv.is_finite() {
-            Ok(rv)
-        } else {
-            Err(LinestringError::TransformError {
-                txt: "Transformation out of bounds".to_string(),
-            })
-        }
-    }
-
-    /// transform from Y in source coordinate system to Y in dest coordinate system
-    #[inline(always)]
-    pub fn transform_y(&self, y: T) -> Result<T, LinestringError> {
-        let rv = (y + self.to_center[1]) * self.scale + self.to_offset[1];
-        if rv.is_finite() {
-            Ok(rv)
-        } else {
-            Err(LinestringError::TransformError {
-                txt: "Transformation out of bounds".to_string(),
-            })
-        }
-    }
-
-    /// transform from source coordinate system to dest coordinate system
-    #[inline(always)]
-    #[cfg(feature = "impl-vecmath")]
-    pub fn transform(&self, point: &[T; 2]) -> Result<[T; 2], LinestringError> {
-        let x = self.transform_x(point[0])?;
-        let y = self.transform_y(point[1])?;
-        Ok([x, y])
     }
 }

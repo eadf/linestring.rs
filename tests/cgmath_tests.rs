@@ -600,19 +600,19 @@ fn transform_test_1() -> Result<(), linestring::LinestringError> {
 
     let transform = cgmath_2d::SimpleAffine::new(&aabb_source, &aabb_dest)?;
     assert_eq!(
-        transform.transform(&cgmath::Point2::<T>::new(0., 0.))?,
+        transform.transform_ab(&cgmath::Point2::<T>::new(0., 0.))?,
         cgmath::Point2::<T>::new(1., 1.)
     );
     assert_eq!(
-        transform.transform(&cgmath::Point2::<T>::new(1., 1.))?,
+        transform.transform_ab(&cgmath::Point2::<T>::new(1., 1.))?,
         cgmath::Point2::<T>::new(2., 2.)
     );
     assert_eq!(
-        transform.transform(&cgmath::Point2::<T>::new(0., 1.))?,
+        transform.transform_ab(&cgmath::Point2::<T>::new(0., 1.))?,
         cgmath::Point2::<T>::new(1., 2.)
     );
     assert_eq!(
-        transform.transform(&cgmath::Point2::<T>::new(1., 0.))?,
+        transform.transform_ab(&cgmath::Point2::<T>::new(1., 0.))?,
         cgmath::Point2::<T>::new(2., 1.)
     );
 
@@ -638,19 +638,19 @@ fn transform_test_2() -> Result<(), linestring::LinestringError> {
     //println!("Affine:{:?}", transform);
 
     assert_eq!(
-        transform.transform(&cgmath::Point2::<T>::new(-100., -100.))?,
+        transform.transform_ab(&cgmath::Point2::<T>::new(-100., -100.))?,
         cgmath::Point2::<T>::new(0., 0.)
     );
     assert_eq!(
-        transform.reverse_transform(&cgmath::Point2::<T>::new(0., 0.))?,
+        transform.transform_ba(&cgmath::Point2::<T>::new(0., 0.))?,
         cgmath::Point2::<T>::new(-100., -100.)
     );
     assert_eq!(
-        transform.transform(&cgmath::Point2::<T>::new(100., 100.))?,
+        transform.transform_ab(&cgmath::Point2::<T>::new(100., 100.))?,
         cgmath::Point2::<T>::new(800., 800.)
     );
     assert_eq!(
-        transform.reverse_transform(&cgmath::Point2::<T>::new(800., 800.))?,
+        transform.transform_ba(&cgmath::Point2::<T>::new(800., 800.))?,
         cgmath::Point2::<T>::new(100., 100.)
     );
     Ok(())
