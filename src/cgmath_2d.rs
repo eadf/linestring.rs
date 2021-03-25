@@ -1544,4 +1544,37 @@ impl<T: cgmath::BaseFloat + num_traits::cast::NumCast> SimpleAffine<T> {
             })
         }
     }
+
+    /// transform an array from dest (b) coordinate system to source (a) coordinate system
+    #[inline(always)]
+    pub fn transform_ba_a(&self, points: [T; 4]) -> Result<[T; 4], LinestringError> {
+        let x1 = (points[0] - self.b_offset[0]) / self.scale - self.a_offset[0];
+        let y1 = (points[1] - self.b_offset[1]) / self.scale - self.a_offset[1];
+        let x2 = (points[2] - self.b_offset[0]) / self.scale - self.a_offset[0];
+        let y2 = (points[3] - self.b_offset[1]) / self.scale - self.a_offset[1];
+        if x1.is_finite() && y1.is_finite() && x2.is_finite() && y2.is_finite() {
+            Ok([x1, y1, x2, y2])
+        } else {
+            Err(LinestringError::TransformError {
+                txt: "Transformation out of bounds".to_string(),
+            })
+        }
+    }
+
+    /// transform an array from source (a) coordinate system to dest (b) coordinate system
+    #[inline(always)]
+    pub fn transform_ab_a(&self, points: [T; 4]) -> Result<[T; 4], LinestringError> {
+        let x1 = (points[0] + self.a_offset[0]) * self.scale + self.b_offset[0];
+        let y1 = (points[1] + self.a_offset[1]) * self.scale + self.b_offset[1];
+        let x2 = (points[2] + self.a_offset[0]) * self.scale + self.b_offset[0];
+        let y2 = (points[3] + self.a_offset[1]) * self.scale + self.b_offset[1];
+
+        if x1.is_finite() && y1.is_finite() && x2.is_finite() && y2.is_finite() {
+            Ok([x1, y1, x2, y2])
+        } else {
+            Err(LinestringError::TransformError {
+                txt: "Transformation out of bounds".to_string(),
+            })
+        }
+    }
 }

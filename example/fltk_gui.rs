@@ -155,13 +155,17 @@ fn main() {
     let shared_data_c = Rc::clone(&shared_data_rc);
     frame.draw(move || {
         let shared_data_b = shared_data_c.borrow();
-        let make_line = |line: Line2<T>| {
-            let ta = shared_data_b.affine.transform_ab(&line.start);
-            let tb = shared_data_b.affine.transform_ab(&line.end);
-            if let Ok(ta) = ta {
-                if let Ok(tb) = tb {
-                    draw_line(ta.x as i32, ta.y as i32, tb.x as i32, tb.y as i32);
-                }
+        let make_line = |line: [T;4]| {
+            let line = shared_data_b.affine.transform_ab_a(
+                line
+            );
+            if let Ok(line) = line {
+                draw_line(
+                    line[0] as i32,
+                    line[1] as i32,
+                    line[2] as i32,
+                    line[3] as i32,
+                );
             }
         };
 
@@ -179,7 +183,10 @@ fn main() {
                     }
 
                     for a_line in l.as_lines() {
-                        make_line(a_line);
+                        make_line([a_line.start.x,
+                            a_line.start.y,
+                            a_line.end.x,
+                            a_line.end.y]);
                     }
 
                     let simplified_line = l.simplify(distance);
@@ -189,19 +196,22 @@ fn main() {
                         set_draw_color(Color::Green);
                     }
                     for a_line in simplified_line.as_lines() {
-                        make_line(a_line);
-                        make_line(Line2::from([
+                        make_line([a_line.start.x,
+                            a_line.start.y,
+                            a_line.end.x,
+                            a_line.end.y]);
+                        make_line([
                             a_line.start.x - 2.0,
                             a_line.start.y - 2.0,
                             a_line.start.x + 2.0,
                             a_line.start.y + 2.0,
-                        ]));
-                        make_line(Line2::from([
+                        ]);
+                        make_line([
                             a_line.end.x + 2.0,
                             a_line.end.y - 2.0,
                             a_line.end.x - 2.0,
                             a_line.end.y + 2.0,
-                        ]));
+                        ]);
                     }
                 }
             }
@@ -218,7 +228,10 @@ fn main() {
                     }
 
                     for a_line in l.as_lines() {
-                        make_line(a_line);
+                        make_line([a_line.start.x,
+                            a_line.start.y,
+                            a_line.end.x,
+                            a_line.end.y]);
                     }
 
                     let simplified_line = l.simplify_vw(number_to_remove);
@@ -228,19 +241,22 @@ fn main() {
                         set_draw_color(Color::Blue);
                     }
                     for a_line in simplified_line.as_lines() {
-                        make_line(a_line);
-                        make_line(Line2::from([
+                        make_line([a_line.start.x,
+                            a_line.start.y,
+                            a_line.end.x,
+                            a_line.end.y]);
+                        make_line([
                             a_line.start.x - 2.0,
                             a_line.start.y - 2.0,
                             a_line.start.x + 2.0,
                             a_line.start.y + 2.0,
-                        ]));
-                        make_line(Line2::from([
+                        ]);
+                        make_line([
                             a_line.end.x + 2.0,
                             a_line.end.y - 2.0,
                             a_line.end.x - 2.0,
                             a_line.end.y + 2.0,
-                        ]));
+                        ]);
                     }
                 }
             }
