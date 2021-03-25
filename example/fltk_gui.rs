@@ -45,7 +45,7 @@ licenses /why-not-lgpl.html>.
 use fltk::app::redraw;
 use fltk::valuator::HorNiceSlider;
 use fltk::{app, button::*, draw::*, frame::*, window::*};
-use linestring::cgmath_2d::LineString2;
+use linestring::cgmath_2d::{Line2, LineString2, SimpleAffine};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -63,6 +63,8 @@ const W: i32 = 800;
 // Slider height
 const SH: i32 = 25;
 
+type T = f32;
+
 #[derive(Debug, Clone, Copy)]
 pub enum GuiMessage {
     SliderRdpChanged(f32),
@@ -72,6 +74,7 @@ pub enum GuiMessage {
 struct SharedData {
     lines: Vec<LineString2<f32>>,
     last_message: Option<GuiMessage>,
+    affine: SimpleAffine<T>,
 }
 
 fn main() {
@@ -111,6 +114,8 @@ fn main() {
     let shared_data_rc = Rc::from(RefCell::from(SharedData {
         lines: Vec::new(),
         last_message: None,
+        // default is a one-to-one mapping
+        affine: SimpleAffine::default(),
     }));
 
     #[cfg(not(target_os = "macos"))]
@@ -123,7 +128,7 @@ fn main() {
     sender.send(GuiMessage::SliderRdpChanged(0.0));
 
     slider_d.set_callback2(move |s| {
-        let distance = s.value() as f32 * 400.0;
+        let distance = s.value() as T * 400.0;
         s.set_label(
             ("           Ramer–Douglas–Peucker distance:".to_string()
                 + &distance.to_string()
@@ -134,7 +139,7 @@ fn main() {
     });
 
     slider_n.set_callback2(move |s| {
-        let number_to_remove = (s.value() as f32 * 200.0) as usize;
+        let number_to_remove = (s.value() as T * 200.0) as usize;
         s.set_color(Color::Blue);
         s.set_label(
             ("           Visvalingam–Whyatt deleted points:".to_string()
@@ -150,6 +155,16 @@ fn main() {
     let shared_data_c = Rc::clone(&shared_data_rc);
     frame.draw(move || {
         let shared_data_b = shared_data_c.borrow();
+        let make_line = |line: Line2<T>| {
+            let ta = shared_data_b.affine.transform_ab(&line.start);
+            let tb = shared_data_b.affine.transform_ab(&line.end);
+            if let Ok(ta) = ta {
+                if let Ok(tb) = tb {
+                    draw_line(ta.x as i32, ta.y as i32, tb.x as i32, tb.y as i32);
+                }
+            }
+        };
+
         match shared_data_b.last_message {
             Some(GuiMessage::SliderRdpChanged(distance)) => {
                 set_draw_color(Color::White);
@@ -164,12 +179,7 @@ fn main() {
                     }
 
                     for a_line in l.as_lines() {
-                        draw_line(
-                            a_line.start.x as i32,
-                            a_line.start.y as i32,
-                            a_line.end.x as i32,
-                            a_line.end.y as i32,
-                        );
+                        make_line(a_line);
                     }
 
                     let simplified_line = l.simplify(distance);
@@ -179,24 +189,19 @@ fn main() {
                         set_draw_color(Color::Green);
                     }
                     for a_line in simplified_line.as_lines() {
-                        draw_line(
-                            a_line.start.x as i32,
-                            a_line.start.y as i32,
-                            a_line.end.x as i32,
-                            a_line.end.y as i32,
-                        );
-                        draw_line(
-                            a_line.start.x as i32 - 2,
-                            a_line.start.y as i32 - 2,
-                            a_line.start.x as i32 + 2,
-                            a_line.start.y as i32 + 2,
-                        );
-                        draw_line(
-                            a_line.start.x as i32 + 2,
-                            a_line.start.y as i32 - 2,
-                            a_line.start.x as i32 - 2,
-                            a_line.start.y as i32 + 2,
-                        );
+                        make_line(a_line);
+                        make_line(Line2::from([
+                            a_line.start.x - 2.0,
+                            a_line.start.y - 2.0,
+                            a_line.start.x + 2.0,
+                            a_line.start.y + 2.0,
+                        ]));
+                        make_line(Line2::from([
+                            a_line.end.x + 2.0,
+                            a_line.end.y - 2.0,
+                            a_line.end.x - 2.0,
+                            a_line.end.y + 2.0,
+                        ]));
                     }
                 }
             }
@@ -213,12 +218,7 @@ fn main() {
                     }
 
                     for a_line in l.as_lines() {
-                        draw_line(
-                            a_line.start.x as i32,
-                            a_line.start.y as i32,
-                            a_line.end.x as i32,
-                            a_line.end.y as i32,
-                        );
+                        make_line(a_line);
                     }
 
                     let simplified_line = l.simplify_vw(number_to_remove);
@@ -228,29 +228,82 @@ fn main() {
                         set_draw_color(Color::Blue);
                     }
                     for a_line in simplified_line.as_lines() {
-                        draw_line(
-                            a_line.start.x as i32,
-                            a_line.start.y as i32,
-                            a_line.end.x as i32,
-                            a_line.end.y as i32,
-                        );
-                        draw_line(
-                            a_line.start.x as i32 - 2,
-                            a_line.start.y as i32 - 2,
-                            a_line.start.x as i32 + 2,
-                            a_line.start.y as i32 + 2,
-                        );
-                        draw_line(
-                            a_line.start.x as i32 + 2,
-                            a_line.start.y as i32 - 2,
-                            a_line.start.x as i32 - 2,
-                            a_line.start.y as i32 + 2,
-                        );
+                        make_line(a_line);
+                        make_line(Line2::from([
+                            a_line.start.x - 2.0,
+                            a_line.start.y - 2.0,
+                            a_line.start.x + 2.0,
+                            a_line.start.y + 2.0,
+                        ]));
+                        make_line(Line2::from([
+                            a_line.end.x + 2.0,
+                            a_line.end.y - 2.0,
+                            a_line.end.x - 2.0,
+                            a_line.end.y + 2.0,
+                        ]));
                     }
                 }
             }
             None => (),
         }
+    });
+
+    let shared_data_c = Rc::clone(&shared_data_rc);
+    let mut mouse_drag: Option<(i32, i32)> = None;
+    wind.handle(move |ev| match ev {
+        fltk::enums::Event::MouseWheel => {
+            let event = &app::event_coords();
+            let mut shared_data_bm = shared_data_c.borrow_mut();
+            let event_dy = app::event_dy();
+            let reverse_middle = shared_data_bm
+                .affine
+                .transform_ba(&cgmath::Point2::from([event.0 as T, event.1 as T]));
+            if reverse_middle.is_err() {
+                println!("{:?}", reverse_middle.err().unwrap());
+                return false;
+            }
+            let reverse_middle = reverse_middle.unwrap();
+            if event_dy != 0 {
+                shared_data_bm.affine.scale *= 1.01_f32.powf(event_dy as T);
+            }
+            let new_middle = shared_data_bm.affine.transform_ab(&cgmath::Point2::from([
+                reverse_middle[0] as T,
+                reverse_middle[1] as T,
+            ]));
+            if new_middle.is_err() {
+                println!("{:?}", new_middle.err().unwrap());
+                return false;
+            }
+            let new_middle = new_middle.unwrap();
+            // When zooming we want the center of screen remain at the same relative position.
+            shared_data_bm.affine.b_offset[0] += (event.0 as T) - new_middle[0];
+            shared_data_bm.affine.b_offset[1] += (event.1 as T) - new_middle[1];
+
+            //println!("mouse wheel at dy:{:?} scale:{:?}", event_dy, shared_data_bm.visualizer.affine.scale);
+            redraw();
+            true
+        }
+        fltk::enums::Event::Drag => {
+            let event = &app::event_coords();
+            if mouse_drag.is_none() {
+                mouse_drag = Some(*event);
+            } else {
+                let md = mouse_drag.unwrap();
+                let mut shared_data_bm = shared_data_c.borrow_mut();
+                shared_data_bm.affine.b_offset[0] += (event.0 - md.0) as T;
+                shared_data_bm.affine.b_offset[1] += (event.1 - md.1) as T;
+                mouse_drag = Some(*event);
+                redraw();
+            }
+            true
+        }
+        fltk::enums::Event::Released => {
+            if mouse_drag.is_some() {
+                mouse_drag = None;
+            }
+            true
+        }
+        _ => false,
     });
 
     let shared_data_c = Rc::clone(&shared_data_rc);
@@ -270,7 +323,7 @@ fn add_data(data: Rc<RefCell<SharedData>>) {
     // Add y=e^-x*cos(2πx)
     let mut line: Vec<cgmath::Point2<f32>> = Vec::new();
     for x in (0..150).skip(1) {
-        let x = x as f32 / 20.0;
+        let x = x as T / 20.0;
         let y: f32 = std::f32::consts::E.powf(-x) * (x * 2.0 * std::f32::consts::PI).cos();
         line.push(cgmath::Point2::new(50.0 + x * 75.0, 200.0 + y * 300.0));
     }
@@ -283,11 +336,11 @@ fn add_data(data: Rc<RefCell<SharedData>>) {
     let mut line: Vec<cgmath::Point2<f32>> = Vec::with_capacity(360);
     for angle in (0..358).step_by(2) {
         let x: f32 = 400.0
-            + (angle as f32).to_radians().cos() * 250.0
-            + (FO as f32) * (angle as f32 * 8.523).to_radians().sin();
+            + (angle as T).to_radians().cos() * 250.0
+            + (FO as T) * (angle as T * 8.523).to_radians().sin();
         let y: f32 = 400.0
-            + (angle as f32).to_radians().sin() * 150.0
-            + (FO as f32) * (angle as f32 * 2.534).to_radians().cos();
+            + (angle as T).to_radians().sin() * 150.0
+            + (FO as T) * (angle as T * 2.534).to_radians().cos();
         line.push(cgmath::Point2::new(x, y));
     }
     // Add an extra point that will cause self-intersection when simplified too much
