@@ -45,7 +45,7 @@ licenses /why-not-lgpl.html>.
 use fltk::app::redraw;
 use fltk::valuator::HorNiceSlider;
 use fltk::{app, button::*, draw::*, frame::*, window::*};
-use linestring::cgmath_2d::{Line2, LineString2, SimpleAffine};
+use linestring::cgmath_2d::{LineString2, SimpleAffine};
 use std::cell::RefCell;
 use std::rc::Rc;
 
