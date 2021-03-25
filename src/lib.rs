@@ -71,6 +71,12 @@ pub enum LinestringError {
 
     #[error("Unkown error")]
     UnknownError { txt: String },
+
+    #[error("Aabb error")]
+    AabbError { txt: String },
+
+    #[error("Aabb error")]
+    TransformError { txt: String },
 }
 
 #[cfg(feature = "impl-nalgebra")]

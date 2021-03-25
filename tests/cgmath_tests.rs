@@ -581,3 +581,77 @@ fn voronoi_parabolic_arc_2() {
     ));
     println!("result: {:?}", result);
 }
+
+//#[ignore]
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn transform_test_1() -> Result<(), linestring::LinestringError> {
+    type T = f32;
+    let mut aabb_source = cgmath_2d::Aabb2::<T>::default();
+    let mut aabb_dest = cgmath_2d::Aabb2::<T>::default();
+
+    // source is (0,0)-(1,1)
+    aabb_source.update_point(&cgmath::Point2::<T>::new(0., 0.));
+    aabb_source.update_point(&cgmath::Point2::<T>::new(1., 1.));
+
+    // dest is (1,1)-(2,2)
+    aabb_dest.update_point(&cgmath::Point2::<T>::new(1., 1.));
+    aabb_dest.update_point(&cgmath::Point2::<T>::new(2., 2.));
+
+    let transform = cgmath_2d::SimpleAffine::new(&aabb_source, &aabb_dest)?;
+    assert_eq!(
+        transform.transform(&cgmath::Point2::<T>::new(0., 0.))?,
+        cgmath::Point2::<T>::new(1., 1.)
+    );
+    assert_eq!(
+        transform.transform(&cgmath::Point2::<T>::new(1., 1.))?,
+        cgmath::Point2::<T>::new(2., 2.)
+    );
+    assert_eq!(
+        transform.transform(&cgmath::Point2::<T>::new(0., 1.))?,
+        cgmath::Point2::<T>::new(1., 2.)
+    );
+    assert_eq!(
+        transform.transform(&cgmath::Point2::<T>::new(1., 0.))?,
+        cgmath::Point2::<T>::new(2., 1.)
+    );
+
+    Ok(())
+}
+
+#[cfg(feature = "impl-cgmath")]
+#[test]
+fn transform_test_2() -> Result<(), linestring::LinestringError> {
+    type T = f32;
+    let mut aabb_source = cgmath_2d::Aabb2::<f32>::default();
+    let mut aabb_dest = cgmath_2d::Aabb2::<f32>::default();
+
+    // source is (-100,-100)-(100,100)
+    aabb_source.update_point(&cgmath::Point2::<T>::new(-100., -100.));
+    aabb_source.update_point(&cgmath::Point2::<T>::new(100., 100.));
+
+    // dest is (0,0)-(800,800.)
+    aabb_dest.update_point(&cgmath::Point2::<T>::new(0., 0.));
+    aabb_dest.update_point(&cgmath::Point2::<T>::new(800., 800.));
+
+    let transform = cgmath_2d::SimpleAffine::new(&aabb_source, &aabb_dest)?;
+    //println!("Affine:{:?}", transform);
+
+    assert_eq!(
+        transform.transform(&cgmath::Point2::<T>::new(-100., -100.))?,
+        cgmath::Point2::<T>::new(0., 0.)
+    );
+    assert_eq!(
+        transform.reverse_transform(&cgmath::Point2::<T>::new(0., 0.))?,
+        cgmath::Point2::<T>::new(-100., -100.)
+    );
+    assert_eq!(
+        transform.transform(&cgmath::Point2::<T>::new(100., 100.))?,
+        cgmath::Point2::<T>::new(800., 800.)
+    );
+    assert_eq!(
+        transform.reverse_transform(&cgmath::Point2::<T>::new(800., 800.))?,
+        cgmath::Point2::<T>::new(100., 100.)
+    );
+    Ok(())
+}

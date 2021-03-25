@@ -1390,3 +1390,153 @@ where
 {
     T::ulps_eq(a, b, T::default_epsilon(), T::default_max_ulps())
 }
+
+/// This is a simple but efficient affine transformation object.
+/// It can pan and zoom but not rotate.
+#[derive(PartialEq, Clone, fmt::Debug)]
+pub struct SimpleAffine<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq>
+{
+    /// The offsets used to center the 'source' coordinate system. Typically the input geometry
+    /// in this case.
+    to_center: [T; 2],
+    /// A zoom scale
+    pub scale: T,
+    /// The offsets needed to center coordinates of interest on the 'dest' coordinate system.
+    /// i.e. the screen coordinate system.
+    pub to_offset: [T; 2],
+}
+
+impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq> Default
+    for SimpleAffine<T>
+{
+    #[inline]
+    fn default() -> Self {
+        Self {
+            to_center: [T::zero(), T::zero()],
+            scale: T::one(),
+            to_offset: [T::zero(), T::zero()],
+        }
+    }
+}
+
+impl<
+        T: num_traits::Float
+            + std::fmt::Debug
+            + approx::AbsDiffEq
+            + approx::UlpsEq
+            + num_traits::cast::NumCast,
+    > SimpleAffine<T>
+{
+    pub fn new(source_aabb: &Aabb2<T>, dest_aabb: &Aabb2<T>) -> Result<Self, LinestringError> {
+        let min_dim = T::from(1.0).unwrap();
+        let two = T::from(2.0).unwrap();
+
+        if let Some(source_low) = source_aabb.get_low() {
+            if let Some(source_high) = source_aabb.get_high() {
+                if let Some(destination_low) = dest_aabb.get_low() {
+                    if let Some(destination_high) = dest_aabb.get_high() {
+                        let source_aabb_center = [
+                            -(source_low[0] + source_high[0]) / two,
+                            -(source_low[1] + source_high[1]) / two,
+                        ];
+                        let source_aabb_size = [
+                            (source_high[0] - source_low[0]).max(min_dim),
+                            (source_high[1] - source_low[1]).max(min_dim),
+                        ];
+
+                        let dest_aabb_center = [
+                            (destination_low[0] + destination_high[0]) / two,
+                            (destination_low[1] + destination_high[1]) / two,
+                        ];
+                        let dest_aabb_size = [
+                            (destination_high[0] - destination_low[0]).max(min_dim),
+                            (destination_high[1] - destination_low[1]).max(min_dim),
+                        ];
+
+                        // make sure the larges dimension of source fits inside smallest of dest
+                        let source_aabb_size = source_aabb_size[0].max(source_aabb_size[1]);
+                        let dest_aabb_size = dest_aabb_size[0].min(dest_aabb_size[1]);
+
+                        return Ok(Self {
+                            to_center: source_aabb_center,
+                            scale: dest_aabb_size / source_aabb_size,
+                            to_offset: dest_aabb_center,
+                        });
+                    }
+                }
+            }
+        }
+        Err(LinestringError::AabbError {
+            txt: "could not get dimension of the AABB".to_string(),
+        })
+    }
+
+    /// transform from dest coordinate system to source coordinate system
+    #[inline(always)]
+    pub fn reverse_transform(&self, p: &[T; 2]) -> Result<[T; 2], LinestringError> {
+        let x = self.reverse_transform_x(p[0])?;
+        let y = self.reverse_transform_y(p[1])?;
+        Ok([x, y])
+    }
+
+    /// transform from X in dest coordinate system to X in source coordinate system
+    #[inline(always)]
+    pub fn reverse_transform_x(&self, x: T) -> Result<T, LinestringError> {
+        let rv = (x - self.to_offset[0]) / self.scale - self.to_center[0];
+        if rv.is_finite() {
+            Ok(rv)
+        } else {
+            Err(LinestringError::TransformError {
+                txt: "Transformation out of bounds".to_string(),
+            })
+        }
+    }
+
+    /// transform from Y in dest coordinate system to Y in source coordinate system
+    #[inline(always)]
+    pub fn reverse_transform_y(&self, y: T) -> Result<T, LinestringError> {
+        let rv = (y - self.to_offset[1]) / self.scale - self.to_center[1];
+        if rv.is_finite() {
+            Ok(rv)
+        } else {
+            Err(LinestringError::TransformError {
+                txt: "Transformation out of bounds".to_string(),
+            })
+        }
+    }
+
+    /// transform from X in source coordinate system to X in dest coordinate system
+    #[inline(always)]
+    pub fn transform_x(&self, x: T) -> Result<T, LinestringError> {
+        let rv = (x + self.to_center[0]) * self.scale + self.to_offset[0];
+        if rv.is_finite() {
+            Ok(rv)
+        } else {
+            Err(LinestringError::TransformError {
+                txt: "Transformation out of bounds".to_string(),
+            })
+        }
+    }
+
+    /// transform from Y in source coordinate system to Y in dest coordinate system
+    #[inline(always)]
+    pub fn transform_y(&self, y: T) -> Result<T, LinestringError> {
+        let rv = (y + self.to_center[1]) * self.scale + self.to_offset[1];
+        if rv.is_finite() {
+            Ok(rv)
+        } else {
+            Err(LinestringError::TransformError {
+                txt: "Transformation out of bounds".to_string(),
+            })
+        }
+    }
+
+    /// transform from source coordinate system to dest coordinate system
+    #[inline(always)]
+    #[cfg(feature = "impl-vecmath")]
+    pub fn transform(&self, point: &[T; 2]) -> Result<[T; 2], LinestringError> {
+        let x = self.transform_x(point[0])?;
+        let y = self.transform_y(point[1])?;
+        Ok([x, y])
+    }
+}
