@@ -549,6 +549,9 @@ where
     min_max: Option<([T; 2], [T; 2])>,
 }
 
+/// A 2d line string, aka polyline.
+/// If the 'connected' field is set the 'as_lines()' method will connect start point with the
+/// end-point.
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString2<T>
 where

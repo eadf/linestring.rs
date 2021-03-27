@@ -243,7 +243,7 @@ impl<T: cgmath::BaseFloat> ConvexHull<T> {
         if a.len() <= 1 {
             return false;
         }
-        if b.len() == 0 {
+        if b.is_empty() {
             return true;
         }
         //println!("a.len() {}, b.len() {}", a.len(), b.len());

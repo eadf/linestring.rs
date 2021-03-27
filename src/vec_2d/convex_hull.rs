@@ -238,7 +238,7 @@ impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq
         if a.len() <= 1 {
             return false;
         }
-        if b.len() == 0 {
+        if b.is_empty() {
             return true;
         }
         //println!("a.len() {}, b.len() {}", a.len(), b.len());
