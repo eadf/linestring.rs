@@ -265,17 +265,17 @@ where
             Plane::XY => self
                 .points
                 .iter()
-                .map(|p3d| nalgebra::Point2::<T>::new(p3d.x, p3d.y))
+                .map(|p3d| nalgebra::Point2::new(p3d.x, p3d.y))
                 .collect(),
             Plane::XZ => self
                 .points
                 .iter()
-                .map(|p3d| nalgebra::Point2::<T>::new(p3d.x, p3d.z))
+                .map(|p3d| nalgebra::Point2::new(p3d.x, p3d.z))
                 .collect(),
             Plane::ZY => self
                 .points
                 .iter()
-                .map(|p3d| nalgebra::Point2::<T>::new(p3d.z, p3d.y))
+                .map(|p3d| nalgebra::Point2::new(p3d.z, p3d.y))
                 .collect(),
         };
         rv.connected = self.connected;
@@ -684,8 +684,8 @@ where
     fn from(coordinate: [T; 6]) -> Aabb3<T> {
         Aabb3 {
             min_max: Some((
-                nalgebra::Point3::<T>::new(coordinate[0], coordinate[1], coordinate[2]),
-                nalgebra::Point3::<T>::new(coordinate[3], coordinate[4], coordinate[5]),
+                nalgebra::Point3::new(coordinate[0], coordinate[1], coordinate[2]),
+                nalgebra::Point3::new(coordinate[3], coordinate[4], coordinate[5]),
             )),
         }
     }

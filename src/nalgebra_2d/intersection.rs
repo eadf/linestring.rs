@@ -449,7 +449,7 @@ where
 {
     fn default() -> Self {
         Self {
-            sweepline_pos: nalgebra::Point2::<T>::new(-T::max_value(), -T::max_value()),
+            sweepline_pos: nalgebra::Point2::new(-T::max_value(), -T::max_value()),
             stop_at_first_intersection: false,
             ignore_end_point_intersections: false,
             site_events: Some(rb_tree::RBMap::new()),
@@ -715,7 +715,7 @@ where
                     break;
                 }
             } else {
-                self.sweepline_pos = nalgebra::Point2::<T>::new(T::max_value(), T::max_value());
+                self.sweepline_pos = nalgebra::Point2::new(T::max_value(), T::max_value());
 
                 break;
             }

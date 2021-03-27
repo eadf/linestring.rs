@@ -51,6 +51,7 @@ use crate::LinestringError;
 use itertools::Itertools;
 use std::fmt;
 
+pub mod convex_hull;
 pub mod intersection;
 
 /// Placeholder for different 2d shapes
@@ -553,7 +554,7 @@ pub struct LineString2<T>
 where
     T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
-    points: Vec<[T; 2]>,
+    pub(crate) points: Vec<[T; 2]>,
 
     /// if connected is set the as_lines() method will add an extra line connecting
     /// the first and last point
@@ -672,10 +673,13 @@ where
         &self.points
     }
 
+    /// returns the number of points in the point list
+    /// not the number of segments (add one if connected)
     pub fn len(&self) -> usize {
         self.points.len()
     }
 
+    /// returns true if the point list is empty
     pub fn is_empty(&self) -> bool {
         self.points.is_empty()
     }
@@ -1304,6 +1308,7 @@ where
 
 #[inline(always)]
 /// subtracts point b from point a resulting in a vector
+/// This is a compatibility workaround for 2d packages without any math
 fn sub<T>(a: &[T; 2], b: &[T; 2]) -> [T; 2]
 where
     T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
@@ -1493,6 +1498,39 @@ impl<
         let y = (point[1] + self.a_offset[1]) * self.scale + self.b_offset[1];
         if x.is_finite() && y.is_finite() {
             Ok([x, y])
+        } else {
+            Err(LinestringError::TransformError {
+                txt: "Transformation out of bounds".to_string(),
+            })
+        }
+    }
+
+    /// transform an array from dest (b) coordinate system to source (a) coordinate system
+    #[inline(always)]
+    pub fn transform_ba_a(&self, points: [T; 4]) -> Result<[T; 4], LinestringError> {
+        let x1 = (points[0] - self.b_offset[0]) / self.scale - self.a_offset[0];
+        let y1 = (points[1] - self.b_offset[1]) / self.scale - self.a_offset[1];
+        let x2 = (points[2] - self.b_offset[0]) / self.scale - self.a_offset[0];
+        let y2 = (points[3] - self.b_offset[1]) / self.scale - self.a_offset[1];
+        if x1.is_finite() && y1.is_finite() && x2.is_finite() && y2.is_finite() {
+            Ok([x1, y1, x2, y2])
+        } else {
+            Err(LinestringError::TransformError {
+                txt: "Transformation out of bounds".to_string(),
+            })
+        }
+    }
+
+    /// transform an array from source (a) coordinate system to dest (b) coordinate system
+    #[inline(always)]
+    pub fn transform_ab_a(&self, points: [T; 4]) -> Result<[T; 4], LinestringError> {
+        let x1 = (points[0] + self.a_offset[0]) * self.scale + self.b_offset[0];
+        let y1 = (points[1] + self.a_offset[1]) * self.scale + self.b_offset[1];
+        let x2 = (points[2] + self.a_offset[0]) * self.scale + self.b_offset[0];
+        let y2 = (points[3] + self.a_offset[1]) * self.scale + self.b_offset[1];
+
+        if x1.is_finite() && y1.is_finite() && x2.is_finite() && y2.is_finite() {
+            Ok([x1, y1, x2, y2])
         } else {
             Err(LinestringError::TransformError {
                 txt: "Transformation out of bounds".to_string(),

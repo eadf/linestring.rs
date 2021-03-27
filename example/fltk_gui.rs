@@ -155,10 +155,8 @@ fn main() {
     let shared_data_c = Rc::clone(&shared_data_rc);
     frame.draw(move || {
         let shared_data_b = shared_data_c.borrow();
-        let make_line = |line: [T;4]| {
-            let line = shared_data_b.affine.transform_ab_a(
-                line
-            );
+        let make_line = |line: [T; 4], cross: bool| {
+            let line = shared_data_b.affine.transform_ab_a(line);
             if let Ok(line) = line {
                 draw_line(
                     line[0] as i32,
@@ -166,6 +164,20 @@ fn main() {
                     line[2] as i32,
                     line[3] as i32,
                 );
+                if cross {
+                    draw_line(
+                        line[0] as i32 - 2,
+                        line[1] as i32 - 2,
+                        line[0] as i32 + 2,
+                        line[1] as i32 + 2,
+                    );
+                    draw_line(
+                        line[2] as i32 + 2,
+                        line[3] as i32 - 2,
+                        line[2] as i32 - 2,
+                        line[3] as i32 + 2,
+                    );
+                }
             }
         };
 
@@ -183,10 +195,10 @@ fn main() {
                     }
 
                     for a_line in l.as_lines() {
-                        make_line([a_line.start.x,
-                            a_line.start.y,
-                            a_line.end.x,
-                            a_line.end.y]);
+                        make_line(
+                            [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
+                            false,
+                        );
                     }
 
                     let simplified_line = l.simplify(distance);
@@ -196,23 +208,23 @@ fn main() {
                         set_draw_color(Color::Green);
                     }
                     for a_line in simplified_line.as_lines() {
-                        make_line([a_line.start.x,
-                            a_line.start.y,
-                            a_line.end.x,
-                            a_line.end.y]);
-                        make_line([
-                            a_line.start.x - 2.0,
-                            a_line.start.y - 2.0,
-                            a_line.start.x + 2.0,
-                            a_line.start.y + 2.0,
-                        ]);
-                        make_line([
-                            a_line.end.x + 2.0,
-                            a_line.end.y - 2.0,
-                            a_line.end.x - 2.0,
-                            a_line.end.y + 2.0,
-                        ]);
+                        make_line(
+                            [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
+                            true,
+                        );
                     }
+                    /*
+                    set_draw_color(Color::Green);
+                    let hull = linestring::cgmath_2d::convex_hull::ConvexHull::<f32>::graham_scan(
+                        &simplified_line,
+                    );
+                    for a_line in hull.as_lines() {
+                        make_line(
+                            [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
+                            false,
+                        );
+                    }
+                    */
                 }
             }
             Some(GuiMessage::SliderVwChanged(number_to_remove)) => {
@@ -228,10 +240,10 @@ fn main() {
                     }
 
                     for a_line in l.as_lines() {
-                        make_line([a_line.start.x,
-                            a_line.start.y,
-                            a_line.end.x,
-                            a_line.end.y]);
+                        make_line(
+                            [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
+                            false,
+                        );
                     }
 
                     let simplified_line = l.simplify_vw(number_to_remove);
@@ -241,23 +253,24 @@ fn main() {
                         set_draw_color(Color::Blue);
                     }
                     for a_line in simplified_line.as_lines() {
-                        make_line([a_line.start.x,
-                            a_line.start.y,
-                            a_line.end.x,
-                            a_line.end.y]);
-                        make_line([
-                            a_line.start.x - 2.0,
-                            a_line.start.y - 2.0,
-                            a_line.start.x + 2.0,
-                            a_line.start.y + 2.0,
-                        ]);
-                        make_line([
-                            a_line.end.x + 2.0,
-                            a_line.end.y - 2.0,
-                            a_line.end.x - 2.0,
-                            a_line.end.y + 2.0,
-                        ]);
+                        make_line(
+                            [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
+                            true,
+                        );
                     }
+                    /*
+                    set_draw_color(Color::Green);
+                    let hull = linestring::cgmath_2d::convex_hull::ConvexHull::<f32>::graham_scan(
+                        &simplified_line,
+                    );
+                    for a_line in hull.as_lines() {
+                        make_line(
+                            [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
+                            false,
+                        );
+                    }*/
+                    //let _ = linestring::cgmath_2d::convex_hull::GrahamScan::<f32>::scan(
+                    //   &simplified_line);
                 }
             }
             None => (),
@@ -265,6 +278,8 @@ fn main() {
     });
 
     let shared_data_c = Rc::clone(&shared_data_rc);
+    // mouse_drag is only used inside this closure, so it does not need to be placed in
+    // shared_data
     let mut mouse_drag: Option<(i32, i32)> = None;
     wind.handle(move |ev| match ev {
         fltk::enums::Event::MouseWheel => {
@@ -291,7 +306,8 @@ fn main() {
                 return false;
             }
             let new_middle = new_middle.unwrap();
-            // When zooming we want the center of screen remain at the same relative position.
+            // When zooming we want the shape at the mouse position to remain
+            // at the same relative position.
             shared_data_bm.affine.b_offset[0] += (event.0 as T) - new_middle[0];
             shared_data_bm.affine.b_offset[1] += (event.1 as T) - new_middle[1];
 

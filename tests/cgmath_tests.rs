@@ -655,3 +655,24 @@ fn transform_test_2() -> Result<(), linestring::LinestringError> {
     );
     Ok(())
 }
+
+#[cfg(feature = "impl-cgmath")]
+//#[ignore]
+#[test]
+fn convex_hull_1() -> Result<(), linestring::LinestringError> {
+    let lines: Vec<cgmath::Point2<f32>> = vec![
+        [0f32, 0.].into(),
+        [100., 0.].into(),
+        [100., 100.].into(),
+        [0., 100.].into(),
+        [1., 1220.].into(),
+        [50., 2.].into(),
+    ];
+    let l = cgmath_2d::LineString2::<f32>::default()
+        .with_points(lines)
+        .with_connected(false);
+    let gw = cgmath_2d::convex_hull::ConvexHull::gift_wrap(&l);
+    let gs = cgmath_2d::convex_hull::ConvexHull::graham_scan(&l);
+    assert_eq!(gw, gs);
+    Ok(())
+}

@@ -50,6 +50,7 @@ use cgmath::Transform;
 use itertools::Itertools;
 use std::fmt;
 
+pub mod convex_hull;
 pub mod intersection;
 
 /// Placeholder for different 2d shapes
@@ -566,7 +567,7 @@ pub struct LineString2<T>
 where
     T: cgmath::BaseFloat,
 {
-    points: Vec<cgmath::Point2<T>>,
+    pub(crate) points: Vec<cgmath::Point2<T>>,
 
     /// if connected is set the as_lines() method will add an extra line connecting
     /// the first and last point
@@ -685,10 +686,13 @@ where
         &self.points
     }
 
+    /// returns the number of points in the point list
+    /// not the number of segments (add one if connected)
     pub fn len(&self) -> usize {
         self.points.len()
     }
 
+    /// returns true if the point list is empty
     pub fn is_empty(&self) -> bool {
         self.points.is_empty()
     }
@@ -1345,6 +1349,7 @@ where
 
 #[inline(always)]
 /// subtracts point b from point a resulting in a vector
+/// This is a compatibility workaround for 2d packages without any math
 fn sub<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> cgmath::Vector2<T>
 where
     T: cgmath::BaseFloat,
