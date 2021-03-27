@@ -671,8 +671,8 @@ fn convex_hull_1() -> Result<(), linestring::LinestringError> {
     let l = cgmath_2d::LineString2::<f32>::default()
         .with_points(lines)
         .with_connected(false);
-    let gw = cgmath_2d::convex_hull::ConvexHull::gift_wrap(&l);
-    let gs = cgmath_2d::convex_hull::ConvexHull::graham_scan(&l);
+    let gw = cgmath_2d::convex_hull::ConvexHull::gift_wrap(l.points().iter());
+    let gs = cgmath_2d::convex_hull::ConvexHull::graham_scan(l.points().iter());
     assert_eq!(gw, gs);
     Ok(())
 }
@@ -693,7 +693,7 @@ fn convex_hull_2() {
     }
 
     let a = cgmath_2d::LineString2::<f32>::default().with_points(points);
-    let a = convex_hull::ConvexHull::graham_scan(&a);
+    let a = convex_hull::ConvexHull::graham_scan(a.points().iter());
     let center = cgmath::Point2::<f32>::new(2000.0, 2000.0);
 
     for l in a.as_lines().iter() {
@@ -716,7 +716,7 @@ fn convex_hull_3() {
     }
 
     let a = cgmath_2d::LineString2::<f32>::default().with_points(points);
-    let a = convex_hull::ConvexHull::graham_scan(&a);
+    let a = convex_hull::ConvexHull::graham_scan(a.points().into_iter());
 
     let mut points = Vec::<cgmath::Point2<f32>>::new();
     for _i in 0..1023 {
@@ -724,7 +724,7 @@ fn convex_hull_3() {
         points.push(p.into());
     }
     let b = cgmath_2d::LineString2::<f32>::default().with_points(points);
-    let b = convex_hull::ConvexHull::graham_scan(&b);
+    let b = convex_hull::ConvexHull::graham_scan(b.points().iter());
 
     assert!(convex_hull::ConvexHull::contains(&a, &b));
     assert!(!convex_hull::ConvexHull::contains(&b, &a));

@@ -40,6 +40,24 @@ impl<T: cgmath::BaseFloat> ConvexHull<T> {
         (b.x - a.x) * (c.y - a.y) > (b.y - a.y) * (c.x - a.x)
     }
 
+    /// Returns true if the point 'c' lies to the 'left' of the line a->b
+    /// Returns true even if the point lies on the line a-b
+    ///```
+    /// # use linestring::cgmath_2d::convex_hull;
+    /// let a = cgmath::Point2 { x: 0.0, y: 0.0 };
+    /// let b = cgmath::Point2 { x: 0.0, y: 10.0 };
+    /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear(&a, &b, &b));
+    /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear(&a, &b, &a));
+    ///```
+    #[inline(always)]
+    pub fn is_point_left_allow_collinear(
+        a: &cgmath::Point2<T>,
+        b: &cgmath::Point2<T>,
+        c: &cgmath::Point2<T>,
+    ) -> bool {
+        (b.x - a.x) * (c.y - a.y) >= (b.y - a.y) * (c.x - a.x)
+    }
+
     /// distance between two points squared
     #[inline(always)]
     fn distance_squared(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> T {
@@ -78,26 +96,40 @@ impl<T: cgmath::BaseFloat> ConvexHull<T> {
     /// }
     ///
     /// let a = cgmath_2d::LineString2::<f32>::default().with_points(points);
-    /// let convex_hull = convex_hull::ConvexHull::gift_wrap(&a);
+    /// let convex_hull = convex_hull::ConvexHull::gift_wrap(a.points().iter());
     /// let center = cgmath::Point2{x:2000_f32, y:2000.0};
     ///
-    /// for l in convex_hull.as_lines().iter() {
-    ///   // all segments should have the center point at the 'left' side
-    ///   assert!(convex_hull::ConvexHull::is_point_left(&l.start, &l.end, &center));
+    /// for p in convex_hull.points().iter() {
+    ///   for l in convex_hull.as_lines().iter() {
+    ///     // all segments should have the center point at the 'left' side
+    ///     assert!(convex_hull::ConvexHull::is_point_left(&l.start, &l.end, &center));
+    ///     // all points on the hull should be 'left' of every segment in the hull
+    ///     assert!(convex_hull::ConvexHull::is_point_left_allow_collinear(&l.start, &l.end, p));
+    ///   }
     /// }
     ///```
-    pub fn gift_wrap(linestring: &cgmath_2d::LineString2<T>) -> cgmath_2d::LineString2<T> {
-        if (linestring.len() <= 3 && linestring.connected)
-            || (linestring.len() <= 3 && !linestring.connected)
-        {
-            //println!("shortcut points {:?} connected:{}", linestring.len(), linestring.connected);
-            return linestring.clone().with_connected(true);
-        }
-        let (starting_point, _) = Self::find_lowest_x(&linestring.points);
-        let mut rv =
-            cgmath_2d::LineString2::<T>::with_capacity(linestring.len()).with_connected(true);
+    pub fn gift_wrap<'a, I>(input: I) -> cgmath_2d::LineString2<T>
+    where
+        I: IntoIterator<Item = &'a cgmath::Point2<T>>,
+        T: 'a,
+    {
+        let input_points = input
+            .into_iter()
+            .copied()
+            .collect::<Vec<cgmath::Point2<T>>>();
 
-        let mut already_on_hull = yabf::Yabf::with_capacity(linestring.len());
+        if input_points.len() <= 3 {
+            //println!("shortcut points {:?} connected:{}", linestring.len(), linestring.connected);
+            let rv = cgmath_2d::LineString2::<T>::with_capacity(input_points.len())
+                .with_connected(true)
+                .with_points(input_points);
+            return rv;
+        }
+        let (starting_point, _) = Self::find_lowest_x(&input_points);
+        let mut rv =
+            cgmath_2d::LineString2::<T>::with_capacity(input_points.len()).with_connected(true);
+
+        let mut already_on_hull = yabf::Yabf::with_capacity(input_points.len());
         let mut point_on_hull = starting_point;
         let mut end_point: usize;
         let mut i = 0_usize;
@@ -105,14 +137,13 @@ impl<T: cgmath::BaseFloat> ConvexHull<T> {
         //println!("starting_point {} {:?}", starting_point, linestring.points[starting_point]);
         loop {
             //println!("pushing {}:{:?}", point_on_hull, linestring.points[point_on_hull]);
-            rv.points.push(linestring.points[point_on_hull]);
+            rv.points.push(input_points[point_on_hull]);
             if point_on_hull != starting_point {
                 // don't flag starting point or we won't know when to stop
                 already_on_hull.set_bit(point_on_hull, true);
             }
             end_point = 0;
-            for (j, sj) in linestring
-                .points
+            for (j, sj) in input_points
                 .iter()
                 .enumerate()
                 .filter(|x| !already_on_hull.bit(x.0))
@@ -121,7 +152,7 @@ impl<T: cgmath::BaseFloat> ConvexHull<T> {
                     continue;
                 }
                 if (end_point == point_on_hull)
-                    || !Self::is_point_left(&rv.points[i], &linestring.points[end_point], sj)
+                    || !Self::is_point_left(&rv.points[i], &input_points[end_point], sj)
                 {
                     end_point = j;
                     //println!("found {}:{:?}", end_point, linestring.points[end_point]);
@@ -152,20 +183,36 @@ impl<T: cgmath::BaseFloat> ConvexHull<T> {
     /// }
     ///
     /// let a = cgmath_2d::LineString2::<f32>::default().with_points(points);
-    /// let convex_hull = convex_hull::ConvexHull::graham_scan(&a);
+    /// let convex_hull = convex_hull::ConvexHull::graham_scan(a.points().iter());
     /// let center = cgmath::Point2{x:2000_f32, y:2000.0};
     ///
-    /// for l in convex_hull.as_lines().iter() {
-    ///   // all segments should have the center point at the 'left' side
-    ///   assert!(convex_hull::ConvexHull::is_point_left(&l.start, &l.end, &center));
+    /// for p in convex_hull.points().iter() {
+    ///   for l in convex_hull.as_lines().iter() {
+    ///     // all segments should have the center point at the 'left' side
+    ///     assert!(convex_hull::ConvexHull::is_point_left(&l.start, &l.end, &center));
+    ///     // all points on the hull should be 'left' of every segment in the hull
+    ///     assert!(convex_hull::ConvexHull::is_point_left_allow_collinear(&l.start, &l.end, p));
+    ///   }
     /// }
     ///```
-    pub fn graham_scan(input: &cgmath_2d::LineString2<T>) -> cgmath_2d::LineString2<T> {
-        if (input.len() <= 3 && input.connected) || (input.len() <= 3 && !input.connected) {
+    pub fn graham_scan<'a, I>(input: I) -> cgmath_2d::LineString2<T>
+    where
+        I: IntoIterator<Item = &'a cgmath::Point2<T>>,
+        T: 'a,
+    {
+        let mut input_points = input
+            .into_iter()
+            .copied()
+            .collect::<Vec<cgmath::Point2<T>>>();
+
+        if input_points.len() <= 3 {
             //println!("shortcut points {:?} connected:{}", linestring.len(), linestring.connected);
-            return input.clone().with_connected(true);
+            let rv = cgmath_2d::LineString2::<T>::with_capacity(input_points.len())
+                .with_connected(true)
+                .with_points(input_points);
+            return rv;
         }
-        let mut input_points = input.points.clone();
+        //= input.points.clone();
 
         let (_starting_index, starting_point) = Self::find_lowest_x(&input_points);
 
@@ -189,7 +236,8 @@ impl<T: cgmath::BaseFloat> ConvexHull<T> {
         // sort the input points so that the edges to the 'right' of starting_point goes first
         input_points.sort_unstable_by(comparator);
 
-        let mut rv = cgmath_2d::LineString2::<T>::with_capacity(input.len()).with_connected(true);
+        let mut rv =
+            cgmath_2d::LineString2::<T>::with_capacity(input_points.len()).with_connected(true);
         rv.points.push(starting_point);
 
         for p in input_points.iter() {
@@ -225,7 +273,7 @@ impl<T: cgmath::BaseFloat> ConvexHull<T> {
     /// }
     ///
     /// let a = cgmath_2d::LineString2::<f32>::default().with_points(points);
-    /// let a = convex_hull::ConvexHull::graham_scan(&a);
+    /// let a = convex_hull::ConvexHull::graham_scan(a.points().iter());
     ///
     /// let mut points = Vec::<cgmath::Point2<f32>>::new();
     /// for _i in 0..1023 {
@@ -234,7 +282,7 @@ impl<T: cgmath::BaseFloat> ConvexHull<T> {
     /// }
     ///
     /// let b = cgmath_2d::LineString2::<f32>::default().with_points(points);
-    /// let b = convex_hull::ConvexHull::graham_scan(&b);
+    /// let b = convex_hull::ConvexHull::graham_scan(b.points().iter());
     ///
     /// assert!(convex_hull::ConvexHull::contains(&a, &b));
     /// assert!(!convex_hull::ConvexHull::contains(&b, &a));

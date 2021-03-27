@@ -538,6 +538,7 @@ where
 {
     set: Vec<LineString2<T>>,
     aabb: Aabb2<T>,
+    pub convex_hull: Option<LineString2<T>>,
 }
 
 /// A simple 2d AABB
@@ -1019,6 +1020,7 @@ where
         Self {
             set: Vec::<LineString2<T>>::new(),
             aabb: Aabb2::default(),
+            convex_hull: None,
         }
     }
 }
@@ -1035,6 +1037,7 @@ where
         Self {
             set: Vec::<LineString2<T>>::with_capacity(capacity),
             aabb: Aabb2::default(),
+            convex_hull: None,
         }
     }
 
@@ -1052,14 +1055,36 @@ where
         }
     }
 
+    /// returns the combined convex hull of all the shapes in self.set
+    pub fn get_convex_hull(&self) -> &Option<LineString2<T>> {
+        &self.convex_hull
+    }
+
+    /// calculates the combined convex hull of all the shapes in self.set
+    pub fn calulate_convex_hull(&mut self) -> &LineString2<T> {
+        self.convex_hull = Some(convex_hull::ConvexHull::graham_scan(
+            self.set.iter().map(|x| x.points()).flatten(),
+        ));
+        self.convex_hull.as_ref().unwrap()
+    }
+
     pub fn get_aabb(&self) -> &Aabb2<T> {
         &self.aabb
     }
 
     pub fn transform(&self, matrix3x3: &nalgebra::Matrix3<T>) -> Self {
-        Self {
-            aabb: self.aabb.transform(matrix3x3),
-            set: self.set.iter().map(|x| x.transform(matrix3x3)).collect(),
+        if let Some(ref convex_hull) = self.convex_hull {
+            Self {
+                aabb: self.aabb.transform(matrix3x3),
+                set: self.set.iter().map(|x| x.transform(matrix3x3)).collect(),
+                convex_hull: Some(convex_hull.transform(matrix3x3)),
+            }
+        } else {
+            Self {
+                aabb: self.aabb.transform(matrix3x3),
+                set: self.set.iter().map(|x| x.transform(matrix3x3)).collect(),
+                convex_hull: None,
+            }
         }
     }
 
