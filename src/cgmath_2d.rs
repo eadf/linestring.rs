@@ -565,6 +565,7 @@ where
 /// A 2d line string, aka polyline.
 /// If the 'connected' field is set the 'as_lines()' method will connect start point with the
 /// end-point.
+/// Todo: The builder structure of this struct needs to be revisited
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString2<T>
 where
@@ -1536,7 +1537,39 @@ impl<T: cgmath::BaseFloat + num_traits::cast::NumCast> SimpleAffine<T> {
         }
     }
 
-    /// transform from source (a) coordinate system to dest (b) coordinate system
+    /// Transform from source (a) coordinate system to dest (b) coordinate system
+    ///```
+    /// # use linestring::cgmath_2d;
+    /// type T = f32;
+    /// let mut aabb_source = cgmath_2d::Aabb2::<T>::default();
+    /// let mut aabb_dest = cgmath_2d::Aabb2::<T>::default();
+    ///
+    /// // source is (0,0)-(1,1)
+    /// aabb_source.update_point(&cgmath::Point2{x:0., y:0.});
+    /// aabb_source.update_point(&cgmath::Point2{x:1., y:1.});
+    ///
+    /// // dest is (1,1)-(2,2)
+    /// aabb_dest.update_point(&cgmath::Point2{x:1., y:1.});
+    /// aabb_dest.update_point(&cgmath::Point2{x:2., y:2.});
+    ///
+    /// let transform = cgmath_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
+    /// assert_eq!(
+    ///   transform.transform_ab(&cgmath::Point2{x:0., y:0.}).unwrap(),
+    ///    cgmath::Point2{x:1., y:1.}
+    ///  );
+    /// assert_eq!(
+    /// transform.transform_ab(&cgmath::Point2{x:1., y:1.}).unwrap(),
+    ///   cgmath::Point2{x:2., y:2.}
+    /// );
+    /// assert_eq!(
+    ///   transform.transform_ab(&cgmath::Point2{x:0., y:1.}).unwrap(),
+    ///   cgmath::Point2{x:1., y:2.}
+    /// );
+    /// assert_eq!(
+    ///   transform.transform_ab(&cgmath::Point2{x:1., y:0.}).unwrap(),
+    ///   cgmath::Point2{x:2., y:1.}
+    /// );
+    ///```
     #[inline(always)]
     pub fn transform_ab(
         &self,
@@ -1554,6 +1587,40 @@ impl<T: cgmath::BaseFloat + num_traits::cast::NumCast> SimpleAffine<T> {
     }
 
     /// transform an array from dest (b) coordinate system to source (a) coordinate system
+    ///```
+    /// # use linestring::cgmath_2d;
+    /// type T = f32;
+    /// let mut aabb_source = cgmath_2d::Aabb2::<f32>::default();
+    /// let mut aabb_dest = cgmath_2d::Aabb2::<f32>::default();
+    ///
+    /// //source is (-100,-100)-(100,100)
+    /// aabb_source.update_point(&cgmath::Point2{x:-100., y:-100.});
+    /// aabb_source.update_point(&cgmath::Point2{x:100., y:100.});
+    ///
+    /// //dest is (0,0)-(800,800.)
+    /// aabb_dest.update_point(&cgmath::Point2{x:0., y:0.});
+    /// aabb_dest.update_point(&cgmath::Point2{x:800., y:800.});
+    ///
+    /// let transform = cgmath_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
+    /// println!("Affine:{:?}", transform);
+    ///
+    /// assert_eq!(
+    ///   transform.transform_ab(&cgmath::Point2{x:-100., y:-100.}).unwrap(),
+    ///   cgmath::Point2{x:0., y:0.}
+    ///  );
+    ///  assert_eq!(
+    ///  transform.transform_ba(&cgmath::Point2{x:0., y:0.}).unwrap(),
+    ///    cgmath::Point2{x:-100., y:-100.}
+    ///  );
+    ///  assert_eq!(
+    ///    transform.transform_ab(&cgmath::Point2{x:100., y:100.}).unwrap(),
+    ///    cgmath::Point2{x:800., y:800.}
+    ///  );
+    ///  assert_eq!(
+    ///    transform.transform_ba(&cgmath::Point2{x:800., y:800.}).unwrap(),
+    ///    cgmath::Point2{x:100., y:100.}
+    ///  );
+    ///```
     #[inline(always)]
     pub fn transform_ba_a(&self, points: [T; 4]) -> Result<[T; 4], LinestringError> {
         let x1 = (points[0] - self.b_offset[0]) / self.scale[0] - self.a_offset[0];

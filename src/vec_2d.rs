@@ -552,6 +552,7 @@ where
 /// A 2d line string, aka polyline.
 /// If the 'connected' field is set the 'as_lines()' method will connect start point with the
 /// end-point.
+/// Todo: The builder structure of this struct needs to be revisited
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString2<T>
 where
@@ -1494,7 +1495,39 @@ impl<
         }
     }
 
-    /// transform from source (a) coordinate system to dest (b) coordinate system
+    /// Transform from source (a) coordinate system to dest (b) coordinate system
+    ///```
+    /// # use linestring::vec_2d;
+    /// type T = f32;
+    /// let mut aabb_source = vec_2d::Aabb2::<T>::default();
+    /// let mut aabb_dest = vec_2d::Aabb2::<T>::default();
+    ///
+    /// // source is (0,0)-(1,1)
+    /// aabb_source.update_point(&[0.,0.]);
+    /// aabb_source.update_point(&[1.,1.]);
+    ///
+    /// // dest is (1,1)-(2,2)
+    /// aabb_dest.update_point(&[1.,1.]);
+    /// aabb_dest.update_point(&[2.,2.]);
+    ///
+    /// let transform = vec_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
+    /// assert_eq!(
+    ///   transform.transform_ab(&[0.,0.]).unwrap(),
+    ///    [1.,1.]
+    ///  );
+    /// assert_eq!(
+    /// transform.transform_ab(&[1.,1.]).unwrap(),
+    ///   [2.,2.]
+    /// );
+    /// assert_eq!(
+    ///   transform.transform_ab(&[0.,1.]).unwrap(),
+    ///   [1.,2.]
+    /// );
+    /// assert_eq!(
+    ///   transform.transform_ab(&[1.,0.]).unwrap(),
+    ///   [2.,1.]
+    /// );
+    ///```
     #[inline(always)]
     pub fn transform_ab(&self, point: &[T; 2]) -> Result<[T; 2], LinestringError> {
         let x = (point[0] + self.a_offset[0]) * self.scale[0] + self.b_offset[0];
@@ -1509,6 +1542,40 @@ impl<
     }
 
     /// transform an array from dest (b) coordinate system to source (a) coordinate system
+    ///```
+    /// # use linestring::vec_2d;
+    /// type T = f32;
+    /// let mut aabb_source = vec_2d::Aabb2::<f32>::default();
+    /// let mut aabb_dest = vec_2d::Aabb2::<f32>::default();
+    ///
+    /// //source is (-100,-100)-(100,100)
+    /// aabb_source.update_point(&[-100.,-100.]);
+    /// aabb_source.update_point(&[100.,100.]);
+    ///
+    /// //dest is (0,0)-(800,800.)
+    /// aabb_dest.update_point(&[0.,0.]);
+    /// aabb_dest.update_point(&[800.,800.]);
+    ///
+    /// let transform = vec_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
+    /// println!("Affine:{:?}", transform);
+    ///
+    /// assert_eq!(
+    ///   transform.transform_ab(&[-100.,-100.]).unwrap(),
+    ///   [0.,0.]
+    ///  );
+    ///  assert_eq!(
+    ///  transform.transform_ba(&[0.,0.]).unwrap(),
+    ///    [-100.,-100.]
+    ///  );
+    ///  assert_eq!(
+    ///    transform.transform_ab(&[100.,100.]).unwrap(),
+    ///    [800.,800.]
+    ///  );
+    ///  assert_eq!(
+    ///    transform.transform_ba(&[800.,800.]).unwrap(),
+    ///    [100.,100.]
+    ///  );
+    ///```
     #[inline(always)]
     pub fn transform_ba_a(&self, points: [T; 4]) -> Result<[T; 4], LinestringError> {
         let x1 = (points[0] - self.b_offset[0]) / self.scale[0] - self.a_offset[0];
