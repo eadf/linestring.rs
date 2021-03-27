@@ -20,16 +20,16 @@ impl<T: nalgebra::RealField> ConvexHull<T> {
         (index, lowest)
     }
 
-    /// Returns true if the point c lies to the 'left' of the line a->b
+    /// Returns true if the point 'c' lies to the 'left' of the line a->b
     ///```
     /// # use linestring::nalgebra_2d::convex_hull;
-    /// let a=nalgebra::Point2::new(0.0,0.0);
-    /// let b=nalgebra::Point2::new(0.0,10.0);
-    /// let c=nalgebra::Point2::new(-10.0,5.0);
-    /// assert!(convex_hull::ConvexHull::is_point_left(&a,&b,&c));
-    /// assert!(!convex_hull::ConvexHull::is_point_left(&a,&c,&b));
-    /// assert!(convex_hull::ConvexHull::is_point_left(&c,&a,&b));
-    /// assert!(!convex_hull::ConvexHull::is_point_left(&c,&b,&a));
+    /// let a = nalgebra::Point2::new( 0.0,0.0 );
+    /// let b = nalgebra::Point2::new( 0.0,10.0 );
+    /// let c = nalgebra::Point2::new( -10.0,5.0 );
+    /// assert!(convex_hull::ConvexHull::is_point_left(&a, &b, &c));
+    /// assert!(!convex_hull::ConvexHull::is_point_left(&a, &c, &b));
+    /// assert!(convex_hull::ConvexHull::is_point_left(&c, &a, &b));
+    /// assert!(!convex_hull::ConvexHull::is_point_left(&c, &b, &a));
     ///```
     #[inline(always)]
     pub fn is_point_left(
@@ -49,14 +49,16 @@ impl<T: nalgebra::RealField> ConvexHull<T> {
     /// calculate the cross product of two 2d vectors defined by the points a,b,c as: a->b & a-c
     /// return the z coordinate as a scalar.
     /// The return value will be positive if the point c is 'left' of the vector a->b (ccr)
+    ///```
     /// # use linestring::nalgebra_2d::convex_hull;
-    /// let a=nalgebra::Point2::new(0.0,0.0);
-    /// let b=nalgebra::Point2::new(0.0,10.0);
-    /// let c=nalgebra::Point2::new(-10.0,5.0);
-    /// assert!(convex_hull::GrahamScan::cross_2d(&a,&b,&c)>0.0);
-    /// assert!(convex_hull::GrahamScan::cross_2d(&a,&c,&b)<0.0);
-    /// assert!(convex_hull::GrahamScan::cross_2d(&c,&a,&b)>0.0);
-    /// assert!(convex_hull::GrahamScan::cross_2d(&c,&b,&a)<0.0);
+    /// let a = nalgebra::Point2::new(0.0,0.0);
+    /// let b = nalgebra::Point2::new(0.0,10.0);
+    /// let c = nalgebra::Point2::new(-10.0,5.0);
+    /// assert!(convex_hull::ConvexHull::cross_2d(&a, &b, &c) > 0.0);
+    /// assert!(convex_hull::ConvexHull::cross_2d(&a, &c, &b) < 0.0);
+    /// assert!(convex_hull::ConvexHull::cross_2d(&c, &a, &b) > 0.0);
+    /// assert!(convex_hull::ConvexHull::cross_2d(&c, &b, &a) < 0.0);
+    ///```
     #[inline(always)]
     pub fn cross_2d(
         a: &nalgebra::Point2<T>,
@@ -67,7 +69,27 @@ impl<T: nalgebra::RealField> ConvexHull<T> {
     }
 
     /// finds the convex hull using Gift wrapping algorithm
-    /// https://en.wikipedia.org/wiki/Gift_wrapping_algorithm
+    /// <https://en.wikipedia.org/wiki/Gift_wrapping_algorithm>
+    ///```
+    /// # use linestring::nalgebra_2d;
+    /// # use linestring::nalgebra_2d::convex_hull;
+    /// # use rand::{Rng, SeedableRng};
+    /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
+    /// let mut points = Vec::<nalgebra::Point2<f32>>::new();
+    /// for _i in 0..1023 {
+    ///   let p: [f32; 2] = [rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0)];
+    ///   points.push(p.into());
+    /// }
+    ///
+    /// let a = nalgebra_2d::LineString2::<f32>::default().with_points(points);
+    /// let convex_hull = convex_hull::ConvexHull::gift_wrap(&a);
+    /// let center = nalgebra::Point2::new(2000_f32,2000.0);
+    ///
+    /// for l in convex_hull.as_lines().iter() {
+    ///   // all segments should have the center point at the 'left' side
+    ///   assert!(convex_hull::ConvexHull::is_point_left(&l.start, &l.end, &center));
+    /// }
+    ///```
     pub fn gift_wrap(linestring: &nalgebra_2d::LineString2<T>) -> nalgebra_2d::LineString2<T> {
         if (linestring.len() <= 3 && linestring.connected)
             || (linestring.len() <= 3 && !linestring.connected)
@@ -120,7 +142,28 @@ impl<T: nalgebra::RealField> ConvexHull<T> {
     }
 
     /// finds the convex hull using Grahams scan
-    /// https://en.wikipedia.org/wiki/Graham_scan
+    /// <https://en.wikipedia.org/wiki/Graham_scan>
+    /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull
+    ///```
+    /// # use linestring::nalgebra_2d;
+    /// # use linestring::nalgebra_2d::convex_hull;
+    /// # use rand::{Rng, SeedableRng};
+    /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
+    /// let mut points = Vec::<nalgebra::Point2<f32>>::new();
+    /// for _i in 0..1023 {
+    ///   let p: [f32; 2] = [rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0)];
+    ///   points.push(p.into());
+    /// }
+    ///
+    /// let a = nalgebra_2d::LineString2::<f32>::default().with_points(points);
+    /// let convex_hull = convex_hull::ConvexHull::graham_scan(&a);
+    /// let center = nalgebra::Point2::new(2000_f32,2000.0);
+    ///
+    /// for l in convex_hull.as_lines().iter() {
+    ///   // all segments should have the center point at the 'left' side
+    ///   assert!(convex_hull::ConvexHull::is_point_left(&l.start, &l.end, &center));
+    /// }
+    ///```
     pub fn graham_scan(input: &nalgebra_2d::LineString2<T>) -> nalgebra_2d::LineString2<T> {
         if (input.len() <= 3 && input.connected) || (input.len() <= 3 && !input.connected) {
             //println!("shortcut points {:?} connected:{}", linestring.len(), linestring.connected);
@@ -149,17 +192,7 @@ impl<T: nalgebra::RealField> ConvexHull<T> {
         };
         // sort the input points so that the edges to the 'right' of starting_point goes first
         input_points.sort_unstable_by(comparator);
-        //println!("graham");
-        /*let fake_center = nalgebra::Point2::<T>::new(T::from(-10000.0).unwrap(), starting_point.y);
-        for p in input_points.iter() {
-            println!(
-                "angle:{:?} cross:{:?} distance:{:?}",
-                (starting_point.y - p.y).atan2(starting_point.x - p.x),
-                Self::cross_2d(&fake_center, &starting_point, p),
-                Self::distance_squared(&starting_point, &p)
-            )
-        }
-        */
+
         let mut rv = nalgebra_2d::LineString2::<T>::with_capacity(input.len()).with_connected(true);
         rv.points.push(starting_point);
 
@@ -180,5 +213,77 @@ impl<T: nalgebra::RealField> ConvexHull<T> {
             let _ = rv.points.pop();
         }
         rv
+    }
+
+    /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull
+    ///```
+    /// # use linestring::nalgebra_2d;
+    /// # use linestring::nalgebra_2d::convex_hull;
+    /// # use rand::{Rng, SeedableRng};
+    ///
+    /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
+    /// let mut points = Vec::<nalgebra::Point2<f32>>::new();
+    /// for _i in 0..4023 {
+    ///    let p: [f32; 2] = [rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0)];
+    ///    points.push(p.into());
+    /// }
+    ///
+    /// let a = nalgebra_2d::LineString2::<f32>::default().with_points(points);
+    /// let a = convex_hull::ConvexHull::graham_scan(&a);
+    ///
+    /// let mut points = Vec::<nalgebra::Point2<f32>>::new();
+    /// for _i in 0..1023 {
+    ///    let p: [f32; 2] = [rng.gen_range(1000.0..2000.0), rng.gen_range(1000.0..2000.0)];
+    ///    points.push(p.into());
+    /// }
+    ///
+    /// let b = nalgebra_2d::LineString2::<f32>::default().with_points(points);
+    /// let b = convex_hull::ConvexHull::graham_scan(&b);
+    ///
+    /// assert!(convex_hull::ConvexHull::contains(&a, &b));
+    /// assert!(!convex_hull::ConvexHull::contains(&b, &a));
+    ///```
+    pub fn contains(a: &nalgebra_2d::LineString2<T>, b: &nalgebra_2d::LineString2<T>) -> bool {
+        if a.len() <= 1 {
+            return false;
+        }
+        if b.len() == 0 {
+            return true;
+        }
+        //println!("a.len() {}, b.len() {}", a.len(), b.len());
+        // the intention is that each of these loops should be run in separate threads
+        for l in a.as_lines().iter().skip(0).step_by(4) {
+            for p in b.points.iter() {
+                if !Self::is_point_left(&l.start, &l.end, p) {
+                    //println!("The point {:?} is not left of {:?}", p, l);
+                    return false;
+                }
+            }
+        }
+        for l in a.as_lines().iter().skip(1).step_by(4) {
+            for p in b.points.iter() {
+                if !Self::is_point_left(&l.start, &l.end, p) {
+                    //println!("The point {:?} is not left of {:?}", p, l);
+                    return false;
+                }
+            }
+        }
+        for l in a.as_lines().iter().skip(2).step_by(4) {
+            for p in b.points.iter() {
+                if !Self::is_point_left(&l.start, &l.end, p) {
+                    println!("The point {:?} is not left of {:?}", p, l);
+                    return false;
+                }
+            }
+        }
+        for l in a.as_lines().iter().skip(3).step_by(4) {
+            for p in b.points.iter() {
+                if !Self::is_point_left(&l.start, &l.end, p) {
+                    //println!("The point {:?} is not left of {:?}", p, l);
+                    return false;
+                }
+            }
+        }
+        true
     }
 }

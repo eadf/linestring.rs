@@ -83,7 +83,7 @@ where
 
     /// Get any intersection point between line segments.
     /// Note that this function always detects endpoint-to-endpoint intersections.
-    /// Most of this is from https://stackoverflow.com/a/565282
+    /// Most of this is from <https://stackoverflow.com/a/565282>
     #[allow(clippy::many_single_char_names)]
     #[allow(clippy::suspicious_operation_groupings)]
     pub fn intersection_point(&self, other: &Self) -> Option<Intersection<T>>
@@ -247,7 +247,7 @@ where
     }
 
     /// returns (area of a triangle)²*4
-    /// https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm#Algorithm
+    /// <https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm#Algorithm>
     pub fn triangle_area_squared_times_4(
         p1: &cgmath::Point2<T>,
         p2: &cgmath::Point2<T>,
@@ -294,7 +294,7 @@ where
     }
 }
 
-/// A parabolic arc as used in https://github.com/eadf/boostvoronoi.rs
+/// A parabolic arc as used in <https://github.com/eadf/boostvoronoi.rs>
 /// This struct contains the parameters for the arc + the functionality to convert it to a
 /// LineString2 or LineString3.
 ///
@@ -418,7 +418,7 @@ where
     /// line segment (should be the same value)
     ///
     /// All of this code is ported from C++ boost 1.75.0
-    /// https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm
+    /// <https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm>
     pub fn discretise_3d(&self, max_dist: T) -> cgmath_3d::LineString3<T> {
         let mut rv = cgmath_3d::LineString3::default().with_connected(false);
         let distance = distance_to_point_squared(&self.start_point, &self.cell_point).sqrt();
@@ -1249,7 +1249,7 @@ where
 }
 
 /// Get any intersection point between line segment and point.
-/// Inspired by https://stackoverflow.com/a/17590923
+/// Inspired by <https://stackoverflow.com/a/17590923>
 pub fn intersect_line_point<T>(
     line: &Line2<T>,
     point: &cgmath::Point2<T>,
@@ -1358,7 +1358,7 @@ where
 }
 
 #[inline(always)]
-/// from https://stackoverflow.com/a/565282 :
+/// from <https://stackoverflow.com/a/565282> :
 ///  "Define the 2-dimensional vector cross product v × w to be vx wy − vy wx."
 /// This function returns the z component of v × w (if we pretend v and w are two dimensional)
 fn cross_z<T>(v: &cgmath::Vector2<T>, w: &cgmath::Vector2<T>) -> T
@@ -1371,7 +1371,7 @@ where
 #[inline(always)]
 /// The distance between the line a->b to the point p is the same as
 /// distance = |(a-p)×(a-b)|/|a-b|
-/// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation
+/// <https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation>
 /// Make sure to *not* call this function with a-b==0
 /// This function returns the distance²
 pub fn distance_to_line_squared<T>(

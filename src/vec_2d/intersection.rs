@@ -322,8 +322,8 @@ where
 }
 
 /// SiteEvents contains the events happening at a specific point.
-/// Line segments have their start and end positions arranged so that line.start[1] < line.end[1]
-/// Sorting is based on their Y-coordinate, secondary the X-coordinate. (line.start[0] < line.end[0])
+/// Line segments have their start and end positions arranged so that line.start\[1\] < line.end\[1\]
+/// Sorting is based on their Y-coordinate, secondary the X-coordinate. (line.start\[0\] < line.end\[0\])
 ///
 /// The 'drop' list contains the line segments that ends in the event point.
 /// The 'add' list contains the line segments that starts in the event point.

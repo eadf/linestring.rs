@@ -841,7 +841,7 @@ where
 #[inline(always)]
 /// The distance between the line a->b to the point p is the same as
 /// distance = |(a-p)×(a-b)|/|a-b|
-/// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation
+/// <https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation>
 /// Make sure to *not* call this function with a-b==0
 /// This function returns the distance²
 pub fn distance_to_line_squared<T>(
