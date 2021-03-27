@@ -45,7 +45,7 @@ licenses /why-not-lgpl.html>.
 use fltk::app::redraw;
 use fltk::valuator::HorNiceSlider;
 use fltk::{app, button::*, draw::*, frame::*, window::*};
-use linestring::cgmath_2d::{LineString2, SimpleAffine};
+use linestring::cgmath_2d::{Aabb2, LineString2, SimpleAffine};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -117,7 +117,13 @@ fn main() {
         // default is a one-to-one mapping
         affine: SimpleAffine::default(),
     }));
-
+    {
+        // Flip the Y coordinate so that the geometry is Quadrant 0, while screen is Quadrant 4
+        let mut shared_data_bm = shared_data_rc.borrow_mut();
+        let aabb = Aabb2::from([0.0, 0.0, W as f32, H as f32]);
+        shared_data_bm.affine = SimpleAffine::new(&aabb, &aabb).unwrap();
+        shared_data_bm.affine.scale[1] *= -1.0;
+    }
     #[cfg(not(target_os = "macos"))]
     {
         set_draw_color(Color::White);
@@ -295,7 +301,9 @@ fn main() {
             }
             let reverse_middle = reverse_middle.unwrap();
             if event_dy != 0 {
-                shared_data_bm.affine.scale *= 1.01_f32.powf(event_dy as T);
+                let scale_mod = 1.01_f32.powf(event_dy as T);
+                shared_data_bm.affine.scale[0] *= scale_mod;
+                shared_data_bm.affine.scale[1] *= scale_mod;
             }
             let new_middle = shared_data_bm.affine.transform_ab(&cgmath::Point2::from([
                 reverse_middle[0] as T,

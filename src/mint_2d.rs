@@ -1446,16 +1446,16 @@ where
 }
 
 /// This is a simple but efficient affine transformation object.
-/// It can pan and zoom points but not rotate.
-/// It does not handle vector transformation.
+/// It can pan, zoom and flip points around center axis but not rotate.
+/// It does not handle vector transformation, only points.
 #[derive(PartialEq, Clone, fmt::Debug)]
 pub struct SimpleAffine<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq>
 {
     /// The offsets used to center the 'source' coordinate system. Typically the input geometry
     /// in this case.
-    a_offset: [T; 2],
+    pub a_offset: [T; 2],
     /// A zoom scale
-    pub scale: T,
+    pub scale: [T; 2],
     /// The offsets needed to center coordinates of interest on the 'dest' coordinate system.
     /// i.e. the screen coordinate system.
     pub b_offset: [T; 2],
@@ -1468,7 +1468,7 @@ impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq
     fn default() -> Self {
         Self {
             a_offset: [T::zero(), T::zero()],
-            scale: T::one(),
+            scale: [T::one(), T::one()],
             b_offset: [T::zero(), T::zero()],
         }
     }
@@ -1511,10 +1511,10 @@ impl<
                         // make sure the larges dimension of source fits inside smallest of dest
                         let source_aabb_size = source_aabb_size[0].max(source_aabb_size[1]);
                         let dest_aabb_size = dest_aabb_size[0].min(dest_aabb_size[1]);
-
+                        let scale = dest_aabb_size / source_aabb_size;
                         return Ok(Self {
                             a_offset: source_aabb_center,
-                            scale: dest_aabb_size / source_aabb_size,
+                            scale: [scale, scale],
                             b_offset: dest_aabb_center,
                         });
                     }
@@ -1532,8 +1532,8 @@ impl<
         &self,
         point: &mint::Point2<T>,
     ) -> Result<mint::Point2<T>, LinestringError> {
-        let x = (point.x - self.b_offset[0]) / self.scale - self.a_offset[0];
-        let y = (point.y - self.b_offset[1]) / self.scale - self.a_offset[1];
+        let x = (point.x - self.b_offset[0]) / self.scale[0] - self.a_offset[0];
+        let y = (point.y - self.b_offset[1]) / self.scale[1] - self.a_offset[1];
         if x.is_finite() && y.is_finite() {
             Ok(mint::Point2 { x, y })
         } else {
@@ -1549,8 +1549,8 @@ impl<
         &self,
         point: &mint::Point2<T>,
     ) -> Result<mint::Point2<T>, LinestringError> {
-        let x = (point.x + self.a_offset[0]) * self.scale + self.b_offset[0];
-        let y = (point.y + self.a_offset[1]) * self.scale + self.b_offset[1];
+        let x = (point.x + self.a_offset[0]) * self.scale[0] + self.b_offset[0];
+        let y = (point.y + self.a_offset[1]) * self.scale[1] + self.b_offset[1];
         if x.is_finite() && y.is_finite() {
             Ok(mint::Point2 { x, y })
         } else {
@@ -1563,10 +1563,10 @@ impl<
     /// transform an array from dest (b) coordinate system to source (a) coordinate system
     #[inline(always)]
     pub fn transform_ba_a(&self, points: [T; 4]) -> Result<[T; 4], LinestringError> {
-        let x1 = (points[0] - self.b_offset[0]) / self.scale - self.a_offset[0];
-        let y1 = (points[1] - self.b_offset[1]) / self.scale - self.a_offset[1];
-        let x2 = (points[2] - self.b_offset[0]) / self.scale - self.a_offset[0];
-        let y2 = (points[3] - self.b_offset[1]) / self.scale - self.a_offset[1];
+        let x1 = (points[0] - self.b_offset[0]) / self.scale[0] - self.a_offset[0];
+        let y1 = (points[1] - self.b_offset[1]) / self.scale[1] - self.a_offset[1];
+        let x2 = (points[2] - self.b_offset[0]) / self.scale[0] - self.a_offset[0];
+        let y2 = (points[3] - self.b_offset[1]) / self.scale[1] - self.a_offset[1];
         if x1.is_finite() && y1.is_finite() && x2.is_finite() && y2.is_finite() {
             Ok([x1, y1, x2, y2])
         } else {
@@ -1579,10 +1579,10 @@ impl<
     /// transform an array from source (a) coordinate system to dest (b) coordinate system
     #[inline(always)]
     pub fn transform_ab_a(&self, points: [T; 4]) -> Result<[T; 4], LinestringError> {
-        let x1 = (points[0] + self.a_offset[0]) * self.scale + self.b_offset[0];
-        let y1 = (points[1] + self.a_offset[1]) * self.scale + self.b_offset[1];
-        let x2 = (points[2] + self.a_offset[0]) * self.scale + self.b_offset[0];
-        let y2 = (points[3] + self.a_offset[1]) * self.scale + self.b_offset[1];
+        let x1 = (points[0] + self.a_offset[0]) * self.scale[0] + self.b_offset[0];
+        let y1 = (points[1] + self.a_offset[1]) * self.scale[1] + self.b_offset[1];
+        let x2 = (points[2] + self.a_offset[0]) * self.scale[0] + self.b_offset[0];
+        let y2 = (points[3] + self.a_offset[1]) * self.scale[1] + self.b_offset[1];
 
         if x1.is_finite() && y1.is_finite() && x2.is_finite() && y2.is_finite() {
             Ok([x1, y1, x2, y2])
