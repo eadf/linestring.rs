@@ -553,16 +553,6 @@ where
     pub convex_hull: Option<LineString2<T>>,
 }
 
-/// A simple 2d AABB
-/// If min_max is none the data has not been assigned yet.
-#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
-pub struct Aabb2<T>
-where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
-{
-    min_max: Option<(mint::Point2<T>, mint::Point2<T>)>,
-}
-
 /// A 2d line string, aka polyline.
 /// If the 'connected' field is set the 'as_lines()' method will connect start point with the
 /// end-point.
@@ -1083,7 +1073,7 @@ where
     }
 
     /// calculates the combined convex hull of all the shapes in self.set
-    pub fn calulate_convex_hull(&mut self) -> &LineString2<T> {
+    pub fn calculate_convex_hull(&mut self) -> &LineString2<T> {
         self.convex_hull = Some(convex_hull::ConvexHull::graham_scan(
             self.set.iter().map(|x| x.points()).flatten(),
         ));
@@ -1130,15 +1120,26 @@ where
     }
 }
 
+/// A simple 2d AABB
+/// If min_max is none the data has not been assigned yet.
+#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
+pub struct Aabb2<T>
+where
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    min_max: Option<(mint::Point2<T>, mint::Point2<T>)>,
+}
+
 impl<T, IT> From<[IT; 2]> for Aabb2<T>
 where
     T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
     IT: Copy + Into<mint::Point2<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb2<T> {
-        Aabb2 {
-            min_max: Some((coordinate[0].into(), coordinate[1].into())),
-        }
+        let mut rv = Aabb2::<T>::default();
+        rv.update_point(&coordinate[0].into());
+        rv.update_point(&coordinate[1].into());
+        rv
     }
 }
 
@@ -1147,18 +1148,16 @@ where
     T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
 {
     fn from(coordinate: [T; 4]) -> Aabb2<T> {
-        Aabb2 {
-            min_max: Some((
-                mint::Point2 {
-                    x: coordinate[0],
-                    y: coordinate[1],
-                },
-                mint::Point2 {
-                    x: coordinate[2],
-                    y: coordinate[3],
-                },
-            )),
-        }
+        let mut rv = Aabb2::default();
+        rv.update_point(&mint::Point2 {
+            x: coordinate[0],
+            y: coordinate[1],
+        });
+        rv.update_point(&mint::Point2 {
+            x: coordinate[2],
+            y: coordinate[3],
+        });
+        rv
     }
 }
 
@@ -1556,6 +1555,33 @@ impl<
     }
 
     /// transform from dest (b) coordinate system to source (a) coordinate system
+    ///```
+    /// # use linestring::mint_2d;
+    /// type T = f32;
+    ///
+    /// // source is (-100,-100)-(100,100)
+    /// let mut aabb_source = mint_2d::Aabb2::<T>::from([-100.,-100.,100.,100.]);
+    /// // dest is (0,0)-(800,800.)
+    /// let mut aabb_dest = mint_2d::Aabb2::<T>::from([0.,0.,800.,800.]);
+    /// let transform = mint_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
+    ///
+    /// assert_eq!(
+    ///   transform.transform_ab(&mint::Point2{x:-100., y:-100.}).unwrap(),
+    ///   mint::Point2{x:0., y:0.}
+    ///  );
+    ///  assert_eq!(
+    ///  transform.transform_ba(&mint::Point2{x:0., y:0.}).unwrap(),
+    ///    mint::Point2{x:-100., y:-100.}
+    ///  );
+    ///  assert_eq!(
+    ///    transform.transform_ab(&mint::Point2{x:100., y:100.}).unwrap(),
+    ///    mint::Point2{x:800., y:800.}
+    ///  );
+    ///  assert_eq!(
+    ///    transform.transform_ba(&mint::Point2{x:800., y:800.}).unwrap(),
+    ///    mint::Point2{x:100., y:100.}
+    ///  );
+    ///```
     #[inline(always)]
     pub fn transform_ba(
         &self,
@@ -1576,16 +1602,10 @@ impl<
     ///```
     /// # use linestring::mint_2d;
     /// type T = f32;
-    /// let mut aabb_source = mint_2d::Aabb2::<T>::default();
-    /// let mut aabb_dest = mint_2d::Aabb2::<T>::default();
-    ///
     /// // source is (0,0)-(1,1)
-    /// aabb_source.update_point(&mint::Point2{x:0., y:0.});
-    /// aabb_source.update_point(&mint::Point2{x:1., y:1.});
-    ///
+    /// let mut aabb_source = mint_2d::Aabb2::<T>::from([0.,0.,1.,1.]);
     /// // dest is (1,1)-(2,2)
-    /// aabb_dest.update_point(&mint::Point2{x:1., y:1.});
-    /// aabb_dest.update_point(&mint::Point2{x:2., y:2.});
+    /// let mut aabb_dest = mint_2d::Aabb2::<T>::from([1.,1.,2.,2.]);
     ///
     /// let transform = mint_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
     /// assert_eq!(
@@ -1622,40 +1642,6 @@ impl<
     }
 
     /// transform an array from dest (b) coordinate system to source (a) coordinate system
-    ///```
-    /// # use linestring::mint_2d;
-    /// type T = f32;
-    /// let mut aabb_source = mint_2d::Aabb2::<f32>::default();
-    /// let mut aabb_dest = mint_2d::Aabb2::<f32>::default();
-    ///
-    /// //source is (-100,-100)-(100,100)
-    /// aabb_source.update_point(&mint::Point2{x:-100., y:-100.});
-    /// aabb_source.update_point(&mint::Point2{x:100., y:100.});
-    ///
-    /// //dest is (0,0)-(800,800.)
-    /// aabb_dest.update_point(&mint::Point2{x:0., y:0.});
-    /// aabb_dest.update_point(&mint::Point2{x:800., y:800.});
-    ///
-    /// let transform = mint_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
-    /// println!("Affine:{:?}", transform);
-    ///
-    /// assert_eq!(
-    ///   transform.transform_ab(&mint::Point2{x:-100., y:-100.}).unwrap(),
-    ///   mint::Point2{x:0., y:0.}
-    ///  );
-    ///  assert_eq!(
-    ///  transform.transform_ba(&mint::Point2{x:0., y:0.}).unwrap(),
-    ///    mint::Point2{x:-100., y:-100.}
-    ///  );
-    ///  assert_eq!(
-    ///    transform.transform_ab(&mint::Point2{x:100., y:100.}).unwrap(),
-    ///    mint::Point2{x:800., y:800.}
-    ///  );
-    ///  assert_eq!(
-    ///    transform.transform_ba(&mint::Point2{x:800., y:800.}).unwrap(),
-    ///    mint::Point2{x:100., y:100.}
-    ///  );
-    ///```
     #[inline(always)]
     pub fn transform_ba_a(&self, points: [T; 4]) -> Result<[T; 4], LinestringError> {
         let x1 = (points[0] - self.b_offset[0]) / self.scale[0] - self.a_offset[0];

@@ -541,16 +541,6 @@ where
     pub convex_hull: Option<LineString2<T>>,
 }
 
-/// A simple 2d AABB
-/// If min_max is none the data has not been assigned yet.
-#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
-pub struct Aabb2<T>
-where
-    T: nalgebra::RealField,
-{
-    min_max: Option<(nalgebra::Point2<T>, nalgebra::Point2<T>)>,
-}
-
 /// A 2d line string, aka polyline.
 /// If the 'connected' field is set the 'as_lines()' method will connect start point with the
 /// end-point.
@@ -1061,7 +1051,7 @@ where
     }
 
     /// calculates the combined convex hull of all the shapes in self.set
-    pub fn calulate_convex_hull(&mut self) -> &LineString2<T> {
+    pub fn calculate_convex_hull(&mut self) -> &LineString2<T> {
         self.convex_hull = Some(convex_hull::ConvexHull::graham_scan(
             self.set.iter().map(|x| x.points()).flatten(),
         ));
@@ -1107,15 +1097,26 @@ where
     }
 }
 
+/// A simple 2d AABB
+/// If min_max is none the data has not been assigned yet.
+#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
+pub struct Aabb2<T>
+where
+    T: nalgebra::RealField,
+{
+    min_max: Option<(nalgebra::Point2<T>, nalgebra::Point2<T>)>,
+}
+
 impl<T, IT> From<[IT; 2]> for Aabb2<T>
 where
     T: nalgebra::RealField,
     IT: Copy + Into<nalgebra::Point2<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb2<T> {
-        Aabb2 {
-            min_max: Some((coordinate[0].into(), coordinate[1].into())),
-        }
+        let mut rv = Aabb2::<T>::default();
+        rv.update_point(&coordinate[0].into());
+        rv.update_point(&coordinate[1].into());
+        rv
     }
 }
 
@@ -1124,12 +1125,10 @@ where
     T: nalgebra::RealField,
 {
     fn from(coordinate: [T; 4]) -> Aabb2<T> {
-        Aabb2 {
-            min_max: Some((
-                nalgebra::Point2::new(coordinate[0], coordinate[1]),
-                nalgebra::Point2::new(coordinate[2], coordinate[3]),
-            )),
-        }
+        let mut rv = Aabb2::default();
+        rv.update_point(&nalgebra::Point2::new(coordinate[0], coordinate[1]));
+        rv.update_point(&nalgebra::Point2::new(coordinate[2], coordinate[3]));
+        rv
     }
 }
 
@@ -1513,6 +1512,33 @@ impl<T: nalgebra::RealField + num_traits::cast::NumCast> SimpleAffine<T> {
     }
 
     /// transform from dest (b) coordinate system to source (a) coordinate system
+    ///```
+    /// # use linestring::nalgebra_2d;
+    /// type T = f32;
+    ///
+    /// // source is (-100,-100)-(100,100)
+    /// let mut aabb_source = nalgebra_2d::Aabb2::<T>::from([-100.,-100.,100.,100.]);
+    /// // dest is (0,0)-(800,800.)
+    /// let mut aabb_dest = nalgebra_2d::Aabb2::<T>::from([0.,0.,800.,800.]);
+    /// let transform = nalgebra_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
+    ///
+    /// assert_eq!(
+    ///   transform.transform_ab(&nalgebra::Point2::new(-100.,-100.)).unwrap(),
+    ///   nalgebra::Point2::new(0.,0.)
+    ///  );
+    ///  assert_eq!(
+    ///  transform.transform_ba(&nalgebra::Point2::new(0.,0.)).unwrap(),
+    ///    nalgebra::Point2::new(-100.,-100.)
+    ///  );
+    ///  assert_eq!(
+    ///    transform.transform_ab(&nalgebra::Point2::new(100.,100.)).unwrap(),
+    ///    nalgebra::Point2::new(800.,800.)
+    ///  );
+    ///  assert_eq!(
+    ///    transform.transform_ba(&nalgebra::Point2::new(800.,800.)).unwrap(),
+    ///    nalgebra::Point2::new(100.,100.)
+    ///  );
+    ///```
     #[inline(always)]
     pub fn transform_ba(
         &self,
@@ -1533,16 +1559,10 @@ impl<T: nalgebra::RealField + num_traits::cast::NumCast> SimpleAffine<T> {
     ///```
     /// # use linestring::nalgebra_2d;
     /// type T = f32;
-    /// let mut aabb_source = nalgebra_2d::Aabb2::<T>::default();
-    /// let mut aabb_dest = nalgebra_2d::Aabb2::<T>::default();
-    ///
     /// // source is (0,0)-(1,1)
-    /// aabb_source.update_point(&nalgebra::Point2::new(0.,0.));
-    /// aabb_source.update_point(&nalgebra::Point2::new(1.,1.));
-    ///
+    /// let mut aabb_source = nalgebra_2d::Aabb2::<T>::from([0.,0.,1.,1.]);
     /// // dest is (1,1)-(2,2)
-    /// aabb_dest.update_point(&nalgebra::Point2::new(1.,1.));
-    /// aabb_dest.update_point(&nalgebra::Point2::new(2.,2.));
+    /// let mut aabb_dest = nalgebra_2d::Aabb2::<T>::from([1.,1.,2.,2.]);
     ///
     /// let transform = nalgebra_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
     /// assert_eq!(
@@ -1579,40 +1599,6 @@ impl<T: nalgebra::RealField + num_traits::cast::NumCast> SimpleAffine<T> {
     }
 
     /// transform an array from dest (b) coordinate system to source (a) coordinate system
-    ///```
-    /// # use linestring::nalgebra_2d;
-    /// type T = f32;
-    /// let mut aabb_source = nalgebra_2d::Aabb2::<f32>::default();
-    /// let mut aabb_dest = nalgebra_2d::Aabb2::<f32>::default();
-    ///
-    /// //source is (-100,-100)-(100,100)
-    /// aabb_source.update_point(&nalgebra::Point2::new(-100.,-100.));
-    /// aabb_source.update_point(&nalgebra::Point2::new(100.,100.));
-    ///
-    /// //dest is (0,0)-(800,800.)
-    /// aabb_dest.update_point(&nalgebra::Point2::new(0.,0.));
-    /// aabb_dest.update_point(&nalgebra::Point2::new(800.,800.));
-    ///
-    /// let transform = nalgebra_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
-    /// println!("Affine:{:?}", transform);
-    ///
-    /// assert_eq!(
-    ///   transform.transform_ab(&nalgebra::Point2::new(-100.,-100.)).unwrap(),
-    ///   nalgebra::Point2::new(0.,0.)
-    ///  );
-    ///  assert_eq!(
-    ///  transform.transform_ba(&nalgebra::Point2::new(0.,0.)).unwrap(),
-    ///    nalgebra::Point2::new(-100.,-100.)
-    ///  );
-    ///  assert_eq!(
-    ///    transform.transform_ab(&nalgebra::Point2::new(100.,100.)).unwrap(),
-    ///    nalgebra::Point2::new(800.,800.)
-    ///  );
-    ///  assert_eq!(
-    ///    transform.transform_ba(&nalgebra::Point2::new(800.,800.)).unwrap(),
-    ///    nalgebra::Point2::new(100.,100.)
-    ///  );
-    ///```
     #[inline(always)]
     pub fn transform_ba_a(&self, points: [T; 4]) -> Result<[T; 4], LinestringError> {
         let x1 = (points[0] - self.b_offset[0]) / self.scale[0] - self.a_offset[0];

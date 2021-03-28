@@ -541,28 +541,6 @@ where
     }
 }
 
-/// A set of 2d linestrings + an aabb
-/// Intended to contain related shapes. E.g. outlines of letters with holes
-#[derive(PartialEq, Eq, Clone, Hash)]
-pub struct LineStringSet2<T>
-where
-    T: cgmath::BaseFloat,
-{
-    set: Vec<LineString2<T>>,
-    aabb: Aabb2<T>,
-    pub convex_hull: Option<LineString2<T>>,
-}
-
-/// A simple 2d AABB
-/// If min_max is none the data has not been assigned yet.
-#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
-pub struct Aabb2<T>
-where
-    T: cgmath::BaseFloat,
-{
-    min_max: Option<(cgmath::Point2<T>, cgmath::Point2<T>)>,
-}
-
 /// A 2d line string, aka polyline.
 /// If the 'connected' field is set the 'as_lines()' method will connect start point with the
 /// end-point.
@@ -1032,6 +1010,22 @@ where
     }
 }
 
+/// A set of 2d LineString, an aabb + convex_hull.
+/// It also contains a list of aabb & convex_hulls of shapes this set has gobbled up.
+/// This can be useful for separating out inner regions of the shape.
+///
+/// This struct is intended to contain related shapes. E.g. outlines of letters with holes
+#[derive(PartialEq, Eq, Clone, Hash)]
+pub struct LineStringSet2<T>
+    where
+        T: cgmath::BaseFloat,
+{
+    set: Vec<LineString2<T>>,
+    aabb: Aabb2<T>,
+    convex_hull: Option<LineString2<T>>,
+    pub internals: Option<(Aabb2<T>, LineString2<T>)>,
+}
+
 impl<T> Default for LineStringSet2<T>
 where
     T: cgmath::BaseFloat,
@@ -1042,6 +1036,7 @@ where
             set: Vec::<LineString2<T>>::new(),
             aabb: Aabb2::default(),
             convex_hull: None,
+            internals: None,
         }
     }
 }
@@ -1059,6 +1054,7 @@ where
             set: Vec::<LineString2<T>>::with_capacity(capacity),
             aabb: Aabb2::default(),
             convex_hull: None,
+            internals:None,
         }
     }
 
@@ -1082,7 +1078,7 @@ where
     }
 
     /// calculates the combined convex hull of all the shapes in self.set
-    pub fn calulate_convex_hull(&mut self) -> &LineString2<T> {
+    pub fn calculate_convex_hull(&mut self) -> &LineString2<T> {
         self.convex_hull = Some(convex_hull::ConvexHull::graham_scan(
             self.set.iter().map(|x| x.points()).flatten(),
         ));
@@ -1099,12 +1095,15 @@ where
                 aabb: self.aabb.transform(matrix3x3),
                 set: self.set.iter().map(|x| x.transform(matrix3x3)).collect(),
                 convex_hull: Some(convex_hull.transform(matrix3x3)),
+                // TODO: THIS IS NOT CORRECT
+                internals:None,
             }
         } else {
             Self {
                 aabb: self.aabb.transform(matrix3x3),
                 set: self.set.iter().map(|x| x.transform(matrix3x3)).collect(),
                 convex_hull: None,
+                internals:None,
             }
         }
     }
@@ -1128,15 +1127,26 @@ where
     }
 }
 
+/// A simple 2d AABB
+/// If min_max is none the data has not been assigned yet.
+#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
+pub struct Aabb2<T>
+where
+    T: cgmath::BaseFloat,
+{
+    min_max: Option<(cgmath::Point2<T>, cgmath::Point2<T>)>,
+}
+
 impl<T, IT> From<[IT; 2]> for Aabb2<T>
 where
     T: cgmath::BaseFloat,
     IT: Copy + Into<cgmath::Point2<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb2<T> {
-        Aabb2 {
-            min_max: Some((coordinate[0].into(), coordinate[1].into())),
-        }
+        let mut rv = Aabb2::<T>::default();
+        rv.update_point(&coordinate[0].into());
+        rv.update_point(&coordinate[1].into());
+        rv
     }
 }
 
@@ -1145,18 +1155,16 @@ where
     T: cgmath::BaseFloat,
 {
     fn from(coordinate: [T; 4]) -> Aabb2<T> {
-        Aabb2 {
-            min_max: Some((
-                cgmath::Point2 {
-                    x: coordinate[0],
-                    y: coordinate[1],
-                },
-                cgmath::Point2 {
-                    x: coordinate[2],
-                    y: coordinate[3],
-                },
-            )),
-        }
+        let mut rv = Aabb2::default();
+        rv.update_point(&cgmath::Point2 {
+            x: coordinate[0],
+            y: coordinate[1],
+        });
+        rv.update_point(&cgmath::Point2 {
+            x: coordinate[2],
+            y: coordinate[3],
+        });
+        rv
     }
 }
 
@@ -1546,6 +1554,33 @@ impl<T: cgmath::BaseFloat + num_traits::cast::NumCast> SimpleAffine<T> {
     }
 
     /// transform from dest (b) coordinate system to source (a) coordinate system
+    ///```
+    /// # use linestring::cgmath_2d;
+    /// type T = f32;
+    ///
+    /// // source is (-100,-100)-(100,100)
+    /// let mut aabb_source = cgmath_2d::Aabb2::<T>::from([-100.,-100.,100.,100.]);
+    /// // dest is (0,0)-(800,800.)
+    /// let mut aabb_dest = cgmath_2d::Aabb2::<T>::from([0.,0.,800.,800.]);
+    /// let transform = cgmath_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
+    ///
+    /// assert_eq!(
+    ///   transform.transform_ab(&cgmath::Point2{x:-100., y:-100.}).unwrap(),
+    ///   cgmath::Point2{x:0., y:0.}
+    ///  );
+    ///  assert_eq!(
+    ///  transform.transform_ba(&cgmath::Point2{x:0., y:0.}).unwrap(),
+    ///    cgmath::Point2{x:-100., y:-100.}
+    ///  );
+    ///  assert_eq!(
+    ///    transform.transform_ab(&cgmath::Point2{x:100., y:100.}).unwrap(),
+    ///    cgmath::Point2{x:800., y:800.}
+    ///  );
+    ///  assert_eq!(
+    ///    transform.transform_ba(&cgmath::Point2{x:800., y:800.}).unwrap(),
+    ///    cgmath::Point2{x:100., y:100.}
+    ///  );
+    ///```
     #[inline(always)]
     pub fn transform_ba(
         &self,
@@ -1566,16 +1601,10 @@ impl<T: cgmath::BaseFloat + num_traits::cast::NumCast> SimpleAffine<T> {
     ///```
     /// # use linestring::cgmath_2d;
     /// type T = f32;
-    /// let mut aabb_source = cgmath_2d::Aabb2::<T>::default();
-    /// let mut aabb_dest = cgmath_2d::Aabb2::<T>::default();
-    ///
     /// // source is (0,0)-(1,1)
-    /// aabb_source.update_point(&cgmath::Point2{x:0., y:0.});
-    /// aabb_source.update_point(&cgmath::Point2{x:1., y:1.});
-    ///
+    /// let mut aabb_source = cgmath_2d::Aabb2::<T>::from([0.,0.,1.,1.]);
     /// // dest is (1,1)-(2,2)
-    /// aabb_dest.update_point(&cgmath::Point2{x:1., y:1.});
-    /// aabb_dest.update_point(&cgmath::Point2{x:2., y:2.});
+    /// let mut aabb_dest = cgmath_2d::Aabb2::<T>::from([1.,1.,2.,2.]);
     ///
     /// let transform = cgmath_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
     /// assert_eq!(
@@ -1612,40 +1641,6 @@ impl<T: cgmath::BaseFloat + num_traits::cast::NumCast> SimpleAffine<T> {
     }
 
     /// transform an array from dest (b) coordinate system to source (a) coordinate system
-    ///```
-    /// # use linestring::cgmath_2d;
-    /// type T = f32;
-    /// let mut aabb_source = cgmath_2d::Aabb2::<f32>::default();
-    /// let mut aabb_dest = cgmath_2d::Aabb2::<f32>::default();
-    ///
-    /// //source is (-100,-100)-(100,100)
-    /// aabb_source.update_point(&cgmath::Point2{x:-100., y:-100.});
-    /// aabb_source.update_point(&cgmath::Point2{x:100., y:100.});
-    ///
-    /// //dest is (0,0)-(800,800.)
-    /// aabb_dest.update_point(&cgmath::Point2{x:0., y:0.});
-    /// aabb_dest.update_point(&cgmath::Point2{x:800., y:800.});
-    ///
-    /// let transform = cgmath_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
-    /// println!("Affine:{:?}", transform);
-    ///
-    /// assert_eq!(
-    ///   transform.transform_ab(&cgmath::Point2{x:-100., y:-100.}).unwrap(),
-    ///   cgmath::Point2{x:0., y:0.}
-    ///  );
-    ///  assert_eq!(
-    ///  transform.transform_ba(&cgmath::Point2{x:0., y:0.}).unwrap(),
-    ///    cgmath::Point2{x:-100., y:-100.}
-    ///  );
-    ///  assert_eq!(
-    ///    transform.transform_ab(&cgmath::Point2{x:100., y:100.}).unwrap(),
-    ///    cgmath::Point2{x:800., y:800.}
-    ///  );
-    ///  assert_eq!(
-    ///    transform.transform_ba(&cgmath::Point2{x:800., y:800.}).unwrap(),
-    ///    cgmath::Point2{x:100., y:100.}
-    ///  );
-    ///```
     #[inline(always)]
     pub fn transform_ba_a(&self, points: [T; 4]) -> Result<[T; 4], LinestringError> {
         let x1 = (points[0] - self.b_offset[0]) / self.scale[0] - self.a_offset[0];

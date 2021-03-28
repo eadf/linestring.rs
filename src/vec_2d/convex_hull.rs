@@ -245,7 +245,7 @@ impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq
         rv
     }
 
-    /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull
+    /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull (inclusive)
     ///```
     /// # use linestring::vec_2d;
     /// # use linestring::vec_2d::convex_hull;
@@ -284,7 +284,7 @@ impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq
         // the intention is that each of these loops should be run in separate threads
         for l in a.as_lines().iter().skip(0).step_by(4) {
             for p in b.points.iter() {
-                if !Self::is_point_left(&l.start, &l.end, p) {
+                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
                     //println!("The point {:?} is not left of {:?}", p, l);
                     return false;
                 }
@@ -292,7 +292,7 @@ impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq
         }
         for l in a.as_lines().iter().skip(1).step_by(4) {
             for p in b.points.iter() {
-                if !Self::is_point_left(&l.start, &l.end, p) {
+                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
                     //println!("The point {:?} is not left of {:?}", p, l);
                     return false;
                 }
@@ -300,15 +300,15 @@ impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq
         }
         for l in a.as_lines().iter().skip(2).step_by(4) {
             for p in b.points.iter() {
-                if !Self::is_point_left(&l.start, &l.end, p) {
-                    println!("The point {:?} is not left of {:?}", p, l);
+                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
+                    //println!("The point {:?} is not left of {:?}", p, l);
                     return false;
                 }
             }
         }
         for l in a.as_lines().iter().skip(3).step_by(4) {
             for p in b.points.iter() {
-                if !Self::is_point_left(&l.start, &l.end, p) {
+                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
                     //println!("The point {:?} is not left of {:?}", p, l);
                     return false;
                 }
