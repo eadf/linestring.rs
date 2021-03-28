@@ -529,18 +529,6 @@ where
     }
 }
 
-/// A set of 2d linestrings + an aabb
-/// Intended to contain related shapes. E.g. outlines of letters with holes
-#[derive(PartialEq, Eq, Clone, Hash)]
-pub struct LineStringSet2<T>
-where
-    T: nalgebra::RealField,
-{
-    set: Vec<LineString2<T>>,
-    aabb: Aabb2<T>,
-    pub convex_hull: Option<LineString2<T>>,
-}
-
 /// A 2d line string, aka polyline.
 /// If the 'connected' field is set the 'as_lines()' method will connect start point with the
 /// end-point.
@@ -1001,6 +989,22 @@ where
     }
 }
 
+/// A set of 2d LineString, an aabb + convex_hull.
+/// It also contains a list of aabb & convex_hulls of shapes this set has gobbled up.
+/// This can be useful for separating out inner regions of the shape.
+///
+/// This struct is intended to contain related shapes. E.g. outlines of letters with holes
+#[derive(PartialEq, Eq, Clone, Hash)]
+pub struct LineStringSet2<T>
+where
+    T: nalgebra::RealField,
+{
+    set: Vec<LineString2<T>>,
+    aabb: Aabb2<T>,
+    convex_hull: Option<LineString2<T>>,
+    pub internals: Option<Vec<(Aabb2<T>, LineString2<T>)>>,
+}
+
 impl<T> Default for LineStringSet2<T>
 where
     T: nalgebra::RealField,
@@ -1011,6 +1015,7 @@ where
             set: Vec::<LineString2<T>>::new(),
             aabb: Aabb2::default(),
             convex_hull: None,
+            internals: None,
         }
     }
 }
@@ -1019,6 +1024,19 @@ impl<T> LineStringSet2<T>
 where
     T: nalgebra::RealField,
 {
+    /// steal the content of 'other' leaving it empty
+    pub fn steal_from(other: &mut LineStringSet2<T>) -> Self {
+        //println!("stealing from other.aabb:{:?}", other.aabb);
+        let mut set = Vec::<LineString2<T>>::new();
+        set.append(&mut other.set);
+        Self {
+            set,
+            aabb: other.aabb.clone(),
+            convex_hull: other.convex_hull.take(),
+            internals: other.internals.take(),
+        }
+    }
+
     pub fn set(&self) -> &Vec<LineString2<T>> {
         &self.set
     }
@@ -1028,7 +1046,12 @@ where
             set: Vec::<LineString2<T>>::with_capacity(capacity),
             aabb: Aabb2::default(),
             convex_hull: None,
+            internals: None,
         }
+    }
+
+    pub fn get_internals(&self) -> Option<&Vec<(Aabb2<T>, LineString2<T>)>> {
+        self.internals.as_ref()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -1063,18 +1086,28 @@ where
     }
 
     pub fn transform(&self, matrix3x3: &nalgebra::Matrix3<T>) -> Self {
-        if let Some(ref convex_hull) = self.convex_hull {
-            Self {
-                aabb: self.aabb.transform(matrix3x3),
-                set: self.set.iter().map(|x| x.transform(matrix3x3)).collect(),
-                convex_hull: Some(convex_hull.transform(matrix3x3)),
-            }
+        let internals = if let Some(ref internals) = self.internals {
+            Some(
+                internals
+                    .iter()
+                    .map(|x| (x.0.transform(matrix3x3), x.1.transform(matrix3x3)))
+                    .collect(),
+            )
         } else {
-            Self {
-                aabb: self.aabb.transform(matrix3x3),
-                set: self.set.iter().map(|x| x.transform(matrix3x3)).collect(),
-                convex_hull: None,
-            }
+            None
+        };
+
+        let convex_hull = if let Some(ref convex_hull) = self.convex_hull {
+            Some(convex_hull.transform(matrix3x3))
+        } else {
+            None
+        };
+
+        Self {
+            aabb: self.aabb.transform(matrix3x3),
+            set: self.set.iter().map(|x| x.transform(matrix3x3)).collect(),
+            convex_hull,
+            internals,
         }
     }
 
@@ -1091,9 +1124,56 @@ where
     }
 
     /// drains the 'other' container of all shapes and put them into 'self'
-    pub fn take_from(&mut self, other: &mut Self) {
+    pub fn take_from(&mut self, mut other: Self) {
         self.aabb.update_aabb(&other.aabb);
         self.set.append(&mut other.set);
+    }
+
+    /// drains the 'other' container of all shapes and put them into 'self'
+    /// The other container must be entirely 'inside' the convex hull of 'self'
+    /// The 'other' container must also contain valid 'internals' and 'convex_hull' fields
+    pub fn take_from_internal(&mut self, other: &mut Self) -> Result<(), LinestringError> {
+        // sanity check
+        if other.convex_hull.is_none() {
+            return Err(LinestringError::InvalidData {
+                txt: "'other' did not contain a valid 'convex_hull' field".to_string(),
+            });
+        }
+        if self.aabb.get_low().is_none() {
+            //println!("self.aabb {:?}", self.aabb);
+            //println!("other.aabb {:?}", other.aabb);
+            return Err(LinestringError::InvalidData {
+                txt: "'self' did not contain a valid 'aabb' field".to_string(),
+            });
+        }
+        if other.aabb.get_low().is_none() {
+            return Err(LinestringError::InvalidData {
+                txt: "'other' did not contain a valid 'aabb' field".to_string(),
+            });
+        }
+        if !self.aabb.contains_aabb(&other.aabb) {
+            //println!("self.aabb {:?}", self.aabb);
+            //println!("other.aabb {:?}", other.aabb);
+            return Err(LinestringError::InvalidData {
+                txt: "The 'other.aabb' is not contained within 'self.aabb'".to_string(),
+            });
+        }
+        if self.internals.is_none() {
+            self.internals = Some(Vec::<(Aabb2<T>, LineString2<T>)>::new())
+        }
+
+        self.set.append(&mut other.set);
+
+        if let Some(ref mut other_internals) = other.internals {
+            // self.internals.unwrap is safe now
+            self.internals.as_mut().unwrap().append(other_internals);
+        }
+
+        self.internals
+            .as_mut()
+            .unwrap()
+            .push((other.aabb.clone(), other.convex_hull.take().unwrap()));
+        Ok(())
     }
 }
 
