@@ -2,7 +2,7 @@
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)
-[![dependency status](https://deps.rs/crate/linestring/0.0.13/status.svg)](https://deps.rs/crate/linestring/0.0.13)
+[![dependency status](https://deps.rs/crate/linestring/0.0.14/status.svg)](https://deps.rs/crate/linestring/0.0.14)
 
 # Line library for Rust (Work in progress)
 
@@ -16,7 +16,8 @@ There are 3D and 2D implementations of:
 - [x] [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
 - [x] Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box).
 - [x] sampling of [boostvoronoi](https://github.com/eadf/boostvoronoi.rs) parabolic arc curves.
-- [x] LineString2 convex hull calculation (gift wrapping & Graham scan) 
+- [x] LineString2 convex hull calculation (gift wrapping & Graham scan)
+- [x] Convex hull containment test
 
 This is implemented for [cgmath](https://crates.io/crates/cgmath), 
 [nalgebra](https://crates.io/crates/nalgebra), [vecmath](https://crates.io/crates/vecmath) 
@@ -27,22 +28,22 @@ More implementations could be added if required.
 
 If you want to use this library in your cgmath project you add this to your Cargo.toml:
 ```cargo
-linestring = {version="^0.013",default-features=false,features=["impl-cgmath"]}
+linestring = {version="^0.0.14",default-features=false,features=["impl-cgmath"]}
 ```
 Same thing for the other supported 2d/3d libraries: 
 ```cargo
-linestring = {version="^0.013",default-features=false,features=["impl-nalgebra"]}
+linestring = {version="^0.0.14",default-features=false,features=["impl-nalgebra"]}
 ```
 
 ```cargo
-linestring = {version="^0.013",default-features=false,features=["impl-mint"]}
+linestring = {version="^0.0.14",default-features=false,features=["impl-mint"]}
 ```
 
 ```cargo
-linestring = {version="^0.013",default-features=false,features=["impl-vecmath"]}
+linestring = {version="^0.0.14",default-features=false,features=["impl-vecmath"]}
 ```
 ```cargo
-linestring = {version="^0.013",default-features=false,features=["impl-vec"]}
+linestring = {version="^0.0.14",default-features=false,features=["impl-vec"]}
 ```
 The difference between ```impl-vecmath``` and ```impl-vec``` is that the ```impl-vecmath``` feature supports 
 affine transformations.
@@ -58,8 +59,8 @@ cargo run --example fltk_gui --no-default-features --features impl-cgmath
 - [ ] Benchmark and optimize (add smallvec to simplify rdp?)
 - [ ] optimize Ramer–Douglas-Peucker
 - [ ] optimize Visvalingam-Whyatt
-- [x] figure out how to deal with rustdoc (the feature gates disables it).
-- [ ] Add 2D Convex hull and containment tests
+- [x] Add 2D Convex hull and containment test
+- [ ] multi-threaded Convex hull containment test
 - [ ] Stable overlapping co-linear line detection
 - [x] Better event handling in fltk_gui
 
