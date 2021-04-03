@@ -41,7 +41,7 @@ consider it more useful to permit linking proprietary applications with the
 library. If this is what you want to do, use the GNU Lesser General Public
 License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
- */
+*/
 
 use super::vec_3d;
 #[allow(unused_imports)]
@@ -51,7 +51,9 @@ use crate::LinestringError;
 use itertools::Itertools;
 use std::fmt;
 
+/// Module containing the convex hull calculations
 pub mod convex_hull;
+/// Module containing the intersection calculations
 pub mod intersection;
 
 /// Placeholder for different 2d shapes
@@ -973,6 +975,32 @@ where
     }
 }
 
+impl<T> From<Aabb2<T>> for LineString2<T>
+where
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+{
+    /// creates a connected LineString2 from the outlines of the Aabb2
+    fn from(other: Aabb2<T>) -> Self {
+        if let Some(min_max) = other.min_max {
+            let points = vec![
+                min_max.0,
+                [min_max.1[0], min_max.0[1]],
+                min_max.1,
+                [min_max.0[0], min_max.1[1]],
+            ];
+            Self {
+                points,
+                connected: true,
+            }
+        } else {
+            Self {
+                points: Vec::<[T; 2]>::new(),
+                connected: false,
+            }
+        }
+    }
+}
+
 impl<T, IC> std::iter::FromIterator<IC> for LineString2<T>
 where
     T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
@@ -1078,28 +1106,26 @@ where
         self.convex_hull.as_ref().unwrap()
     }
 
+    /// Returns the axis aligned bounding box of this set.
     pub fn get_aabb(&self) -> &Aabb2<T> {
         &self.aabb
     }
 
+    /// Transform each individual component of this set using the transform matrix.
+    /// Return the result in a new object.
     #[cfg(feature = "impl-vecmath")]
     pub fn transform(&self, matrix3x3: &vecmath::Matrix3<T>) -> Self {
-        let internals = if let Some(ref internals) = self.internals {
-            Some(
-                internals
-                    .iter()
-                    .map(|x| (x.0.transform(matrix3x3), x.1.transform(matrix3x3)))
-                    .collect(),
-            )
-        } else {
-            None
-        };
+        let internals = self.internals.as_ref().map(|internals| {
+            internals
+                .iter()
+                .map(|x| (x.0.transform(matrix3x3), x.1.transform(matrix3x3)))
+                .collect()
+        });
 
-        let convex_hull = if let Some(ref convex_hull) = self.convex_hull {
-            Some(convex_hull.transform(matrix3x3))
-        } else {
-            None
-        };
+        let convex_hull = self
+            .convex_hull
+            .as_ref()
+            .map(|convex_hull| convex_hull.transform(matrix3x3));
 
         Self {
             aabb: self.aabb.transform(matrix3x3),
@@ -1452,6 +1478,8 @@ where
         / (a_sub_b[0] * a_sub_b[0] + a_sub_b[1] * a_sub_b[1])
 }
 
+/// Same as distance_to_line_squared<T> but it can be called when a-b might be 0.
+/// It's a little slower with because it does the test
 #[inline(always)]
 pub fn distance_to_line_squared_safe<T>(a: &[T; 2], b: &[T; 2], p: &[T; 2]) -> T
 where

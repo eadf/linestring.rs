@@ -41,7 +41,7 @@ consider it more useful to permit linking proprietary applications with the
 library. If this is what you want to do, use the GNU Lesser General Public
 License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
- */
+*/
 
 use super::nalgebra_2d;
 
@@ -183,6 +183,10 @@ where
     }
 }
 
+/// A 3d line string, aka polyline.
+/// If the 'connected' field is set the 'as_lines()' method will connect start point with the
+/// end-point.
+/// Todo: The builder structure of this struct needs to be revisited
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString3<T>
 where

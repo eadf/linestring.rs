@@ -41,7 +41,7 @@ consider it more useful to permit linking proprietary applications with the
 library. If this is what you want to do, use the GNU Lesser General Public
 License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
- */
+*/
 
 #![deny(non_camel_case_types)]
 #![deny(unused_parens)]
@@ -53,9 +53,6 @@ licenses /why-not-lgpl.html>.
 //! This is a library that deals with lines in 2D and 3D space.
 //! The library is implemented for a couple of independent 2d/3d packages:nalgebra,cgmath,vecmath and mint.
 //! Those implementations are feature gated so you only need to import the package you really use.
-//! Unfortunately this means the rustdoc is also feature gated, and as a default none of
-//! the implementations are part of the documentation. I'm trying to find a solution to this.
-
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -79,25 +76,84 @@ pub enum LinestringError {
     TransformError { txt: String },
 }
 
+/// This module is optional. To use if you must include the feature ```impl-nalgebra``` in your ```Cargo.toml``` file.
+///
+/// By default all features are enabled (this is a work-around to enable the automatic rust doc).
+/// If you want to only enable the ```impl-nalgebra``` feature you must first disable the default features with ```default-features=false```.
+///
+/// Cargo.toml example: ```linestring = {version="<current version>",default-features=false,features=["impl-nalgebra"]}```
 #[cfg(feature = "impl-nalgebra")]
 pub mod nalgebra_2d;
+/// This module is optional. To use if you must include the feature ```impl-nalgebra``` in your ```Cargo.toml``` file.
+///
+/// By default all features are enabled (this is a work-around to enable the automatic rust doc).
+/// If you want to only enable the ```impl-nalgebra``` feature you must first disable the default features with ```default-features=false```.
+///
+/// Cargo.toml example: ```linestring = {version="<current version>",default-features=false,features=["impl-nalgebra"]}```
 #[cfg(feature = "impl-nalgebra")]
 pub mod nalgebra_3d;
 
+/// This module is optional. To use if you must include the feature ```impl-cgmath``` in your ```Cargo.toml``` file.
+///
+/// By default all features are enabled (this is a work-around to enable the automatic rust doc).
+/// If you want to only enable the ```impl-cgmath``` feature you must first disable the default features with ```default-features=false```.
+///
+/// Cargo.toml example: ```linestring = {version="<current version>",default-features=false,features=["impl-cgmath"]}```
 #[cfg(feature = "impl-cgmath")]
 pub mod cgmath_2d;
+
+/// This module is optional. To use if you must include the feature ```impl-cgmath``` in your ```Cargo.toml``` file.
+///
+/// By default all features are enabled (this is a work-around to enable the automatic rust doc).
+/// If you want to only enable the ```impl-cgmath``` feature you must first disable the default features with ```default-features=false```.
+///
+/// Cargo.toml example: ```linestring = {version="<current version>",default-features=false,features=["impl-cgmath"]}```
 #[cfg(feature = "impl-cgmath")]
 pub mod cgmath_3d;
 
+/// This module is optional. To use if you must include the feature ```impl-mint``` in your ```Cargo.toml``` file.
+///
+/// By default all features are enabled (this is a work-around to enable the automatic rust doc).
+/// If you want to only enable the ```impl-mint``` feature you must first disable the default features with ```default-features=false```.
+///
+/// Cargo.toml example: ```linestring = {version="<current version>",default-features=false,features=["impl-mint"]}```
 #[cfg(feature = "impl-mint")]
 pub mod mint_2d;
+/// This module is optional. To use if you must include the feature ```impl-mint``` in your ```Cargo.toml``` file.
+///
+/// By default all features are enabled (this is a work-around to enable the automatic rust doc).
+/// If you want to only enable the ```impl-mint``` feature you must first disable the default features with ```default-features=false```.
+///
+/// Cargo.toml example: ```linestring = {version="<current version>",default-features=false,features=["impl-mint"]}```
 #[cfg(feature = "impl-mint")]
 pub mod mint_3d;
 
+/// This module is optional. To use if you must include the feature ```impl-vecmath``` or ```impl-vec``` in your ```Cargo.toml``` file.
+///
+/// By default all features are enabled (this is a work-around to enable the automatic rust doc).
+/// If you want to only enable the ```impl-vecmath``` or ```impl-vecmath``` features you must first disable the default features with ```default-features=false```.
+///
+/// Cargo.toml example: ```linestring = {version="<current version>",default-features=false,features=["impl-vecmath"]}```
+///
+/// Cargo.toml example: ```linestring = {version="<current version>",default-features=false,features=["impl-vec"]}```
 #[cfg(any(feature = "impl-vec", feature = "impl-vecmath"))]
 pub mod vec_2d;
+/// This module is optional. To use if you must include the feature ```impl-vecmath``` or ```impl-vec``` in your ```Cargo.toml``` file.
+///
+/// By default all features are enabled (this is a work-around to enable the automatic rust doc).
+/// If you want to only enable the ```impl-vecmath``` or ```impl-vecmath``` features you must first disable the default features with ```default-features=false```.
+///
+/// Cargo.toml example: ```linestring = {version="<current version>",default-features=false,features=["impl-vecmath"]}```
+///
+/// Cargo.toml example: ```linestring = {version="<current version>",default-features=false,features=["impl-vec"]}```
 #[cfg(any(feature = "impl-vec", feature = "impl-vecmath"))]
 pub mod vec_3d;
 
+/// This module is optional. To use if you must include the feature ```impl-vecmath``` in your ```Cargo.toml``` file.
+///
+/// By default all features are enabled (this is a work-around to enable the automatic rust doc).
+/// If you want to only enable the ```impl-vecmath``` feature you must first disable the default features with ```default-features=false```.
+///
+/// Cargo.toml example: ```linestring = {version="<current version>",default-features=false,features=["impl-vecmath"]}```
 #[cfg(feature = "impl-vecmath")]
 pub mod vecmath_3d;

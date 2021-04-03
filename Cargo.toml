@@ -7,7 +7,7 @@ description = "2d and 3d polylines"
 readme = "README.md"
 repository = "https://github.com/eadf/linestring.rs"
 license = "AGPL-3.0"
-keywords = ["geometry", "intersection", "douglas-peucker", "visvalingam-whyatt"]
+keywords = ["geometry", "intersection", "douglas-peucker", "visvalingam-whyatt", "convex-hull"]
 
 [features]
 impl-cgmath = ["cgmath"]

@@ -9,19 +9,19 @@
 This crate contains data structures and methods that deals with lines in 2D and 3D space.
 
 There are 3D and 2D implementations of:
-- [x] LineString, a sequence of points, aka Polyline.
-- [x] Self intersection tests for lines in 2d, O( n log n + i log n).
-- [x] Line, a finite two-point struct (no rays).
-- [x] [Ramer–Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm) and
-- [x] [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
-- [x] Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box).
-- [x] sampling of [boostvoronoi](https://github.com/eadf/boostvoronoi.rs) parabolic arc curves.
-- [x] LineString2 convex hull calculation (gift wrapping & Graham scan)
-- [x] Convex hull containment test
+* LineString, a sequence of points, aka Polyline.
+* Self intersection tests for lines in 2d, O( n log n + i log n).
+* Line, a finite two-point struct (no rays).
+* [Ramer–Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm) and
+* [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
+* Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box).
+* sampling of [boostvoronoi](https://github.com/eadf/boostvoronoi.rs) parabolic arc curves.
+* LineString2 convex hull calculation (gift wrapping & Graham scan)
+* Convex hull containment test
 
 This is implemented for [cgmath](https://crates.io/crates/cgmath), 
 [nalgebra](https://crates.io/crates/nalgebra), [vecmath](https://crates.io/crates/vecmath) 
-and limited versions for [mint](https://crates.io/crates/mint) and plain vectors (no transformations etc).
+and limited versions for [mint](https://crates.io/crates/mint) and plain vectors (no matrix transformations).
 \
 These implementations are feature gated, so you only have to include the 3d package you need in your code.
 More implementations could be added if required.
