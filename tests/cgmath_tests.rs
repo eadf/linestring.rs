@@ -4,7 +4,7 @@ use linestring::cgmath_2d;
 use linestring::cgmath_3d;
 
 #[cfg(feature = "impl-cgmath")]
-fn almost_equal<T: cgmath::BaseFloat>(x1: T, x2: T, y1: T, y2: T) {
+fn almost_equal<T: cgmath::BaseFloat + Sync>(x1: T, x2: T, y1: T, y2: T) {
     assert!(cgmath_2d::ulps_eq(&x1, &x2));
     assert!(cgmath_2d::ulps_eq(&y1, &y2));
 }

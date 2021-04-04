@@ -60,7 +60,7 @@ cargo run --example fltk_gui --no-default-features --features impl-cgmath
 - [ ] optimize Ramer–Douglas-Peucker
 - [ ] optimize Visvalingam-Whyatt
 - [x] Add 2D Convex hull and containment test
-- [ ] multi-threaded Convex hull containment test
+- [x] multi-threaded Convex hull containment test
 - [ ] Stable overlapping co-linear line detection
 - [x] Better event handling in fltk_gui
 

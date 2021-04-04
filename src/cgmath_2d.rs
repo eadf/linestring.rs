@@ -48,6 +48,9 @@ use super::cgmath_3d;
 use crate::LinestringError;
 use cgmath::Transform;
 use itertools::Itertools;
+#[allow(unused_imports)]
+#[cfg(feature = "impl-rayon")]
+use rayon::prelude::*;
 use std::fmt;
 
 /// Module containing the convex hull calculations
@@ -58,7 +61,7 @@ pub mod intersection;
 /// Placeholder for different 2d shapes
 pub enum Shape2d<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     Line(Line2<T>),
     Linestring(LineString2<T>),
@@ -69,7 +72,7 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub start: cgmath::Point2<T>,
     pub end: cgmath::Point2<T>,
@@ -77,7 +80,7 @@ where
 
 impl<T> Line2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub fn new(start: cgmath::Point2<T>, end: cgmath::Point2<T>) -> Self {
         Self { start, end }
@@ -90,7 +93,7 @@ where
     #[allow(clippy::suspicious_operation_groupings)]
     pub fn intersection_point(&self, other: &Self) -> Option<Intersection<T>>
     where
-        T: cgmath::BaseFloat,
+        T: cgmath::BaseFloat + Sync,
     {
         // AABB tests
         if self.end.x > other.end.x
@@ -265,7 +268,7 @@ where
 // Todo is this a subset of "impl<T> From<[T; 4]> for Line2<T>"?
 impl<T> Into<[T; 4]> for Line2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     fn into(self) -> [T; 4] {
         [self.start.x, self.start.y, self.end.x, self.end.y]
@@ -275,7 +278,7 @@ where
 // [Into<Point<T>>,Into<Point<T>>] -> Line2<T>
 impl<T, IT> From<[IT; 2]> for Line2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
     IT: Copy + Into<cgmath::Point2<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Line2<T> {
@@ -286,7 +289,7 @@ where
 // [T,T,T,T] -> Line2<T>
 impl<T> From<[T; 4]> for Line2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     fn from(coordinate: [T; 4]) -> Line2<T> {
         Line2::<T>::new(
@@ -308,7 +311,7 @@ where
 #[derive(Clone, Hash, fmt::Debug)]
 pub struct VoronoiParabolicArc<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     // input geometry of voronoi graph
     pub segment: Line2<T>,
@@ -321,7 +324,7 @@ where
 
 impl<T> VoronoiParabolicArc<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub fn new(
         segment: Line2<T>,
@@ -550,7 +553,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub(crate) points: Vec<cgmath::Point2<T>>,
 
@@ -561,7 +564,7 @@ where
 
 impl<T> Default for LineString2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     #[inline]
     fn default() -> Self {
@@ -574,7 +577,7 @@ where
 
 impl<T> LineString2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
@@ -1001,7 +1004,7 @@ where
 
 impl<T> From<Aabb2<T>> for LineString2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     /// creates a connected LineString2 from the outlines of the Aabb2
     fn from(other: Aabb2<T>) -> Self {
@@ -1033,7 +1036,7 @@ where
 
 impl<T, IC> std::iter::FromIterator<IC> for LineString2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
     IC: Into<cgmath::Point2<T>>,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
@@ -1052,7 +1055,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     set: Vec<LineString2<T>>,
     aabb: Aabb2<T>,
@@ -1062,7 +1065,7 @@ where
 
 impl<T> Default for LineStringSet2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     #[inline]
     fn default() -> Self {
@@ -1077,7 +1080,7 @@ where
 
 impl<T> LineStringSet2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     /// steal the content of 'other' leaving it empty
     pub fn steal_from(other: &mut LineStringSet2<T>) -> Self {
@@ -1235,14 +1238,14 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     min_max: Option<(cgmath::Point2<T>, cgmath::Point2<T>)>,
 }
 
 impl<T, IT> From<[IT; 2]> for Aabb2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
     IT: Copy + Into<cgmath::Point2<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb2<T> {
@@ -1255,7 +1258,7 @@ where
 
 impl<T> From<[T; 4]> for Aabb2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     fn from(coordinate: [T; 4]) -> Aabb2<T> {
         let mut rv = Aabb2::default();
@@ -1273,7 +1276,7 @@ where
 
 impl<T> Default for Aabb2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     #[inline]
     fn default() -> Self {
@@ -1283,7 +1286,7 @@ where
 
 impl<T> Aabb2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub fn new(point: &cgmath::Point2<T>) -> Self {
         Self {
@@ -1395,7 +1398,7 @@ pub fn intersect_line_point<T>(
     point: &cgmath::Point2<T>,
 ) -> Option<Intersection<T>>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     // take care of end point equality
     if ulps_eq(&line.start.x, &point.x) && ulps_eq(&line.start.y, &point.y) {
@@ -1427,7 +1430,7 @@ where
 #[allow(dead_code)]
 pub enum Intersection<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     // Normal one point intersection
     Intersection(cgmath::Point2<T>),
@@ -1437,7 +1440,7 @@ where
 
 impl<T> Intersection<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     /// return a single, simple intersection point
     pub fn single(&self) -> cgmath::Point2<T> {
@@ -1450,7 +1453,7 @@ where
 
 impl<T> fmt::Debug for Intersection<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -1467,7 +1470,7 @@ pub fn scale_to_coordinate<T>(
     scale: T,
 ) -> cgmath::Point2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     cgmath::Point2 {
         x: point.x + scale * vector.x,
@@ -1479,7 +1482,7 @@ where
 /// Divides a 'vector' by 'b'. Obviously, don't feed this with 'b' == 0
 fn div<T>(a: &cgmath::Vector2<T>, b: T) -> cgmath::Vector2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     cgmath::Vector2 {
         x: a.x / b,
@@ -1492,7 +1495,7 @@ where
 /// This is a compatibility workaround for 2d packages without any math
 fn sub<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> cgmath::Vector2<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     a - b
 }
@@ -1503,7 +1506,7 @@ where
 /// This function returns the z component of v × w (if we pretend v and w are two dimensional)
 fn cross_z<T>(v: &cgmath::Vector2<T>, w: &cgmath::Vector2<T>) -> T
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     v.x * w.y - v.y * w.x
 }
@@ -1520,7 +1523,7 @@ pub fn distance_to_line_squared<T>(
     p: &cgmath::Point2<T>,
 ) -> T
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     let a_sub_b = sub(a, b);
     let a_sub_p = sub(a, p);
@@ -1538,7 +1541,7 @@ pub fn distance_to_line_squared_safe<T>(
     p: &cgmath::Point2<T>,
 ) -> T
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     if point_ulps_eq(a, b) {
         // give the point-to-point answer if the segment is a point
@@ -1556,7 +1559,7 @@ where
 /// The distance² between the two points
 pub fn distance_to_point_squared<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> T
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     let v = sub(a, b);
     v.x * v.x + v.y * v.y
@@ -1566,7 +1569,7 @@ where
 /// calculate the dot product of two vectors
 fn dot<T>(a: &cgmath::Vector2<T>, b: &cgmath::Vector2<T>) -> T
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     a.x * b.x + a.y * b.y
 }
@@ -1574,7 +1577,7 @@ where
 #[inline(always)]
 pub fn point_ulps_eq<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> bool
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     ulps_eq(&a.x, &b.x) && ulps_eq(&a.y, &b.y)
 }
@@ -1582,7 +1585,7 @@ where
 #[inline(always)]
 pub fn ulps_eq<T>(a: &T, b: &T) -> bool
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     T::ulps_eq(a, b, T::default_epsilon(), T::default_max_ulps())
 }
@@ -1602,7 +1605,7 @@ pub struct SimpleAffine<T: cgmath::BaseFloat> {
     pub b_offset: [T; 2],
 }
 
-impl<T: cgmath::BaseFloat> Default for SimpleAffine<T> {
+impl<T: cgmath::BaseFloat + Sync> Default for SimpleAffine<T> {
     #[inline]
     fn default() -> Self {
         Self {
@@ -1613,7 +1616,10 @@ impl<T: cgmath::BaseFloat> Default for SimpleAffine<T> {
     }
 }
 
-impl<T: cgmath::BaseFloat + num_traits::cast::NumCast> SimpleAffine<T> {
+impl<T> SimpleAffine<T>
+where
+    T: cgmath::BaseFloat + Sync + num_traits::cast::NumCast,
+{
     pub fn new(a_aabb: &Aabb2<T>, b_aabb: &Aabb2<T>) -> Result<Self, LinestringError> {
         let min_dim = T::from(1.0).unwrap();
         let two = T::from(2.0).unwrap();

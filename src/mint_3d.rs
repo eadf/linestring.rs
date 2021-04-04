@@ -51,7 +51,7 @@ use std::fmt;
 /// Placeholder for different 3d shapes
 pub enum Shape3d<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     Line(Line3<T>),
     Linestring(LineString3<T>),
@@ -77,7 +77,7 @@ impl Plane {
     /// leaves some decimal in coordinates that's suppose to be zero.
     pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
     where
-        T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+        T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
     {
         if let Some(low_bound) = aabb.get_low() {
             if let Some(high_bound) = aabb.get_high() {
@@ -121,7 +121,7 @@ impl Plane {
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     pub start: mint::Point3<T>,
     pub end: mint::Point3<T>,
@@ -129,7 +129,7 @@ where
 
 impl<T> Line3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     pub fn new(start: mint::Point3<T>, end: mint::Point3<T>) -> Self {
         Self { start, end }
@@ -159,7 +159,7 @@ where
 #[allow(clippy::from_over_into)]
 impl<T> Into<[T; 6]> for Line3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     fn into(self) -> [T; 6] {
         [
@@ -175,7 +175,7 @@ where
 
 impl<T, IT> From<[IT; 2]> for Line3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
     IT: Copy + Into<mint::Point3<T>>,
 {
     fn from(pos: [IT; 2]) -> Line3<T> {
@@ -190,7 +190,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     pub(crate) points: Vec<mint::Point3<T>>,
 
@@ -204,7 +204,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     pub set: Vec<LineString3<T>>,
     pub aabb: Aabb3<T>,
@@ -215,14 +215,14 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Aabb3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     min_max: Option<(mint::Point3<T>, mint::Point3<T>)>,
 }
 
 impl<T> LineString3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     pub fn default() -> Self {
         Self {
@@ -592,7 +592,7 @@ where
 
 impl<T, IC: Into<mint::Point3<T>>> std::iter::FromIterator<IC> for LineString3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString3 {
@@ -604,7 +604,7 @@ where
 
 impl<T> LineStringSet3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     pub fn default() -> Self {
         Self {
@@ -670,7 +670,7 @@ where
 
 impl<T, IT> From<[IT; 2]> for Aabb3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
     IT: Copy + Into<mint::Point3<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb3<T> {
@@ -682,7 +682,7 @@ where
 
 impl<T> From<[T; 6]> for Aabb3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     fn from(coordinate: [T; 6]) -> Aabb3<T> {
         Aabb3 {
@@ -704,7 +704,7 @@ where
 
 impl<T> Aabb3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     pub fn default() -> Self {
         Self { min_max: None }
@@ -819,7 +819,7 @@ where
 #[inline(always)]
 pub fn point_ulps_eq<T>(a: &mint::Point3<T>, b: &mint::Point3<T>) -> bool
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     mint_2d::ulps_eq(&a.x, &b.x) && mint_2d::ulps_eq(&a.y, &b.y) && mint_2d::ulps_eq(&a.z, &b.z)
 }
@@ -828,7 +828,7 @@ where
 /// subtracts point b from point a resulting in a vector
 fn sub<T>(a: &mint::Point3<T>, b: &mint::Point3<T>) -> mint::Vector3<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     mint::Vector3 {
         x: a.x - b.x,
@@ -841,7 +841,7 @@ where
 #[inline(always)]
 fn cross_abs_squared<T>(a: &mint::Vector3<T>, b: &mint::Vector3<T>) -> T
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     let x = a.y * b.z - a.z * b.y;
     let y = a.z * b.x - a.x * b.z;
@@ -861,7 +861,7 @@ pub fn distance_to_line_squared<T>(
     p: &mint::Point3<T>,
 ) -> T
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     let a_sub_b = sub(a, b);
     let a_sub_p = sub(a, p);
@@ -874,7 +874,7 @@ where
 /// The distance² between the two points
 pub fn distance_to_point_squared<T>(a: &mint::Point3<T>, b: &mint::Point3<T>) -> T
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     let v = sub(a, b);
     v.x * v.x + v.y * v.y + v.z * v.z

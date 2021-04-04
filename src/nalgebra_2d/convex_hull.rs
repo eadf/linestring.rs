@@ -1,12 +1,14 @@
 use crate::nalgebra_2d;
+#[cfg(feature = "impl-rayon")]
+use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
-pub struct ConvexHull<T: nalgebra::RealField> {
+pub struct ConvexHull<T: nalgebra::RealField + Sync> {
     pd: PhantomData<T>,
 }
 
-impl<T: nalgebra::RealField> ConvexHull<T> {
+impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
     /// finds the point with lowest x
     fn find_lowest_x(linestring: &[nalgebra::Point2<T>]) -> (usize, nalgebra::Point2<T>) {
         let mut lowest = linestring[0];
@@ -202,7 +204,7 @@ impl<T: nalgebra::RealField> ConvexHull<T> {
     pub fn graham_scan<'a, I>(input: I) -> nalgebra_2d::LineString2<T>
     where
         I: IntoIterator<Item = &'a nalgebra::Point2<T>>,
-        T: 'a,
+        T: 'a + Sync,
     {
         let mut input_points = input
             .into_iter()
@@ -291,47 +293,52 @@ impl<T: nalgebra::RealField> ConvexHull<T> {
     /// assert!(convex_hull::ConvexHull::contains(&a, &b));
     /// assert!(!convex_hull::ConvexHull::contains(&b, &a));
     ///```
+    #[cfg(not(feature = "impl-rayon"))]
     pub fn contains(a: &nalgebra_2d::LineString2<T>, b: &nalgebra_2d::LineString2<T>) -> bool {
         if a.len() <= 1 {
             return false;
         }
         if b.is_empty() {
+            // Is 'nothing' contained inside any finite convex hull or not?
             return true;
         }
-        //println!("a.len() {}, b.len() {}", a.len(), b.len());
-        // the intention is that each of these loops should be run in separate threads
-        for l in a.as_lines().iter().skip(0).step_by(4) {
-            for p in b.points.iter() {
-                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
-                    //println!("The point {:?} is not left of {:?}", p, l);
-                    return false;
+        // try to spread out the tests so that the loop will fail faster and not spend
+        // all the time looking at points and lines close together
+        for step1 in 0..4 {
+            for l in a.as_lines().iter().skip(step1).step_by(4) {
+                for step2 in 0..4 {
+                    for p in b.points.iter().skip(step2).step_by(4) {
+                        if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
+                            //println!("The point {:?} is not left of {:?}", p, l);
+                            return false;
+                        }
+                    }
                 }
             }
         }
-        for l in a.as_lines().iter().skip(1).step_by(4) {
-            for p in b.points.iter() {
-                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
-                    //println!("The point {:?} is not left of {:?}", p, l);
-                    return false;
-                }
-            }
+    }
+    #[cfg(feature = "impl-rayon")]
+    pub fn contains(a: &nalgebra_2d::LineString2<T>, b: &nalgebra_2d::LineString2<T>) -> bool {
+        if a.len() <= 1 {
+            return false;
         }
-        for l in a.as_lines().iter().skip(2).step_by(4) {
-            for p in b.points.iter() {
-                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
-                    //println!("The point {:?} is not left of {:?}", p, l);
-                    return false;
-                }
-            }
+        if b.is_empty() {
+            // Is 'nothing' contained inside any finite convex hull or not?
+            return true;
         }
-        for l in a.as_lines().iter().skip(3).step_by(4) {
-            for p in b.points.iter() {
-                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
-                    //println!("The point {:?} is not left of {:?}", p, l);
-                    return false;
+        a.as_lines()
+            .par_iter()
+            .find_map_any(|l| -> Option<()> {
+                for step1 in 0..4 {
+                    for p in b.points.iter().skip(step1).step_by(4) {
+                        if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
+                            //println!("The point {:?} is not left of {:?}", p, l);
+                            return Some(());
+                        }
+                    }
                 }
-            }
-        }
-        true
+                None
+            })
+            .is_none()
     }
 }

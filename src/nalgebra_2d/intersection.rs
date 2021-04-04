@@ -55,14 +55,14 @@ use crate::{nalgebra_2d, LinestringError};
 #[derive(Clone, Copy)]
 pub struct SiteEventKey<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     pub pos: nalgebra::Point2<T>,
 }
 
 impl<T> SiteEventKey<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     pub fn new(x: T, y: T) -> Self {
         Self {
@@ -73,7 +73,7 @@ where
 
 impl<T> std::fmt::Debug for SiteEventKey<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("")
@@ -85,7 +85,7 @@ where
 
 impl<T> PartialOrd for SiteEventKey<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         if nalgebra_2d::ulps_eq(&self.pos.y, &other.pos.y) {
@@ -101,7 +101,7 @@ where
 
 impl<T> PartialEq for SiteEventKey<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     fn eq(&self, other: &Self) -> bool {
         nalgebra_2d::point_ulps_eq(&self.pos, &other.pos)
@@ -114,7 +114,7 @@ where
 /// leaning towards pivot point have priority.
 struct MinMax<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     best_left: Option<T>,
     slope: MinMaxSlope<T>,
@@ -123,7 +123,7 @@ where
 
 impl<T> MinMax<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     fn new() -> Self {
         Self {
@@ -202,7 +202,7 @@ where
 
 struct MinMaxSlope<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     best_left: Option<T>, // slope
     candidates_left: Vec<usize>,
@@ -213,7 +213,7 @@ where
 
 impl<T> MinMaxSlope<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     fn new() -> Self {
         Self {
@@ -333,7 +333,7 @@ where
 ///
 pub struct SiteEvent<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     drop: Option<Vec<usize>>,
     add: Option<Vec<usize>>,
@@ -344,7 +344,7 @@ where
 
 impl<T> SiteEvent<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     pub(crate) fn with_intersection(i: &[usize]) -> Self {
         Self {
@@ -385,7 +385,7 @@ fn sweepline_intersection<T>(
     other: &nalgebra_2d::Line2<T>,
 ) -> Option<(T, T)>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
     let y1 = other.start.y;
@@ -417,7 +417,7 @@ where
 /// to take() them and make the borrow-checker happy.
 pub struct IntersectionData<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     // sweep-line position
     sweepline_pos: nalgebra::Point2<T>,
@@ -445,7 +445,7 @@ where
 
 impl<T> Default for IntersectionData<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     fn default() -> Self {
         Self {
@@ -464,7 +464,7 @@ where
 
 impl<T> IntersectionData<T>
 where
-    T: nalgebra::RealField,
+    T: nalgebra::RealField + Sync,
 {
     pub fn get_sweepline_pos(&self) -> &nalgebra::Point2<T> {
         &self.sweepline_pos

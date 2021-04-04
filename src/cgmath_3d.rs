@@ -51,7 +51,7 @@ use std::fmt;
 /// Placeholder for different 3d shapes
 pub enum Shape3d<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     Line(Line3<T>),
     Linestring(LineString3<T>),
@@ -77,7 +77,7 @@ impl Plane {
     /// leaves some decimal in coordinates that's suppose to be zero.
     pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
     where
-        T: cgmath::BaseFloat,
+        T: cgmath::BaseFloat + Sync,
     {
         if let Some(low_bound) = aabb.get_low() {
             if let Some(high_bound) = aabb.get_high() {
@@ -121,7 +121,7 @@ impl Plane {
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub start: cgmath::Point3<T>,
     pub end: cgmath::Point3<T>,
@@ -129,7 +129,7 @@ where
 
 impl<T> Line3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub fn new(start: cgmath::Point3<T>, end: cgmath::Point3<T>) -> Self {
         Self { start, end }
@@ -159,7 +159,7 @@ where
 #[allow(clippy::from_over_into)]
 impl<T> Into<[T; 6]> for Line3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     fn into(self) -> [T; 6] {
         [
@@ -175,7 +175,7 @@ where
 
 impl<T, IT> From<[IT; 2]> for Line3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
     IT: Copy + Into<cgmath::Point3<T>>,
 {
     fn from(pos: [IT; 2]) -> Line3<T> {
@@ -190,7 +190,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub(crate) points: Vec<cgmath::Point3<T>>,
 
@@ -204,7 +204,7 @@ where
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub set: Vec<LineString3<T>>,
     pub aabb: Aabb3<T>,
@@ -215,14 +215,14 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Aabb3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     min_max: Option<(cgmath::Point3<T>, cgmath::Point3<T>)>,
 }
 
 impl<T> LineString3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub fn default() -> Self {
         Self {
@@ -591,7 +591,7 @@ where
 
 impl<T, IC: Into<cgmath::Point3<T>>> std::iter::FromIterator<IC> for LineString3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString3 {
@@ -603,7 +603,7 @@ where
 
 impl<T> LineStringSet3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub fn default() -> Self {
         Self {
@@ -668,7 +668,7 @@ where
 
 impl<T, IT> From<[IT; 2]> for Aabb3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
     IT: Copy + Into<cgmath::Point3<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb3<T> {
@@ -680,7 +680,7 @@ where
 
 impl<T> From<[T; 6]> for Aabb3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     fn from(coordinate: [T; 6]) -> Aabb3<T> {
         Aabb3 {
@@ -702,7 +702,7 @@ where
 
 impl<T> Aabb3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     pub fn default() -> Self {
         Self { min_max: None }
@@ -819,7 +819,7 @@ where
 #[inline(always)]
 pub fn point_ulps_eq<T>(a: &cgmath::Point3<T>, b: &cgmath::Point3<T>) -> bool
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     cgmath_2d::ulps_eq(&a.x, &b.x)
         && cgmath_2d::ulps_eq(&a.y, &b.y)
@@ -830,7 +830,7 @@ where
 /// subtracts point b from point a resulting in a vector
 fn sub<T>(a: &cgmath::Point3<T>, b: &cgmath::Point3<T>) -> cgmath::Vector3<T>
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     a - b
 }
@@ -839,7 +839,7 @@ where
 #[inline(always)]
 fn cross_abs_squared<T>(a: &cgmath::Vector3<T>, b: &cgmath::Vector3<T>) -> T
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     let x = a.y * b.z - a.z * b.y;
     let y = a.z * b.x - a.x * b.z;
@@ -859,7 +859,7 @@ pub fn distance_to_line_squared<T>(
     p: &cgmath::Point3<T>,
 ) -> T
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     let a_sub_b = sub(a, b);
     let a_sub_p = sub(a, p);
@@ -872,7 +872,7 @@ where
 /// The distance² between the two points
 pub fn distance_to_point_squared<T>(a: &cgmath::Point3<T>, b: &cgmath::Point3<T>) -> T
 where
-    T: cgmath::BaseFloat,
+    T: cgmath::BaseFloat + Sync,
 {
     let v = sub(a, b);
     v.x * v.x + v.y * v.y + v.z * v.z

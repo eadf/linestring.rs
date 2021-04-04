@@ -13,7 +13,7 @@ use std::fmt;
 #[cfg(feature = "impl-vec")]
 fn almost_equal<T>(x1: T, x2: T, y1: T, y2: T)
 where
-    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: Float + fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     assert!(vec_2d::ulps_eq(&x1, &x2));
     assert!(vec_2d::ulps_eq(&y1, &y2));

@@ -55,14 +55,14 @@ use crate::{mint_2d, LinestringError};
 #[derive(Clone, Copy)]
 pub struct SiteEventKey<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     pub pos: mint::Point2<T>,
 }
 
 impl<T> SiteEventKey<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     pub fn new(x: T, y: T) -> Self {
         Self {
@@ -73,7 +73,7 @@ where
 
 impl<T> std::fmt::Debug for SiteEventKey<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("")
@@ -85,7 +85,7 @@ where
 
 impl<T> PartialOrd for SiteEventKey<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         if mint_2d::ulps_eq(&self.pos.y, &other.pos.y) {
@@ -101,7 +101,7 @@ where
 
 impl<T> PartialEq for SiteEventKey<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     fn eq(&self, other: &Self) -> bool {
         mint_2d::point_ulps_eq(&self.pos, &other.pos)
@@ -114,7 +114,7 @@ where
 /// leaning towards pivot point have priority.
 struct MinMax<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     best_left: Option<T>,
     slope: MinMaxSlope<T>,
@@ -123,7 +123,7 @@ where
 
 impl<T> MinMax<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     fn new() -> Self {
         Self {
@@ -202,7 +202,7 @@ where
 
 struct MinMaxSlope<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     best_left: Option<T>, // slope
     candidates_left: Vec<usize>,
@@ -213,7 +213,7 @@ where
 
 impl<T> MinMaxSlope<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     fn new() -> Self {
         Self {
@@ -333,7 +333,7 @@ where
 ///
 pub struct SiteEvent<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     drop: Option<Vec<usize>>,
     add: Option<Vec<usize>>,
@@ -344,7 +344,7 @@ where
 
 impl<T> SiteEvent<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     pub(crate) fn with_intersection(i: &[usize]) -> Self {
         Self {
@@ -385,7 +385,7 @@ fn sweepline_intersection<T>(
     other: &mint_2d::Line2<T>,
 ) -> Option<(T, T)>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
     let y1 = other.start.y;
@@ -417,7 +417,7 @@ where
 /// to take() them and make the borrow-checker happy.
 pub struct IntersectionData<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     // sweep-line position
     sweepline_pos: mint::Point2<T>,
@@ -445,7 +445,7 @@ where
 
 impl<T> Default for IntersectionData<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     fn default() -> Self {
         Self {
@@ -467,7 +467,7 @@ where
 
 impl<T> IntersectionData<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq,
+    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
 {
     pub fn get_sweepline_pos(&self) -> &mint::Point2<T> {
         &self.sweepline_pos
