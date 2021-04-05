@@ -44,9 +44,16 @@ licenses /why-not-lgpl.html>.
 */
 
 use super::cgmath_2d;
+use crate::LinestringError;
 use cgmath::Transform;
 use itertools::Itertools;
+use std::collections;
 use std::fmt;
+use std::fs;
+use std::hash::Hash;
+use std::io;
+use std::io::Write;
+use std::path;
 
 /// Placeholder for different 3d shapes
 pub enum Shape3d<T>
@@ -92,12 +99,12 @@ impl Plane {
                     T::default_max_ulps(),
                 );
                 let dy = T::zero().ulps_eq(
-                    &&(dy / max_delta),
+                    &(dy / max_delta),
                     T::default_epsilon(),
                     T::default_max_ulps(),
                 );
                 let dz = T::zero().ulps_eq(
-                    &&(dz / max_delta),
+                    &(dz / max_delta),
                     T::default_epsilon(),
                     T::default_max_ulps(),
                 );
@@ -154,6 +161,14 @@ where
         let z = v1_x * v2_y - v2_x * v1_y;
         x * x + y * y + z * z
     }
+
+    /// Return a new line containing the matrix transformed points
+    pub fn transform(&self, matrix4x4: &cgmath::Matrix4<T>) -> Self {
+        Self {
+            start: matrix4x4.transform_point(self.start),
+            end: matrix4x4.transform_point(self.end),
+        }
+    }
 }
 
 #[allow(clippy::from_over_into)]
@@ -180,6 +195,15 @@ where
 {
     fn from(pos: [IT; 2]) -> Line3<T> {
         Line3::<T>::new(pos[0].into(), pos[1].into())
+    }
+}
+
+impl<T> From<[T; 6]> for Line3<T>
+where
+    T: cgmath::BaseFloat + Sync,
+{
+    fn from(l: [T; 6]) -> Line3<T> {
+        Line3::<T>::new([l[0], l[1], l[2]].into(), [l[3], l[4], l[5]].into())
     }
 }
 
@@ -333,6 +357,7 @@ where
         self.points.push(point);
     }
 
+    /// Return a new LineString3 containing the matrix transformed points
     pub fn transform(&self, matrix4x4: &cgmath::Matrix4<T>) -> Self {
         Self {
             points: self
@@ -876,4 +901,58 @@ where
 {
     let v = sub(a, b);
     v.x * v.x + v.y * v.y + v.z * v.z
+}
+
+/// Rudimentary save line strings to .obj file function
+/// It is extremely inefficient, but it works.
+/// It saves with 6 decimals because that's what Blender uses.
+pub fn save_to_obj_file<T>(
+    filename: &str,
+    object_name: &str,
+    lines: Vec<Vec<Line3<T>>>,
+) -> Result<(), LinestringError>
+where
+    T: cgmath::BaseFloat + Sync + fmt::Display,
+{
+    let mut point_set = collections::HashMap::<String, usize>::new();
+    // try to de-duplicate points
+    for i in lines.iter() {
+        for j in i.iter() {
+            let a_str = format!("v {:.6} {:.6} {:.6}", j.start.x, j.start.y, j.start.z);
+            if !point_set.contains_key(&a_str) {
+                let _ = point_set.insert(a_str, point_set.len());
+            }
+            let a_str = format!("v {:.6} {:.6} {:.6}", j.end.x, j.end.y, j.end.z);
+            if !point_set.contains_key(&a_str) {
+                let _ = point_set.insert(a_str, point_set.len());
+            }
+        }
+    }
+    let path = path::Path::new(filename);
+    let mut file = io::BufWriter::new(fs::File::create(&path)?);
+    write!(file, "o {}\n", object_name)?;
+    for (k, v) in point_set.iter().sorted_unstable_by(|a, b| a.1.cmp(b.1)) {
+        write!(file, "{} #{}\n", k, v + 1)?;
+    }
+    for i in lines.iter() {
+        for j in i.iter() {
+            let str0 = format!("v {:.6} {:.6} {:.6}", j.start.x, j.start.y, j.start.z);
+            if let Some(p0) = point_set.get(&str0) {
+                let str1 = format!("v {:.6} {:.6} {:.6}", j.end.x, j.end.y, j.end.z);
+                if let Some(p1) = point_set.get(&str1) {
+                    write!(file, "l {} {}\n", p0 + 1, p1 + 1)?;
+                } else {
+                    return Err(LinestringError::UnknownError {
+                        txt: format!("HashMap can't find the key:{}", str1),
+                    });
+                }
+            } else {
+                return Err(LinestringError::UnknownError {
+                    txt: format!("HashMap can't find the key:{}", str0),
+                });
+            }
+        }
+    }
+    file.flush()?;
+    Ok(())
 }

@@ -74,6 +74,9 @@ pub enum LinestringError {
 
     #[error("Aabb error")]
     TransformError { txt: String },
+
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
 }
 
 /// This module is optional. To use if you must include the feature ```impl-nalgebra``` in your ```Cargo.toml``` file.

@@ -256,6 +256,38 @@ where
             - p3[0] * p2[1];
         area * area
     }
+
+    /// Copy this lines2 into a line3, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    pub fn copy_to_3d(&self, plane: vec_3d::Plane) -> vec_3d::Line3<T> {
+        match plane {
+            vec_3d::Plane::XY => vec_3d::Line3::<T>::from([
+                self.start[0],
+                self.start[1],
+                T::zero(),
+                self.end[0],
+                self.end[1],
+                T::zero(),
+            ]),
+            vec_3d::Plane::XZ => vec_3d::Line3::<T>::from([
+                self.start[0],
+                T::zero(),
+                self.start[1],
+                self.end[0],
+                T::zero(),
+                self.end[1],
+            ]),
+            vec_3d::Plane::ZY => vec_3d::Line3::<T>::from([
+                T::zero(),
+                self.start[0],
+                self.start[1],
+                T::zero(),
+                self.end[0],
+                self.end[1],
+            ]),
+        }
+    }
 }
 
 #[allow(clippy::from_over_into)]
@@ -409,6 +441,23 @@ where
         rv
     }
 
+    /// Convert this parable abstraction into a single straight line
+    pub fn discretise_3d_straight_line(&self, _max_dist: T) -> vec_3d::LineString3<T> {
+        let mut rv = vec_3d::LineString3::default().with_connected(false);
+        let distance = distance_to_line_squared_safe(
+            &self.segment.start,
+            &self.segment.end,
+            &self.start_point,
+        )
+        .sqrt();
+        rv.points
+            .push([self.start_point[0], self.start_point[1], distance]);
+        let distance = distance_to_point_squared(&self.end_point, &self.cell_point).sqrt();
+        rv.points
+            .push([self.end_point[0], self.end_point[1], distance]);
+        rv
+    }
+
     /// Convert this parable abstraction into discrete line segment sample points.
     /// The Z component of the coordinates is the constant distance from the edge to point and
     /// line segment (should be the same value)
@@ -418,10 +467,11 @@ where
     pub fn discretise_3d(&self, max_dist: T) -> vec_3d::LineString3<T> {
         let mut rv = vec_3d::LineString3::default().with_connected(false);
         let distance = distance_to_point_squared(&self.start_point, &self.cell_point).sqrt();
-        // assert!(ulps_eq(&distance, &distance_to_point_squared(&self.end_point, &self.cell_point).sqrt()));
-
         rv.points
             .push([self.start_point[0], self.start_point[1], distance]);
+
+        let distance = distance_to_point_squared(&self.end_point, &self.cell_point).sqrt();
+        // todo, don't insert end_point and then pop it again a few lines later..
         rv.points
             .push([self.end_point[0], self.end_point[1], distance]);
 
@@ -482,6 +532,8 @@ where
                     + self.segment.start[0];
                 let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
                     + self.segment.start[1];
+                let distance =
+                    distance_to_point_squared(&[inter_x, inter_y], &self.cell_point).sqrt();
                 rv.points.push([inter_x, inter_y, distance]);
                 cur_x = new_x;
                 cur_y = new_y;
@@ -672,6 +724,7 @@ where
         self.points.is_empty()
     }
 
+    /// Returns the line string as a Vec of lines
     pub fn as_lines(&self) -> Vec<Line2<T>> {
         if self.points.is_empty() {
             return vec![];
@@ -1482,7 +1535,7 @@ where
 }
 
 /// Same as distance_to_line_squared<T> but it can be called when a-b might be 0.
-/// It's a little slower with because it does the test
+/// It's a little slower because it does the a==b test
 #[inline(always)]
 pub fn distance_to_line_squared_safe<T>(a: &[T; 2], b: &[T; 2], p: &[T; 2]) -> T
 where

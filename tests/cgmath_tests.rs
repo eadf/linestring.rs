@@ -527,6 +527,12 @@ fn voronoi_parabolic_arc_1() {
 #[cfg(feature = "impl-cgmath")]
 #[test]
 fn voronoi_parabolic_arc_2() {
+    let d = |x1: f32, y1: f32, p: &cgmath::Point2<f32>| {
+        let x = p.x - x1;
+        let y = p.y - y1;
+        (x * x + y * y).sqrt()
+    };
+
     /*
     point1:Point { x: 200, y: 200 },
     segment:Line { start: Point { x: 100, y: 100 }, end: Point { x: 300, y: 100 } },
@@ -545,39 +551,39 @@ fn voronoi_parabolic_arc_2() {
     let result = vpa.discretise_3d(max_dist);
     assert!(cgmath_3d::point_ulps_eq(
         &result.points()[0],
-        &[100.0, 200.0, 100.].into()
+        &[100.0, 200.0, d(100.0, 200.0, &cell_point)].into()
     ));
     assert!(cgmath_3d::point_ulps_eq(
         &result.points()[1],
-        &[125.0, 178.125, 100.].into()
+        &[125.0, 178.125, d(125.0, 178.125, &cell_point)].into()
     ));
     assert!(cgmath_3d::point_ulps_eq(
         &result.points()[2],
-        &[150.0, 162.5, 100.].into()
+        &[150.0, 162.5, d(150.0, 162.5, &cell_point)].into()
     ));
     assert!(cgmath_3d::point_ulps_eq(
         &result.points()[3],
-        &[175.0, 153.125, 100.].into()
+        &[175.0, 153.125, d(175.0, 153.125, &cell_point)].into()
     ));
     assert!(cgmath_3d::point_ulps_eq(
         &result.points()[4],
-        &[200.0, 150.0, 100.].into()
+        &[200.0, 150.0, d(200.0, 150.0, &cell_point)].into()
     ));
     assert!(cgmath_3d::point_ulps_eq(
         &result.points()[5],
-        &[225.0, 153.125, 100.].into()
+        &[225.0, 153.125, d(225.0, 153.125, &cell_point)].into()
     ));
     assert!(cgmath_3d::point_ulps_eq(
         &result.points()[6],
-        &[250.0, 162.5, 100.].into()
+        &[250.0, 162.5, d(250.0, 162.5, &cell_point)].into()
     ));
     assert!(cgmath_3d::point_ulps_eq(
         &result.points()[7],
-        &[275.0, 178.125, 100.].into()
+        &[275.0, 178.125, d(275.0, 178.125, &cell_point)].into()
     ));
     assert!(cgmath_3d::point_ulps_eq(
         &result.points()[8],
-        &[300.0, 200.0, 100.].into()
+        &[300.0, 200.0, d(300.0, 200.0, &cell_point)].into()
     ));
     println!("result: {:?}", result);
 }

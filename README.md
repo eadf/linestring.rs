@@ -4,20 +4,24 @@
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)
 [![dependency status](https://deps.rs/crate/linestring/0.0.14/status.svg)](https://deps.rs/crate/linestring/0.0.14)
 
-# Line library for Rust (Work in progress)
+# Line library for Rust
 
 This crate contains data structures and methods that deals with lines in 2D and 3D space.
 
 There are 3D and 2D implementations of:
 * LineString, a sequence of points, aka Polyline.
-* Self intersection tests for lines in 2d, O( n log n + i log n).
 * Line, a finite two-point struct (no rays).
 * [Ramer–Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm) and
 * [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
-* Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box).
-* sampling of [boostvoronoi](https://github.com/eadf/boostvoronoi.rs) parabolic arc curves.
+* Sampling of [boostvoronoi](https://github.com/eadf/boostvoronoi.rs) parabolic arc curves.
+* Rudimentary functionality to save to .obj file
+
+There are 2D implementations of:
 * LineString2 convex hull calculation (gift wrapping & Graham scan)
-* Convex hull containment test
+* Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box).
+* Self intersection tests for line strings, or groups of lines O( n log n + i log n).
+* Convex hull containment test (single threaded or multi-threaded with [ryon](https://crates.io/crates/rayon))
+* Simple affine transformation (pan, zoom)
 
 This is implemented for [cgmath](https://crates.io/crates/cgmath), 
 [nalgebra](https://crates.io/crates/nalgebra), [vecmath](https://crates.io/crates/vecmath) 
@@ -46,7 +50,7 @@ linestring = {version="^0.0.14",default-features=false,features=["impl-vecmath"]
 linestring = {version="^0.0.14",default-features=false,features=["impl-vec"]}
 ```
 The difference between ```impl-vecmath``` and ```impl-vec``` is that the ```impl-vecmath``` feature supports 
-affine transformations.
+matrix transformations.
 
 ## Demo GUI
 Run the line simplification example with :

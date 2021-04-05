@@ -262,6 +262,38 @@ where
             p1.x * p2.y + p2.x * p3.y + p3.x * p1.y - p1.x * p3.y - p2.x * p1.y - p3.x * p2.y;
         area * area
     }
+
+    /// Copy this lines2 into a line3, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    pub fn copy_to_3d(&self, plane: cgmath_3d::Plane) -> cgmath_3d::Line3<T> {
+        match plane {
+            cgmath_3d::Plane::XY => cgmath_3d::Line3::<T>::from([
+                self.start.x,
+                self.start.y,
+                T::zero(),
+                self.end.x,
+                self.end.y,
+                T::zero(),
+            ]),
+            cgmath_3d::Plane::XZ => cgmath_3d::Line3::<T>::from([
+                self.start.x,
+                T::zero(),
+                self.start.y,
+                self.end.x,
+                T::zero(),
+                self.end.y,
+            ]),
+            cgmath_3d::Plane::ZY => cgmath_3d::Line3::<T>::from([
+                T::zero(),
+                self.start.x,
+                self.start.y,
+                T::zero(),
+                self.end.x,
+                self.end.y,
+            ]),
+        }
+    }
 }
 
 #[allow(clippy::from_over_into)]
@@ -418,6 +450,23 @@ where
         rv
     }
 
+    /// Convert this parable abstraction into a single straight line
+    pub fn discretise_3d_straight_line(&self, _max_dist: T) -> cgmath_3d::LineString3<T> {
+        let mut rv = cgmath_3d::LineString3::default().with_connected(false);
+        let distance = distance_to_line_squared_safe(
+            &self.segment.start,
+            &self.segment.end,
+            &self.start_point,
+        )
+        .sqrt();
+        rv.points
+            .push([self.start_point.x, self.start_point.y, distance].into());
+        let distance = distance_to_point_squared(&self.end_point, &self.cell_point).sqrt();
+        rv.points
+            .push([self.end_point.x, self.end_point.y, distance].into());
+        rv
+    }
+
     /// Convert this parable abstraction into discrete line segment sample points.
     /// The Z component of the coordinates is the constant distance from the edge to point and
     /// line segment (should be the same value)
@@ -427,10 +476,11 @@ where
     pub fn discretise_3d(&self, max_dist: T) -> cgmath_3d::LineString3<T> {
         let mut rv = cgmath_3d::LineString3::default().with_connected(false);
         let distance = distance_to_point_squared(&self.start_point, &self.cell_point).sqrt();
-        // assert!(ulps_eq(&distance, &distance_to_point_squared(&self.end_point, &self.cell_point).sqrt()));
-
         rv.points
             .push([self.start_point.x, self.start_point.y, distance].into());
+
+        let distance = distance_to_point_squared(&self.end_point, &self.cell_point).sqrt();
+        // todo, don't insert end_point and then pop it again a few lines later..
         rv.points
             .push([self.end_point.x, self.end_point.y, distance].into());
 
@@ -491,6 +541,14 @@ where
                     + self.segment.start.x;
                 let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
                     + self.segment.start.y;
+                let distance = distance_to_point_squared(
+                    &cgmath::Point2 {
+                        x: inter_x,
+                        y: inter_y,
+                    },
+                    &self.cell_point,
+                )
+                .sqrt();
                 rv.points.push(cgmath::Point3 {
                     x: inter_x,
                     y: inter_y,
@@ -685,6 +743,7 @@ where
         self.points.is_empty()
     }
 
+    /// Returns the line string as a Vec of lines
     pub fn as_lines(&self) -> Vec<Line2<T>> {
         if self.points.is_empty() {
             return vec![];
@@ -1533,7 +1592,7 @@ where
 }
 
 /// Same as distance_to_line_squared<T> but it can be called when a-b might be 0.
-/// It's a little slower with because it does the test
+/// It's a little slower because it does the a==b test
 #[inline(always)]
 pub fn distance_to_line_squared_safe<T>(
     a: &cgmath::Point2<T>,
