@@ -307,6 +307,7 @@ impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq
             }
         }
     }
+
     #[cfg(feature = "impl-rayon")]
     pub fn contains(a: &mint_2d::LineString2<T>, b: &mint_2d::LineString2<T>) -> bool {
         if a.len() <= 1 {
@@ -326,6 +327,38 @@ impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq
                             return Some(());
                         }
                     }
+                }
+                None
+            })
+            .is_none()
+    }
+
+    #[cfg(feature = "impl-rayon")]
+    pub fn contains_point_exclusive(a: &mint_2d::LineString2<T>, p: &mint::Point2<T>) -> bool {
+        if a.len() <= 1 {
+            return false;
+        }
+        a.as_lines()
+            .par_iter()
+            .find_map_any(|l| -> Option<()> {
+                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
+                    return Some(());
+                }
+                None
+            })
+            .is_none()
+    }
+
+    #[cfg(feature = "impl-rayon")]
+    pub fn contains_point_inclusive(a: &mint_2d::LineString2<T>, p: &mint::Point2<T>) -> bool {
+        if a.len() <= 1 {
+            return false;
+        }
+        a.as_lines()
+            .par_iter()
+            .find_map_any(|l| -> Option<()> {
+                if !Self::is_point_left(&l.start, &l.end, p) {
+                    return Some(());
                 }
                 None
             })

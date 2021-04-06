@@ -91,11 +91,11 @@ fn intersection_1() {
 fn aabb2_1() {
     let aabb = vec_2d::Aabb2::from([200_f32, 200., 400., 400.]);
     let line = vec_2d::Line2::from([201_f32, 250., 300., 300.]);
-    assert!(aabb.contains_line(&line));
+    assert!(aabb.contains_line_inclusive(&line));
 
     let aabb = vec_2d::Aabb2::from([200_f32, 200., 400., 400.]);
     let line = vec_2d::Line2::from([199.9999_f32, 250., 300., 300.]);
-    assert!(!aabb.contains_line(&line));
+    assert!(!aabb.contains_line_inclusive(&line));
 }
 
 #[cfg(feature = "impl-vec")]

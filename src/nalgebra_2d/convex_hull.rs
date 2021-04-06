@@ -317,6 +317,7 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
             }
         }
     }
+
     #[cfg(feature = "impl-rayon")]
     pub fn contains(a: &nalgebra_2d::LineString2<T>, b: &nalgebra_2d::LineString2<T>) -> bool {
         if a.len() <= 1 {
@@ -336,6 +337,44 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
                             return Some(());
                         }
                     }
+                }
+                None
+            })
+            .is_none()
+    }
+
+    #[cfg(feature = "impl-rayon")]
+    pub fn contains_point_exclusive(
+        a: &nalgebra_2d::LineString2<T>,
+        p: &nalgebra::Point2<T>,
+    ) -> bool {
+        if a.len() <= 1 {
+            return false;
+        }
+        a.as_lines()
+            .par_iter()
+            .find_map_any(|l| -> Option<()> {
+                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
+                    return Some(());
+                }
+                None
+            })
+            .is_none()
+    }
+
+    #[cfg(feature = "impl-rayon")]
+    pub fn contains_point_inclusive(
+        a: &nalgebra_2d::LineString2<T>,
+        p: &nalgebra::Point2<T>,
+    ) -> bool {
+        if a.len() <= 1 {
+            return false;
+        }
+        a.as_lines()
+            .par_iter()
+            .find_map_any(|l| -> Option<()> {
+                if !Self::is_point_left(&l.start, &l.end, p) {
+                    return Some(());
                 }
                 None
             })

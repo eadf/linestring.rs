@@ -313,6 +313,7 @@ impl<T: cgmath::BaseFloat + Sync> ConvexHull<T> {
             }
         }
     }
+
     #[cfg(feature = "impl-rayon")]
     pub fn contains(a: &cgmath_2d::LineString2<T>, b: &cgmath_2d::LineString2<T>) -> bool {
         if a.len() <= 1 {
@@ -332,6 +333,38 @@ impl<T: cgmath::BaseFloat + Sync> ConvexHull<T> {
                             return Some(());
                         }
                     }
+                }
+                None
+            })
+            .is_none()
+    }
+
+    #[cfg(feature = "impl-rayon")]
+    pub fn contains_point_exclusive(a: &cgmath_2d::LineString2<T>, p: &cgmath::Point2<T>) -> bool {
+        if a.len() <= 1 {
+            return false;
+        }
+        a.as_lines()
+            .par_iter()
+            .find_map_any(|l| -> Option<()> {
+                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
+                    return Some(());
+                }
+                None
+            })
+            .is_none()
+    }
+
+    #[cfg(feature = "impl-rayon")]
+    pub fn contains_point_inclusive(a: &cgmath_2d::LineString2<T>, p: &cgmath::Point2<T>) -> bool {
+        if a.len() <= 1 {
+            return false;
+        }
+        a.as_lines()
+            .par_iter()
+            .find_map_any(|l| -> Option<()> {
+                if !Self::is_point_left(&l.start, &l.end, p) {
+                    return Some(());
                 }
                 None
             })

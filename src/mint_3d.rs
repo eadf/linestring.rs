@@ -927,20 +927,18 @@ where
     for i in lines.iter() {
         for j in i.iter() {
             let a_str = format!("v {:.6} {:.6} {:.6}", j.start.x, j.start.y, j.start.z);
-            if !point_set.contains_key(&a_str) {
-                let _ = point_set.insert(a_str, point_set.len());
-            }
+            let len = point_set.len();
+            let _ = point_set.entry(a_str).or_insert(len);
             let a_str = format!("v {:.6} {:.6} {:.6}", j.end.x, j.end.y, j.end.z);
-            if !point_set.contains_key(&a_str) {
-                let _ = point_set.insert(a_str, point_set.len());
-            }
+            let len = point_set.len();
+            let _ = point_set.entry(a_str).or_insert(len);
         }
     }
     let path = path::Path::new(filename);
     let mut file = io::BufWriter::new(fs::File::create(&path)?);
-    write!(file, "o {}\n", object_name)?;
+    writeln!(file, "o {}", object_name)?;
     for (k, v) in point_set.iter().sorted_unstable_by(|a, b| a.1.cmp(b.1)) {
-        write!(file, "{} #{}\n", k, v + 1)?;
+        writeln!(file, "{} #{}", k, v + 1)?;
     }
     for i in lines.iter() {
         for j in i.iter() {
@@ -948,7 +946,7 @@ where
             if let Some(p0) = point_set.get(&str0) {
                 let str1 = format!("v {:.6} {:.6} {:.6}", j.end.x, j.end.y, j.end.z);
                 if let Some(p1) = point_set.get(&str1) {
-                    write!(file, "l {} {}\n", p0 + 1, p1 + 1)?;
+                    writeln!(file, "l {} {}", p0 + 1, p1 + 1)?;
                 } else {
                     return Err(LinestringError::UnknownError {
                         txt: format!("HashMap can't find the key:{}", str1),

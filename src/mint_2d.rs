@@ -1060,6 +1060,16 @@ where
                 .with_connected(true)
         }
     }
+
+    pub fn operation<F>(&mut self, f: F)
+    where
+        F: Fn(T) -> T,
+    {
+        for v in self.points.iter_mut() {
+            v.x = f(v.x);
+            v.y = f(v.y);
+        }
+    }
 }
 
 impl<T> From<Aabb2<T>> for LineString2<T>
@@ -1292,6 +1302,27 @@ where
             .push((other.aabb.clone(), other.convex_hull.take().unwrap()));
         Ok(())
     }
+
+    /// Iterate an operation over each coordinate in the contained objects.
+    /// Useful when you want to round the value of each contained coordinate.
+    pub fn operation<F>(&mut self, f: &F)
+    where
+        F: Fn(T) -> T,
+    {
+        for s in self.set.iter_mut() {
+            s.operation(f);
+        }
+        self.aabb.operation(f);
+        if let Some(ref mut convex_hull) = self.convex_hull {
+            convex_hull.operation(f);
+        }
+        if let Some(ref mut internals) = self.internals {
+            for i in internals.iter_mut() {
+                i.0.operation(f);
+                i.1.operation(f);
+            }
+        }
+    }
 }
 
 /// A simple 2d AABB
@@ -1417,8 +1448,8 @@ where
     pub fn contains_aabb(&self, other: &Aabb2<T>) -> bool {
         if let Some(self_aabb) = self.min_max {
             if let Some(other_aabb) = other.min_max {
-                return Self::contains_point_(&self_aabb, &other_aabb.0)
-                    && Self::contains_point_(&self_aabb, &other_aabb.1);
+                return Self::contains_point_inclusive_(&self_aabb, &other_aabb.0)
+                    && Self::contains_point_inclusive_(&self_aabb, &other_aabb.1);
             }
         }
         false
@@ -1426,27 +1457,45 @@ where
 
     /// returns true if this aabb entirely contains/engulfs a line (inclusive)
     #[inline(always)]
-    pub fn contains_line(&self, line: &Line2<T>) -> bool {
+    pub fn contains_line_inclusive(&self, line: &Line2<T>) -> bool {
         if let Some(self_aabb) = self.min_max {
-            return Self::contains_point_(&self_aabb, &line.start)
-                && Self::contains_point_(&self_aabb, &line.end);
+            return Self::contains_point_inclusive_(&self_aabb, &line.start)
+                && Self::contains_point_inclusive_(&self_aabb, &line.end);
         }
         false
     }
 
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
-    pub fn contains_point(&self, point: &mint::Point2<T>) -> bool {
+    pub fn contains_point_inclusive(&self, point: &mint::Point2<T>) -> bool {
         if let Some(self_aabb) = self.min_max {
-            return Self::contains_point_(&self_aabb, point);
+            return Self::contains_point_inclusive_(&self_aabb, point);
         }
         false
     }
 
     /// returns true if aabb contains a point (inclusive)
     #[inline(always)]
-    fn contains_point_(aabb: &(mint::Point2<T>, mint::Point2<T>), point: &mint::Point2<T>) -> bool {
-        aabb.0.x <= point.x && aabb.0.y <= point.y && aabb.1.x >= point.x && aabb.1.y >= point.y
+    fn contains_point_inclusive_(
+        aabb: &(mint::Point2<T>, mint::Point2<T>),
+        point: &mint::Point2<T>,
+    ) -> bool {
+        (aabb.0.x <= point.x || ulps_eq(&aabb.0.x, &point.x))
+            && (aabb.0.y <= point.y || ulps_eq(&aabb.0.y, &point.y))
+            && (aabb.1.x >= point.x || ulps_eq(&aabb.1.x, &point.x))
+            && (aabb.1.y >= point.y || ulps_eq(&aabb.1.y, &point.y))
+    }
+
+    pub fn operation<F>(&mut self, f: F)
+    where
+        F: Fn(T) -> T,
+    {
+        if let Some(ref mut min_max) = self.min_max {
+            min_max.0.x = f(min_max.0.x);
+            min_max.0.y = f(min_max.0.y);
+            min_max.1.x = f(min_max.1.x);
+            min_max.1.y = f(min_max.1.y);
+        }
     }
 }
 
