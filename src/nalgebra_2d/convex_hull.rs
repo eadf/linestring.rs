@@ -318,6 +318,34 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
         }
     }
 
+    /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull (inclusive)
+    ///```
+    /// # use linestring::nalgebra_2d;
+    /// # use linestring::nalgebra_2d::convex_hull;
+    /// # use rand::{Rng, SeedableRng};
+    ///
+    /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
+    /// let mut points = Vec::<nalgebra::Point2<f32>>::new();
+    /// for _i in 0..4023 {
+    ///    let p: [f32; 2] = [rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0)];
+    ///    points.push(p.into());
+    /// }
+    ///
+    /// let a = nalgebra_2d::LineString2::<f32>::default().with_points(points);
+    /// let a = convex_hull::ConvexHull::graham_scan(a.points().iter());
+    ///
+    /// let mut points = Vec::<nalgebra::Point2<f32>>::new();
+    /// for _i in 0..1023 {
+    ///    let p: [f32; 2] = [rng.gen_range(1000.0..2000.0), rng.gen_range(1000.0..2000.0)];
+    ///    points.push(p.into());
+    /// }
+    ///
+    /// let b = nalgebra_2d::LineString2::<f32>::default().with_points(points);
+    /// let b = convex_hull::ConvexHull::graham_scan(b.points().iter());
+    ///
+    /// assert!(convex_hull::ConvexHull::contains(&a, &b));
+    /// assert!(!convex_hull::ConvexHull::contains(&b, &a));
+    ///```
     #[cfg(feature = "impl-rayon")]
     pub fn contains(a: &nalgebra_2d::LineString2<T>, b: &nalgebra_2d::LineString2<T>) -> bool {
         if a.len() <= 1 {
@@ -343,6 +371,25 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
             .is_none()
     }
 
+    /// Returns true if the 'a' convex hull contains the 'b' point (exclusive)
+    ///```
+    /// # use linestring::nalgebra_2d;
+    /// # use linestring::nalgebra_2d::convex_hull;
+    ///
+    /// let mut hull = nalgebra_2d::LineString2::with_capacity(4).with_connected(true);
+    /// hull.push([0.0,0.0].into());
+    /// hull.push([10.0,0.0].into());
+    /// hull.push([10.0,10.0].into());
+    /// hull.push([0.0,10.0].into());
+    ///
+    /// assert!(!convex_hull::ConvexHull::contains_point_exclusive(&hull, &[0.0,0.0].into()));
+    /// assert!(!convex_hull::ConvexHull::contains_point_exclusive(&hull, &[10.0,10.0].into()));
+    /// assert!(convex_hull::ConvexHull::contains_point_exclusive(&hull, &[5.0,6.0].into()));
+    /// assert!(!convex_hull::ConvexHull::contains_point_exclusive(&hull, &[10.0000001,10.0].into()));
+    /// assert!(convex_hull::ConvexHull::contains_point_exclusive(&hull, &[9.99999,9.99999].into()));
+    /// assert!(!convex_hull::ConvexHull::contains_point_exclusive(&hull, &[10.0,9.99999].into()));
+    ///
+    ///```
     #[cfg(feature = "impl-rayon")]
     pub fn contains_point_exclusive(
         a: &nalgebra_2d::LineString2<T>,
@@ -354,7 +401,7 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
         a.as_lines()
             .par_iter()
             .find_map_any(|l| -> Option<()> {
-                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
+                if !Self::is_point_left(&l.start, &l.end, p) {
                     return Some(());
                 }
                 None
@@ -362,6 +409,25 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
             .is_none()
     }
 
+    /// Returns true if the 'a' convex hull contains the 'b' point (inclusive)
+    ///```
+    /// # use linestring::nalgebra_2d;
+    /// # use linestring::nalgebra_2d::convex_hull;
+    ///
+    /// let mut hull = nalgebra_2d::LineString2::with_capacity(4).with_connected(true);
+    /// hull.push([0.0,0.0].into());
+    /// hull.push([10.0,0.0].into());
+    /// hull.push([10.0,10.0].into());
+    /// hull.push([0.0,10.0].into());
+    ///
+    /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[0.0,5.0].into()));
+    /// assert!(!convex_hull::ConvexHull::contains_point_inclusive(&hull, &[-0.000001,5.0].into()));
+    /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[0.0,0.0].into()));
+    /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[10.0,5.0].into()));
+    /// assert!(!convex_hull::ConvexHull::contains_point_inclusive(&hull, &[10.0000001,5.0].into()));
+    /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[9.999,5.0].into()));
+    /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[10.0,5.0].into()));
+    ///```
     #[cfg(feature = "impl-rayon")]
     pub fn contains_point_inclusive(
         a: &nalgebra_2d::LineString2<T>,
@@ -373,7 +439,7 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
         a.as_lines()
             .par_iter()
             .find_map_any(|l| -> Option<()> {
-                if !Self::is_point_left(&l.start, &l.end, p) {
+                if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
                     return Some(());
                 }
                 None
