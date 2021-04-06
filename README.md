@@ -32,22 +32,22 @@ More implementations could be added if required.
 
 If you want to use this library in your cgmath project you add this to your Cargo.toml:
 ```cargo
-linestring = {version="^0.0.14",default-features=false,features=["impl-cgmath"]}
+linestring = {version="^0.0.14",default-features=false,features=["impl-cgmath", "impl-rayon"]}
 ```
 Same thing for the other supported 2d/3d libraries: 
 ```cargo
-linestring = {version="^0.0.14",default-features=false,features=["impl-nalgebra"]}
+linestring = {version="^0.0.14",default-features=false,features=["impl-nalgebra", "impl-rayon"]}
 ```
 
 ```cargo
-linestring = {version="^0.0.14",default-features=false,features=["impl-mint"]}
+linestring = {version="^0.0.14",default-features=false,features=["impl-mint", "impl-rayon"]}
 ```
 
 ```cargo
-linestring = {version="^0.0.14",default-features=false,features=["impl-vecmath"]}
+linestring = {version="^0.0.14",default-features=false,features=["impl-vecmath", "impl-rayon"]}
 ```
 ```cargo
-linestring = {version="^0.0.14",default-features=false,features=["impl-vec"]}
+linestring = {version="^0.0.14",default-features=false,features=["impl-vec", "impl-rayon"]}
 ```
 The difference between ```impl-vecmath``` and ```impl-vec``` is that the ```impl-vecmath``` feature supports 
 matrix transformations.
@@ -55,7 +55,7 @@ matrix transformations.
 ## Demo GUI
 Run the line simplification example with :
 ```fish
-cargo run --example fltk_gui --no-default-features --features impl-cgmath
+cargo run --example fltk_gui --no-default-features --features impl-cgmath,impl-rayon
 ```
 
 ## Todo

@@ -316,6 +316,7 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
                 }
             }
         }
+        true
     }
 
     /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull (inclusive)
