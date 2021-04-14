@@ -2,7 +2,7 @@
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)
-[![dependency status](https://deps.rs/crate/linestring/0.1.0/status.svg)](https://deps.rs/crate/linestring/0.1.0)
+[![dependency status](https://deps.rs/crate/linestring/0.1.1/status.svg)](https://deps.rs/crate/linestring/0.1.1)
 
 # Line library for Rust
 
@@ -32,22 +32,22 @@ More implementations could be added if required.
 
 If you want to use this library in your cgmath project you add this to your Cargo.toml:
 ```cargo
-linestring = {version="^0.1.0",default-features=false,features=["impl-cgmath", "impl-rayon"]}
+linestring = {version="^0.1.1",default-features=false,features=["impl-cgmath", "impl-rayon"]}
 ```
 Same thing for the other supported 2d/3d libraries: 
 ```cargo
-linestring = {version="^0.1.0",default-features=false,features=["impl-nalgebra", "impl-rayon"]}
+linestring = {version="^0.1.1",default-features=false,features=["impl-nalgebra", "impl-rayon"]}
 ```
 
 ```cargo
-linestring = {version="^0.1.0",default-features=false,features=["impl-mint", "impl-rayon"]}
+linestring = {version="^0.1.1",default-features=false,features=["impl-mint", "impl-rayon"]}
 ```
 
 ```cargo
-linestring = {version="^0.1.0",default-features=false,features=["impl-vecmath", "impl-rayon"]}
+linestring = {version="^0.1.1",default-features=false,features=["impl-vecmath", "impl-rayon"]}
 ```
 ```cargo
-linestring = {version="^0.1.0",default-features=false,features=["impl-vec", "impl-rayon"]}
+linestring = {version="^0.1.1",default-features=false,features=["impl-vec", "impl-rayon"]}
 ```
 The difference between ```impl-vecmath``` and ```impl-vec``` is that the ```impl-vecmath``` feature supports 
 matrix transformations.
