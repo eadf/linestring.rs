@@ -91,7 +91,7 @@ impl Plane {
                 let dx = high_bound.x - low_bound.x;
                 let dy = high_bound.y - low_bound.y;
                 let dz = high_bound.z - low_bound.z;
-                let max_delta = num_traits::Float::max(num_traits::Float::max(dx, dy), dz);
+                let max_delta = T::max(T::max(dx, dy), dz);
 
                 let dx = T::zero().ulps_eq(
                     &(dx / max_delta),
@@ -110,13 +110,13 @@ impl Plane {
                 );
 
                 if dx && !dy && !dz {
-                    return Some(Plane::XY);
+                    return Some(Plane::ZY);
                 }
                 if dy && !dx && !dz {
                     return Some(Plane::XZ);
                 }
                 if dz && !dx && !dy {
-                    return Some(Plane::ZY);
+                    return Some(Plane::XY);
                 }
             }
         }
