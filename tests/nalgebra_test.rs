@@ -248,7 +248,7 @@ fn voronoiparabolicarc_2() {
     let d = |x1: f32, y1: f32, p: &nalgebra::Point2<f32>| {
         let x = p.x - x1;
         let y = p.y - y1;
-        (x * x + y * y).sqrt()
+        -(x * x + y * y).sqrt()
     };
     /*
     point1:Point { x: 200, y: 200 },

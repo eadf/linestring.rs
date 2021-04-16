@@ -530,7 +530,7 @@ fn voronoi_parabolic_arc_2() {
     let d = |x1: f32, y1: f32, p: &cgmath::Point2<f32>| {
         let x = p.x - x1;
         let y = p.y - y1;
-        (x * x + y * y).sqrt()
+        -(x * x + y * y).sqrt()
     };
 
     /*

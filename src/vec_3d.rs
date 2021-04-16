@@ -76,6 +76,7 @@ pub enum Plane {
 }
 
 impl Plane {
+    #[inline(always)]
     /// Try to figure out what axes defines the plane.
     /// If the AABB delta of one axis (a) is virtually nothing compared to
     /// the widest axis (b) while the third axis (c) is comparable to (b)
@@ -85,7 +86,31 @@ impl Plane {
     /// leaves some decimal in coordinates that's suppose to be zero.
     pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
     where
-        T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+        T: num_traits::Float
+            + std::fmt::Debug
+            + approx::AbsDiffEq
+            + approx::UlpsEq
+            + Sync
+            + approx::AbsDiffEq<Epsilon = T>,
+    {
+        Plane::get_plane_relaxed(aabb, T::default_epsilon(), T::default_max_ulps())
+    }
+
+    /// Try to figure out what axes defines the plane.
+    /// If the AABB delta of one axis (a) is virtually nothing compared to
+    /// the widest axis (b) while the third axis (c) is comparable to (b)
+    /// by some fraction, we assume that that (a) isn't part of the plane.
+    ///
+    /// It's not possible to compare to zero exactly because blender
+    /// leaves some decimal in coordinates that's suppose to be zero.
+    pub fn get_plane_relaxed<T>(aabb: &Aabb3<T>, epsilon: T, max_ulps: u32) -> Option<Plane>
+    where
+        T: num_traits::Float
+            + std::fmt::Debug
+            + approx::AbsDiffEq
+            + approx::UlpsEq
+            + Sync
+            + approx::AbsDiffEq<Epsilon = T>,
     {
         if let Some(low_bound) = aabb.get_low() {
             if let Some(high_bound) = aabb.get_high() {
@@ -94,21 +119,9 @@ impl Plane {
                 let dz = high_bound[2] - low_bound[2];
                 let max_delta = T::max(T::max(dx, dy), dz);
 
-                let dx = T::zero().ulps_eq(
-                    &(dx / max_delta),
-                    T::default_epsilon(),
-                    T::default_max_ulps(),
-                );
-                let dy = T::zero().ulps_eq(
-                    &(dy / max_delta),
-                    T::default_epsilon(),
-                    T::default_max_ulps(),
-                );
-                let dz = T::zero().ulps_eq(
-                    &(dz / max_delta),
-                    T::default_epsilon(),
-                    T::default_max_ulps(),
-                );
+                let dx = T::zero().ulps_eq(&(dx / max_delta), epsilon, max_ulps);
+                let dy = T::zero().ulps_eq(&(dy / max_delta), epsilon, max_ulps);
+                let dz = T::zero().ulps_eq(&(dz / max_delta), epsilon, max_ulps);
 
                 if dx && !dy && !dz {
                     return Some(Plane::ZY);
