@@ -5,13 +5,24 @@ use std::cmp::Ordering;
 use std::marker::PhantomData;
 
 pub struct ConvexHull<
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 > {
     pd: PhantomData<T>,
 }
 
-impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync>
-    ConvexHull<T>
+impl<
+        T: num_traits::Float
+            + std::fmt::Debug
+            + approx::AbsDiffEq
+            + approx::UlpsEq
+            + Sync
+            + approx::AbsDiffEq<Epsilon = T>,
+    > ConvexHull<T>
 {
     /// finds the point with lowest x
     fn find_lowest_x(linestring: &[[T; 2]]) -> (usize, [T; 2]) {
@@ -193,7 +204,7 @@ impl<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq
     pub fn graham_scan<'a, I>(input: I) -> vec_2d::LineString2<T>
     where
         I: IntoIterator<Item = &'a [T; 2]>,
-        T: 'a + Sync,
+        T: 'a + Sync + approx::AbsDiffEq<Epsilon = T>,
     {
         let mut input_points = input.into_iter().copied().collect::<Vec<[T; 2]>>();
 

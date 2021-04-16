@@ -55,14 +55,24 @@ use crate::{vec_2d, LinestringError};
 #[derive(Clone, Copy)]
 pub struct SiteEventKey<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     pub pos: [T; 2],
 }
 
 impl<T> SiteEventKey<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     pub fn new(x: T, y: T) -> Self {
         Self { pos: [x, y] }
@@ -71,7 +81,12 @@ where
 
 impl<T> std::fmt::Debug for SiteEventKey<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("")
@@ -83,7 +98,12 @@ where
 
 impl<T> PartialOrd for SiteEventKey<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         if vec_2d::ulps_eq(&self.pos[1], &other.pos[1]) {
@@ -99,7 +119,12 @@ where
 
 impl<T> PartialEq for SiteEventKey<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     fn eq(&self, other: &Self) -> bool {
         vec_2d::point_ulps_eq(&self.pos, &other.pos)
@@ -112,7 +137,12 @@ where
 /// leaning towards pivot point have priority.
 struct MinMax<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     best_left: Option<T>,
     slope: MinMaxSlope<T>,
@@ -121,7 +151,12 @@ where
 
 impl<T> MinMax<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     fn new() -> Self {
         Self {
@@ -200,7 +235,12 @@ where
 
 struct MinMaxSlope<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     best_left: Option<T>, // slope
     candidates_left: Vec<usize>,
@@ -211,7 +251,12 @@ where
 
 impl<T> MinMaxSlope<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     fn new() -> Self {
         Self {
@@ -331,7 +376,12 @@ where
 ///
 pub struct SiteEvent<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     drop: Option<Vec<usize>>,
     add: Option<Vec<usize>>,
@@ -342,7 +392,12 @@ where
 
 impl<T> SiteEvent<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     pub(crate) fn with_intersection(i: &[usize]) -> Self {
         Self {
@@ -380,7 +435,12 @@ where
 /// Second return value is the slope of the line
 fn sweepline_intersection<T>(sweepline: [T; 2], other: &vec_2d::Line2<T>) -> Option<(T, T)>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
     let y1 = other.start[1];
@@ -412,7 +472,12 @@ where
 /// to take() them and make the borrow-checker happy.
 pub struct IntersectionData<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     // sweep-line position
     sweepline_pos: [T; 2],
@@ -440,7 +505,12 @@ where
 
 impl<T> Default for IntersectionData<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     fn default() -> Self {
         Self {
@@ -459,7 +529,12 @@ where
 
 impl<T> IntersectionData<T>
 where
-    T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq + Sync,
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     pub fn get_sweepline_pos(&self) -> &[T; 2] {
         &self.sweepline_pos

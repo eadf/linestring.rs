@@ -125,6 +125,21 @@ impl Plane {
         }
         None
     }
+
+    /// Copy this Point2 into a Point3, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    #[inline(always)]
+    pub fn to_3d<T>(&self, point: &nalgebra::Point2<T>) -> nalgebra::Point3<T>
+    where
+        T: nalgebra::RealField + Sync + approx::AbsDiffEq<Epsilon = T>,
+    {
+        match self {
+            Plane::XY => nalgebra::Point3::new(point.x, point.y, T::zero()),
+            Plane::XZ => nalgebra::Point3::new(point.x, T::zero(), point.y),
+            Plane::ZY => nalgebra::Point3::new(T::zero(), point.y, point.x),
+        }
+    }
 }
 
 /// A 3d line

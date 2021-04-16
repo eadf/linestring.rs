@@ -261,32 +261,7 @@ where
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_3d(&self, plane: nalgebra_3d::Plane) -> nalgebra_3d::Line3<T> {
-        match plane {
-            nalgebra_3d::Plane::XY => nalgebra_3d::Line3::<T>::from([
-                self.start.x,
-                self.start.y,
-                T::zero(),
-                self.end.x,
-                self.end.y,
-                T::zero(),
-            ]),
-            nalgebra_3d::Plane::XZ => nalgebra_3d::Line3::<T>::from([
-                self.start.x,
-                T::zero(),
-                self.start.y,
-                self.end.x,
-                T::zero(),
-                self.end.y,
-            ]),
-            nalgebra_3d::Plane::ZY => nalgebra_3d::Line3::<T>::from([
-                T::zero(),
-                self.start.x,
-                self.start.y,
-                T::zero(),
-                self.end.x,
-                self.end.y,
-            ]),
-        }
+        nalgebra_3d::Line3::new(plane.to_3d(&self.start), plane.to_3d(&self.end))
     }
 }
 

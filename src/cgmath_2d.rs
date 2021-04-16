@@ -267,32 +267,7 @@ where
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_3d(&self, plane: cgmath_3d::Plane) -> cgmath_3d::Line3<T> {
-        match plane {
-            cgmath_3d::Plane::XY => cgmath_3d::Line3::<T>::from([
-                self.start.x,
-                self.start.y,
-                T::zero(),
-                self.end.x,
-                self.end.y,
-                T::zero(),
-            ]),
-            cgmath_3d::Plane::XZ => cgmath_3d::Line3::<T>::from([
-                self.start.x,
-                T::zero(),
-                self.start.y,
-                self.end.x,
-                T::zero(),
-                self.end.y,
-            ]),
-            cgmath_3d::Plane::ZY => cgmath_3d::Line3::<T>::from([
-                T::zero(),
-                self.start.x,
-                self.start.y,
-                T::zero(),
-                self.end.x,
-                self.end.y,
-            ]),
-        }
+        cgmath_3d::Line3::new(plane.to_3d(&self.start), plane.to_3d(&self.end))
     }
 }
 
