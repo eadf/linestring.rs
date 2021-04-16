@@ -442,7 +442,7 @@ where
     }
 
     /// Convert this parable abstraction into a single straight line
-    pub fn discretise_3d_straight_line(&self, _max_dist: T) -> vec_3d::LineString3<T> {
+    pub fn discretise_3d_straight_line(&self) -> vec_3d::LineString3<T> {
         let mut rv = vec_3d::LineString3::default().with_connected(false);
         let distance = -distance_to_line_squared_safe(
             &self.segment.start,

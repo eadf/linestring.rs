@@ -442,7 +442,7 @@ where
     }
 
     /// Convert this parable abstraction into a single straight line
-    pub fn discretise_3d_straight_line(&self, _max_dist: T) -> nalgebra_3d::LineString3<T> {
+    pub fn discretise_3d_straight_line(&self) -> nalgebra_3d::LineString3<T> {
         let mut rv = nalgebra_3d::LineString3::default().with_connected(false);
         let distance = -distance_to_line_squared_safe(
             &self.segment.start,
