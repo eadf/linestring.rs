@@ -44,13 +44,15 @@ licenses /why-not-lgpl.html>.
 */
 use fltk::app::redraw;
 use fltk::valuator::HorNiceSlider;
-use fltk::{app, button::*, draw::*, frame::*, window::*};
+use fltk::{app, draw::*, frame::*, window::*};
 use linestring::cgmath_2d::{Aabb2, LineString2, SimpleAffine};
 use std::cell::RefCell;
 use std::rc::Rc;
+use fltk::{prelude::*, enums::*};
+use fltk::app::MouseWheel;
 
 // frame size
-const HF: i32 = 590;
+const HF: i32 = 565;
 const WF: i32 = 790;
 
 // Frame offset (border size)
@@ -99,7 +101,7 @@ fn main() {
 
     let mut slider_n = HorNiceSlider::new(
         FO,
-        FO + HF + SH * 1,
+        FO + HF + SH * 2,
         WF,
         SH,
         "Visvalingam–Whyatt deleted points:0",
@@ -133,7 +135,7 @@ fn main() {
     let (sender, receiver) = app::channel::<GuiMessage>();
     sender.send(GuiMessage::SliderRdpChanged(0.0));
 
-    slider_d.set_callback2(move |s| {
+    slider_d.set_callback(move |s| {
         let distance = s.value() as T * 400.0;
         s.set_label(
             ("           Ramer–Douglas–Peucker distance:".to_string()
@@ -144,7 +146,7 @@ fn main() {
         sender.send(GuiMessage::SliderRdpChanged(distance));
     });
 
-    slider_n.set_callback2(move |s| {
+    slider_n.set_callback(move |s| {
         let number_to_remove = (s.value() as T * 200.0) as usize;
         s.set_color(Color::Blue);
         s.set_label(
@@ -159,7 +161,7 @@ fn main() {
     add_data(Rc::clone(&shared_data_rc));
 
     let shared_data_c = Rc::clone(&shared_data_rc);
-    frame.draw(move || {
+    frame.draw(move |_| {
         let shared_data_b = shared_data_c.borrow();
         let make_line = |line: [T; 4], cross: bool| {
             let line = shared_data_b.affine.transform_ab_a(line);
@@ -287,11 +289,16 @@ fn main() {
     // mouse_drag is only used inside this closure, so it does not need to be placed in
     // shared_data
     let mut mouse_drag: Option<(i32, i32)> = None;
-    wind.handle(move |ev| match ev {
+    wind.handle(move |_,ev| match ev {
         fltk::enums::Event::MouseWheel => {
             let event = &app::event_coords();
             let mut shared_data_bm = shared_data_c.borrow_mut();
-            let event_dy = app::event_dy();
+            let event_dy = match app::event_dy() {
+                // arbitrary selected value
+                MouseWheel::Up => 3,
+                MouseWheel::Down => -3,
+                _ => 0,
+            };
             let reverse_middle = shared_data_bm
                 .affine
                 .transform_ba(&cgmath::Point2::from([event.0 as T, event.1 as T]));
