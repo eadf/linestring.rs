@@ -202,7 +202,7 @@ fn main() {
                         set_draw_color(Color::Black);
                     }
 
-                    for a_line in l.as_lines() {
+                    for a_line in l.as_lines_iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             false,
@@ -215,7 +215,7 @@ fn main() {
                     } else {
                         set_draw_color(Color::Green);
                     }
-                    for a_line in simplified_line.as_lines() {
+                    for a_line in simplified_line.as_lines_iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             true,
@@ -226,7 +226,7 @@ fn main() {
                     let hull = linestring::cgmath_2d::convex_hull::ConvexHull::<f32>::graham_scan(
                         &simplified_line,
                     );
-                    for a_line in hull.as_lines() {
+                    for a_line in hull.as_lines_iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             false,
@@ -247,7 +247,7 @@ fn main() {
                         set_draw_color(Color::Black);
                     }
 
-                    for a_line in l.as_lines() {
+                    for a_line in l.as_lines_iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             false,
@@ -260,7 +260,7 @@ fn main() {
                     } else {
                         set_draw_color(Color::Blue);
                     }
-                    for a_line in simplified_line.as_lines() {
+                    for a_line in simplified_line.as_lines_iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             true,
@@ -271,7 +271,7 @@ fn main() {
                     let hull = linestring::cgmath_2d::convex_hull::ConvexHull::<f32>::graham_scan(
                         &simplified_line,
                     );
-                    for a_line in hull.as_lines() {
+                    for a_line in hull.as_lines_iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             false,
