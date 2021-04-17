@@ -642,9 +642,13 @@ where
         if self.points.len() <= 2 {
             Ok(false)
         } else if self.points.len() < 10 {
-            let lines = self.as_lines();
-            for l0 in lines.iter().enumerate().take(lines.len() - 1) {
-                for l1 in lines.iter().enumerate().skip(l0.0 + 1) {
+            //let lines = self.as_lines_iter();
+            for l0 in self
+                .as_lines_iter()
+                .enumerate()
+                .take(self.as_lines_iter_len() - 1)
+            {
+                for l1 in self.as_lines_iter().enumerate().skip(l0.0 + 1) {
                     if l0.0 == l1.0 {
                         continue;
                     } else if l0.0 + 1 == l1.0 {
@@ -653,7 +657,7 @@ where
                         {
                             return Ok(true);
                         }
-                    } else if let Some(point) = l0.1.intersection_point(l1.1) {
+                    } else if let Some(point) = l0.1.intersection_point(&l1.1) {
                         let point = point.single();
                         if (point_ulps_eq(&point, &l0.1.start) || point_ulps_eq(&point, &l0.1.end))
                             && (point_ulps_eq(&point, &l1.1.start)
@@ -675,7 +679,7 @@ where
             let result = intersection::IntersectionData::<T>::default()
                 .with_ignore_end_point_intersections(true)?
                 .with_stop_at_first_intersection(true)?
-                .with_lines(self.as_lines().into_iter())?
+                .with_lines(self.as_lines_iter())?
                 .compute()?;
             //print!("Lines rv={} [", result.is_empty());
             //for p in self.as_lines().iter() {
@@ -704,34 +708,43 @@ where
     }
 
     /// Returns the line string as a Vec of lines
+    /// Will be deprecated at some time, use self.as_lines_iter().collect() instead
+    #[inline(always)]
     pub fn as_lines(&self) -> Vec<Line2<T>> {
-        if self.points.is_empty() {
-            return vec![];
-        } else if self.points.len() == 1 {
-            return vec![Line2 {
-                start: self.points[0],
-                end: self.points[0],
-            }];
-        }
-        let iter1 = self.points.iter().skip(1);
-        let iter2 = self.points.iter();
-        if self.connected && self.points.last() != self.points.first() {
-            iter1
-                .zip(iter2)
-                .map(|(a, b)| Line2 { start: *b, end: *a })
-                .chain(
-                    Some(Line2 {
-                        start: *self.points.last().unwrap(),
-                        end: *self.points.first().unwrap(),
-                    })
-                    .into_iter(),
-                )
-                .collect()
+        self.as_lines_iter().collect()
+    }
+
+    /// Returns the line string as a iterator of lines
+    #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
+    pub fn as_lines_iter(&self) -> Box<dyn Iterator<Item = Line2<T>> + '_> {
+        if self.connected {
+            Box::new(
+                self.points
+                    .iter()
+                    .chain(self.points.first())
+                    .tuple_windows::<(_, _)>()
+                    .map(|(a, b)| Line2 { start: *a, end: *b }),
+            )
         } else {
-            iter1
-                .zip(iter2)
-                .map(|(a, b)| Line2 { start: *b, end: *a })
-                .collect()
+            Box::new(
+                self.points
+                    .iter()
+                    .tuple_windows::<(_, _)>()
+                    .map(|(a, b)| Line2 { start: *a, end: *b }),
+            )
+        }
+    }
+
+    /// The iterator of as_lines_iter() does not implement ExactSizeIterator.
+    /// This can be used as a work around for that problem
+    pub fn as_lines_iter_len(&self) -> usize {
+        if self.points.len() < 2 {
+            return 0;
+        }
+        if self.connected {
+            self.points.len()
+        } else {
+            self.points.len() - 1
         }
     }
 

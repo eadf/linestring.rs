@@ -340,34 +340,44 @@ where
         self.points.is_empty()
     }
 
+    /// Returns the line string as a Vec of lines
+    /// Will be deprecated at some time, use self.as_lines_iter().collect() instead
+    #[inline(always)]
     pub fn as_lines(&self) -> Vec<Line3<T>> {
-        if self.points.is_empty() {
-            return vec![];
-        } else if self.points.len() == 1 {
-            return vec![Line3 {
-                start: *self.points.first().unwrap(),
-                end: *self.points.first().unwrap(),
-            }];
-        }
-        let iter1 = self.points.iter().skip(1);
-        let iter2 = self.points.iter();
-        if self.connected && self.points.last() != self.points.first() {
-            iter1
-                .zip(iter2)
-                .map(|(a, b)| Line3 { start: *b, end: *a })
-                .chain(
-                    Some(Line3 {
-                        start: *self.points.last().unwrap(),
-                        end: *self.points.first().unwrap(),
-                    })
-                    .into_iter(),
-                )
-                .collect()
+        self.as_lines_iter().collect()
+    }
+
+    /// Returns the line string as a iterator of lines
+    #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
+    pub fn as_lines_iter(&self) -> Box<dyn Iterator<Item = Line3<T>> + '_> {
+        if self.connected {
+            Box::new(
+                self.points
+                    .iter()
+                    .chain(self.points.last())
+                    .tuple_windows::<(_, _)>()
+                    .map(|(a, b)| Line3 { start: *a, end: *b }),
+            )
         } else {
-            iter1
-                .zip(iter2)
-                .map(|(a, b)| Line3 { start: *b, end: *a })
-                .collect()
+            Box::new(
+                self.points
+                    .iter()
+                    .tuple_windows::<(_, _)>()
+                    .map(|(a, b)| Line3 { start: *a, end: *b }),
+            )
+        }
+    }
+
+    /// The iterator of as_lines_iter() does not implement ExactSizeIterator.
+    /// This can be used as a work around for that problem
+    pub fn as_lines_iter_len(&self) -> usize {
+        if self.points.len() < 2 {
+            return 0;
+        }
+        if self.connected {
+            self.points.len()
+        } else {
+            self.points.len() - 1
         }
     }
 
