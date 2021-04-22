@@ -175,6 +175,37 @@ impl Plane {
             },
         }
     }
+
+    /// Copy this Point2 into a Point3, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    #[allow(dead_code)]
+    #[inline(always)]
+    fn to_2d<T>(&self, point: &mint::Point3<T>) -> mint::Point2<T>
+    where
+        T: num_traits::Float
+            + std::fmt::Debug
+            + approx::AbsDiffEq
+            + approx::UlpsEq
+            + Sync
+            + approx::AbsDiffEq<Epsilon = T>
+            + approx::AbsDiffEq<Epsilon = T>,
+    {
+        match self {
+            Plane::XY => mint::Point2 {
+                x: point.x,
+                y: point.y,
+            },
+            Plane::XZ => mint::Point2 {
+                x: point.x,
+                y: point.z,
+            },
+            Plane::ZY => mint::Point2 {
+                x: point.z,
+                y: point.y,
+            },
+        }
+    }
 }
 
 /// A 3d line

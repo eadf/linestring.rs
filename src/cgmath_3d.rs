@@ -152,6 +152,31 @@ impl Plane {
             },
         }
     }
+
+    /// Copy this Point2 into a Point3, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    #[allow(dead_code)]
+    #[inline(always)]
+    fn to_2d<T>(&self, point: &cgmath::Point3<T>) -> cgmath::Point2<T>
+    where
+        T: cgmath::BaseFloat + Sync + cgmath::AbsDiffEq<Epsilon = T>,
+    {
+        match self {
+            Plane::XY => cgmath::Point2 {
+                x: point.x,
+                y: point.y,
+            },
+            Plane::XZ => cgmath::Point2 {
+                x: point.x,
+                y: point.z,
+            },
+            Plane::ZY => cgmath::Point2 {
+                x: point.z,
+                y: point.y,
+            },
+        }
+    }
 }
 
 /// A 3d line
