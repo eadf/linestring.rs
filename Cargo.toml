@@ -37,7 +37,6 @@ approx = "^0.4.0"
 fnv = "^1.0.7"
 rb_tree = "^0.4.0"
 thiserror = "^1.0.24"
-ordered-float = "^2.1.1"
 itertools = "^0.10.0"
 yabf = "^0.1.0"
 

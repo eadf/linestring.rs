@@ -45,6 +45,7 @@ licenses /why-not-lgpl.html>.
 
 use super::cgmath_2d;
 use crate::LinestringError;
+use cgmath::ulps_eq;
 use cgmath::Transform;
 use itertools::Itertools;
 use std::collections;
@@ -911,9 +912,7 @@ pub fn point_ulps_eq<T>(a: &cgmath::Point3<T>, b: &cgmath::Point3<T>) -> bool
 where
     T: cgmath::BaseFloat + Sync,
 {
-    cgmath_2d::ulps_eq(&a.x, &b.x)
-        && cgmath_2d::ulps_eq(&a.y, &b.y)
-        && cgmath_2d::ulps_eq(&a.z, &b.z)
+    ulps_eq!(&a.x, &b.x) && ulps_eq!(&a.y, &b.y) && ulps_eq!(&a.z, &b.z)
 }
 
 #[inline(always)]

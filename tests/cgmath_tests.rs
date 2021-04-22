@@ -1,12 +1,14 @@
 #[cfg(feature = "impl-cgmath")]
+use cgmath::ulps_eq;
+#[cfg(feature = "impl-cgmath")]
 use linestring::cgmath_2d;
 #[cfg(feature = "impl-cgmath")]
 use linestring::cgmath_3d;
 
 #[cfg(feature = "impl-cgmath")]
 fn almost_equal<T: cgmath::BaseFloat + Sync>(x1: T, x2: T, y1: T, y2: T) {
-    assert!(cgmath_2d::ulps_eq(&x1, &x2));
-    assert!(cgmath_2d::ulps_eq(&y1, &y2));
+    assert!(ulps_eq!(&x1, &x2));
+    assert!(ulps_eq!(&y1, &y2));
 }
 
 /// draws a line pivoting around (x,y) with 'angle' in degrees
@@ -372,7 +374,7 @@ fn triangle_area() {
             let area2 = cgmath_3d::Line3::triangle_area_squared_times_4(&p1, &p2, &p3);
             //println!("area3 = {}", area2);
 
-            assert!(cgmath_2d::ulps_eq(&area1, &area2));
+            assert!(ulps_eq!(&area1, &area2));
         }
     }
 }

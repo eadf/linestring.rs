@@ -1,3 +1,4 @@
+use approx::ulps_eq;
 #[cfg(feature = "impl-cgmath")]
 #[cfg(feature = "impl-vecmath")]
 use cgmath::{SquareMatrix, Transform};
@@ -20,8 +21,8 @@ where
         + Sync
         + approx::AbsDiffEq<Epsilon = T>,
 {
-    assert!(vec_2d::ulps_eq(&x1, &x2));
-    assert!(vec_2d::ulps_eq(&y1, &y2));
+    assert!(ulps_eq!(&x1, &x2));
+    assert!(ulps_eq!(&y1, &y2));
 }
 
 #[cfg(feature = "impl-vec")]
@@ -110,32 +111,17 @@ fn point_distance_1() {
     let line = vec_3d::Line3::from([[100_f32, 100., 0.], [300., 100., 0.]]);
     let distance = vec_3d::distance_to_line_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
-    assert!(
-        vec_2d::ulps_eq(&distance, &correct),
-        "{}!={}",
-        distance,
-        correct
-    );
+    assert!(ulps_eq!(&distance, &correct), "{}!={}", distance, correct);
 
     let point = [150_f32, 200., 0.];
     let distance = vec_3d::distance_to_line_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
-    assert!(
-        vec_2d::ulps_eq(&distance, &correct),
-        "{}!={}",
-        distance,
-        correct
-    );
+    assert!(ulps_eq!(&distance, &correct), "{}!={}", distance, correct);
 
     let point = [54_f32, 0., 0.];
     let distance = vec_3d::distance_to_line_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
-    assert!(
-        vec_2d::ulps_eq(&distance, &correct),
-        "{}!={}",
-        distance,
-        correct
-    );
+    assert!(ulps_eq!(&distance, &correct), "{}!={}", distance, correct);
 }
 
 #[cfg(feature = "impl-vec")]
@@ -205,7 +191,7 @@ fn triangle_area() {
             let area2 = vec_3d::Line3::triangle_area_squared_times_4(&p1, &p2, &p3);
             //println!("area3 = {}", area2);
 
-            assert!(vec_2d::ulps_eq(&area1, &area2));
+            assert!(ulps_eq!(&area1, &area2));
         }
     }
 }

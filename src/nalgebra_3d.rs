@@ -45,6 +45,7 @@ licenses /why-not-lgpl.html>.
 
 use super::nalgebra_2d;
 use crate::LinestringError;
+use approx::ulps_eq;
 
 use itertools::Itertools;
 use std::collections;
@@ -885,9 +886,7 @@ pub fn point_ulps_eq<T>(a: &nalgebra::Point3<T>, b: &nalgebra::Point3<T>) -> boo
 where
     T: nalgebra::RealField + Sync,
 {
-    nalgebra_2d::ulps_eq(&a.x, &b.x)
-        && nalgebra_2d::ulps_eq(&a.y, &b.y)
-        && nalgebra_2d::ulps_eq(&a.z, &b.z)
+    ulps_eq!(&a.x, &b.x) && ulps_eq!(&a.y, &b.y) && ulps_eq!(&a.z, &b.z)
 }
 
 #[inline(always)]

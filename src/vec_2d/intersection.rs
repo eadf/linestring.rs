@@ -43,14 +43,13 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
  */
 
+use crate::{vec_2d, LinestringError};
+use approx::ulps_eq;
 use core::fmt;
 use fnv::FnvHashSet;
-use ordered_float::OrderedFloat;
 use std::cmp;
 use std::convert::identity;
 use std::marker::PhantomData;
-
-use crate::{vec_2d, LinestringError};
 
 #[derive(Clone, Copy)]
 pub struct SiteEventKey<T>
@@ -105,15 +104,33 @@ where
         + Sync
         + approx::AbsDiffEq<Epsilon = T>,
 {
+    #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        if vec_2d::ulps_eq(&self.pos[1], &other.pos[1]) {
-            if vec_2d::ulps_eq(&self.pos[0], &other.pos[0]) {
-                return Some(cmp::Ordering::Equal);
+        if ulps_eq!(&self.pos[1], &other.pos[1]) {
+            if ulps_eq!(&self.pos[0], &other.pos[0]) {
+                Some(cmp::Ordering::Equal)
             } else {
-                return Some(OrderedFloat(self.pos[0]).cmp(&OrderedFloat(other.pos[0])));
+                self.pos[0].partial_cmp(&other.pos[0])
             }
+        } else {
+            self.pos[1].partial_cmp(&other.pos[1])
         }
-        Some(OrderedFloat(self.pos[1]).cmp(&OrderedFloat(other.pos[1])))
+    }
+}
+
+impl<T> Ord for SiteEventKey<T>
+where
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
+{
+    /// It should be impossible for a !is_finite() number to be added to SiteEventKey
+    #[inline(always)]
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }
 
@@ -126,9 +143,20 @@ where
         + Sync
         + approx::AbsDiffEq<Epsilon = T>,
 {
+    #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
         vec_2d::point_ulps_eq(&self.pos, &other.pos)
     }
+}
+
+impl<T> Eq for SiteEventKey<T> where
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>
+{
 }
 
 /// A container struct that keeps track of the lines around a pivot point.
@@ -175,7 +203,7 @@ where
             );*/
             // handle left side
             if let Some(current_min) = self.best_left {
-                if vec_2d::ulps_eq(&current_min, &candidate_x) {
+                if ulps_eq!(&current_min, &candidate_x) {
                     self.slope
                         .update_left(false, candidate_slope, candidate_index);
                 } else if current_min < candidate_x {
@@ -202,7 +230,7 @@ where
             );*/
             // handle right side
             if let Some(current_max) = self.best_right {
-                if vec_2d::ulps_eq(&current_max, &candidate_x) {
+                if ulps_eq!(&current_max, &candidate_x) {
                     self.slope
                         .update_right(false, candidate_slope, candidate_index);
                 } else if current_max > candidate_x {
@@ -270,7 +298,7 @@ where
     /// sort candidates based on slope, keep only the ones with 'flattest' angle to the left and right
     fn update_both(&mut self, candidate_index: usize, lines: &[vec_2d::Line2<T>]) {
         let line = lines[candidate_index];
-        let candidate_slope = if vec_2d::ulps_eq(&line.end[1], &line.start[1]) {
+        let candidate_slope = if ulps_eq!(&line.end[1], &line.start[1]) {
             T::infinity()
         } else {
             (line.end[0] - line.start[0]) / (line.end[1] - line.start[1])
@@ -292,7 +320,7 @@ where
         );*/
         // handle left side
         if let Some(current_slope) = self.best_left {
-            if vec_2d::ulps_eq(&current_slope, &candidate_slope) {
+            if ulps_eq!(&current_slope, &candidate_slope) {
                 // this candidate is just as good as the others already found
                 self.candidates_left.push(candidate_index);
             } else if candidate_slope < current_slope {
@@ -330,7 +358,7 @@ where
         }
         // handle right side
         if let Some(current_slope) = self.best_right {
-            if vec_2d::ulps_eq(&current_slope, &candidate_slope) {
+            if ulps_eq!(&current_slope, &candidate_slope) {
                 // this candidate is just as good as the others already found
                 self.candidates_right.push(candidate_index);
             } else if candidate_slope > current_slope {
@@ -447,7 +475,7 @@ where
     let y2 = other.end[1];
     let x1 = other.start[0];
     let x2 = other.end[0];
-    if vec_2d::ulps_eq(&y1, &y2) {
+    if ulps_eq!(&y1, &y2) {
         // horizontal line: return to the point right of sweepline[0], if any
         // Any point to the left are supposedly already handled.
         if sweepline[0] < x2 {
@@ -457,7 +485,7 @@ where
         }
     }
 
-    if vec_2d::ulps_eq(&x1, &x2) {
+    if ulps_eq!(&x1, &x2) {
         return Some((x1, T::infinity()));
     }
 
@@ -804,7 +832,7 @@ where
                     &mut connected_priority,
                     &mut site_events,
                     &mut result,
-                );
+                )?;
                 if !result.is_empty() && self.stop_at_first_intersection {
                     break;
                 }
@@ -835,7 +863,7 @@ where
         connected_priority: &mut MinMaxSlope<T>,
         site_events: &mut rb_tree::RBMap<SiteEventKey<T>, SiteEvent<T>>,
         result: &mut rb_tree::RBMap<SiteEventKey<T>, Vec<usize>>,
-    ) {
+    ) -> Result<(), LinestringError> {
         self.sweepline_pos = key.pos;
 
         let removed_active_lines = event.drop.iter().flatten().count();
@@ -977,7 +1005,7 @@ where
                     &neighbour_priority.slope.candidates_left,
                     &neighbour_priority.slope.candidates_right,
                     site_events,
-                );
+                )?;
             }
         } else {
             connected_priority.clear();
@@ -1009,7 +1037,7 @@ where
                     &neighbour_priority.slope.candidates_left,
                     &connected_priority.candidates_left,
                     site_events,
-                );
+                )?;
             }
             if !neighbour_priority.slope.candidates_right.is_empty() {
                 #[cfg(feature = "console_trace")]
@@ -1022,13 +1050,14 @@ where
                     &neighbour_priority.slope.candidates_right,
                     &connected_priority.candidates_right,
                     site_events,
-                );
+                )?;
             }
         }
         #[cfg(any(test, example))]
         println!("Post active lines: {:?}", active_lines);
         #[cfg(feature = "console_trace")]
         println!();
+        Ok(())
     }
 
     fn find_new_events(
@@ -1036,7 +1065,7 @@ where
         left: &[usize],
         right: &[usize],
         site_events: &mut rb_tree::RBMap<SiteEventKey<T>, SiteEvent<T>>,
-    ) {
+    ) -> Result<(), LinestringError> {
         for left_i in left.iter() {
             for right_i in right.iter() {
                 let left_l = &self.lines[*left_i];
@@ -1050,6 +1079,12 @@ where
 
                 if let Some(intersection_p) = left_l.intersection_point(&right_l) {
                     let intersection_p = intersection_p.single();
+                    if !intersection_p[0].is_finite() || !intersection_p[1].is_finite() {
+                        return Err(LinestringError::InvalidData(format!(
+                            "Input data has intersection at invalid position x:{:?}, y:{:?}",
+                            intersection_p[0], intersection_p[1]
+                        )));
+                    }
                     // don't allow intersection 'behind' or 'at' current sweep-line position
                     if intersection_p[1] >= self.sweepline_pos[1]
                         && !(intersection_p[1] == self.sweepline_pos[1]
@@ -1076,6 +1111,7 @@ where
                 }
             }
         }
+        Ok(())
     }
 
     fn report_intersections_to_result<'a, I>(

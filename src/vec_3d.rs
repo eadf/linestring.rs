@@ -45,6 +45,7 @@ licenses /why-not-lgpl.html>.
 
 use super::vec_2d;
 use crate::LinestringError;
+use approx::ulps_eq;
 //#[cfg(feature = "impl-vecmath")]
 //use vecmath::Matrix4;
 use itertools::Itertools;
@@ -972,7 +973,7 @@ where
         + Sync
         + approx::AbsDiffEq<Epsilon = T>,
 {
-    vec_2d::ulps_eq(&a[0], &b[0]) && vec_2d::ulps_eq(&a[1], &b[1]) && vec_2d::ulps_eq(&a[2], &b[2])
+    ulps_eq!(&a[0], &b[0]) && ulps_eq!(&a[1], &b[1]) && ulps_eq!(&a[2], &b[2])
 }
 
 #[inline(always)]

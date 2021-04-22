@@ -45,6 +45,7 @@ licenses /why-not-lgpl.html>.
 
 use super::mint_2d;
 use crate::LinestringError;
+use approx::ulps_eq;
 
 use itertools::Itertools;
 use std::collections;
@@ -1016,7 +1017,7 @@ where
         + Sync
         + approx::AbsDiffEq<Epsilon = T>,
 {
-    mint_2d::ulps_eq(&a.x, &b.x) && mint_2d::ulps_eq(&a.y, &b.y) && mint_2d::ulps_eq(&a.z, &b.z)
+    ulps_eq!(&a.x, &b.x) && ulps_eq!(&a.y, &b.y) && ulps_eq!(&a.z, &b.z)
 }
 
 #[inline(always)]

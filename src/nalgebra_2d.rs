@@ -46,6 +46,7 @@ licenses /why-not-lgpl.html>.
 use super::nalgebra_3d;
 #[allow(unused_imports)]
 use crate::LinestringError;
+use approx::ulps_eq;
 
 use itertools::Itertools;
 #[allow(unused_imports)]
@@ -135,7 +136,7 @@ where
         let q_minus_p_cross_r = cross_z(&q_minus_p, &r);
 
         // If r × s = 0 then the two lines are parallel
-        if ulps_eq(&r_cross_s, &T::zero()) {
+        if ulps_eq!(&r_cross_s, &T::zero()) {
             // one (or both) of the lines may be a point
             let self_is_a_point = point_ulps_eq(&self.start, &self.end);
             let other_is_a_point = point_ulps_eq(&other.start, &other.end);
@@ -151,7 +152,7 @@ where
             }
 
             // If r × s = 0 and (q − p) × r = 0, then the two lines are collinear.
-            if ulps_eq(&q_minus_p_cross_r, &T::zero()) {
+            if ulps_eq!(&q_minus_p_cross_r, &T::zero()) {
                 let r_dot_r = dot(&r, &r);
                 let r_div_r_dot_r = div(&r, r_dot_r);
                 let s_dot_r = dot(&s, &r);
@@ -192,8 +193,8 @@ where
     ) -> Result<Option<Intersection<T>>, LinestringError> {
         let middle_sub_start = nalgebra::Vector2::<T>::new(middle.x - start.x, middle.y - start.x);
         let middle_sub_end = nalgebra::Vector2::<T>::new(middle.x - end.x, middle.y - end.y);
-        let start_is_vertical = ulps_eq(&middle_sub_start.x, &T::zero());
-        let end_is_vertical = ulps_eq(&middle_sub_end.x, &T::zero());
+        let start_is_vertical = ulps_eq!(&middle_sub_start.x, &T::zero());
+        let end_is_vertical = ulps_eq!(&middle_sub_end.x, &T::zero());
 
         if start_is_vertical && end_is_vertical {
             // both lines are vertical
@@ -225,7 +226,7 @@ where
         let start_slope = middle_sub_start.x / middle_sub_start.y;
         let end_slope = middle_sub_end.x / middle_sub_end.y;
 
-        if !ulps_eq(&start_slope, &end_slope) {
+        if !ulps_eq!(&start_slope, &end_slope) {
             return Ok(None);
         }
 
@@ -1429,10 +1430,10 @@ where
         aabb: &(nalgebra::Point2<T>, nalgebra::Point2<T>),
         point: &nalgebra::Point2<T>,
     ) -> bool {
-        (aabb.0.x <= point.x || ulps_eq(&aabb.0.x, &point.x))
-            && (aabb.0.y <= point.y || ulps_eq(&aabb.0.y, &point.y))
-            && (aabb.1.x >= point.x || ulps_eq(&aabb.1.x, &point.x))
-            && (aabb.1.y >= point.y || ulps_eq(&aabb.1.y, &point.y))
+        (aabb.0.x <= point.x || ulps_eq!(&aabb.0.x, &point.x))
+            && (aabb.0.y <= point.y || ulps_eq!(&aabb.0.y, &point.y))
+            && (aabb.1.x >= point.x || ulps_eq!(&aabb.1.x, &point.x))
+            && (aabb.1.y >= point.y || ulps_eq!(&aabb.1.y, &point.y))
     }
 
     pub fn operation<F>(&mut self, f: F)
@@ -1458,10 +1459,10 @@ where
     T: nalgebra::RealField + Sync,
 {
     // take care of end point equality
-    if ulps_eq(&line.start.x, &point.x) && ulps_eq(&line.start.y, &point.y) {
+    if ulps_eq!(&line.start.x, &point.x) && ulps_eq!(&line.start.y, &point.y) {
         return Some(Intersection::Intersection(*point));
     }
-    if ulps_eq(&line.end.x, &point.x) && ulps_eq(&line.end.y, &point.y) {
+    if ulps_eq!(&line.end.x, &point.x) && ulps_eq!(&line.end.y, &point.y) {
         return Some(Intersection::Intersection(*point));
     }
 
@@ -1478,7 +1479,7 @@ where
 
     #[cfg(feature = "console_trace")]
     println!("ab={:?}, ap={:?}, pb={:?}, ap+pb={:?}", ab, ap, pb, ap + pb);
-    if ulps_eq(&ab, &(ap + pb)) {
+    if ulps_eq!(&ab, &(ap + pb)) {
         return Some(Intersection::Intersection(*point));
     }
     None
@@ -1630,15 +1631,7 @@ pub fn point_ulps_eq<T>(a: &nalgebra::Point2<T>, b: &nalgebra::Point2<T>) -> boo
 where
     T: nalgebra::RealField + Sync,
 {
-    ulps_eq(&a.x, &b.x) && ulps_eq(&a.y, &b.y)
-}
-
-#[inline(always)]
-pub fn ulps_eq<T>(a: &T, b: &T) -> bool
-where
-    T: nalgebra::RealField + Sync,
-{
-    T::ulps_eq(a, b, T::default_epsilon(), T::default_max_ulps())
+    ulps_eq!(&a.x, &b.x) && ulps_eq!(&a.y, &b.y)
 }
 
 /// This is a simple but efficient affine transformation object.

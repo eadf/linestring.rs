@@ -1,3 +1,4 @@
+use approx::ulps_eq;
 #[cfg(feature = "impl-mint")]
 use linestring::mint_2d;
 #[cfg(feature = "impl-mint")]
@@ -17,8 +18,8 @@ where
         + Sync
         + approx::AbsDiffEq<Epsilon = T>,
 {
-    assert!(mint_2d::ulps_eq(&x1, &x2));
-    assert!(mint_2d::ulps_eq(&y1, &y2));
+    assert!(ulps_eq!(&x1, &x2));
+    assert!(ulps_eq!(&y1, &y2));
 }
 
 #[cfg(feature = "impl-mint")]
@@ -107,32 +108,17 @@ fn point_distance_1() {
     let line = mint_2d::Line2::from([100_f32, 100., 300., 100.]);
     let distance = mint_2d::distance_to_line_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
-    assert!(
-        mint_2d::ulps_eq(&distance, &correct),
-        "{}!={}",
-        distance,
-        correct
-    );
+    assert!(ulps_eq!(&distance, &correct), "{}!={}", distance, correct);
 
     let point = mint::Point2::from([150_f32, 200.]);
     let distance = mint_2d::distance_to_line_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
-    assert!(
-        mint_2d::ulps_eq(&distance, &correct),
-        "{}!={}",
-        distance,
-        correct
-    );
+    assert!(ulps_eq!(&distance, &correct), "{}!={}", distance, correct);
 
     let point = mint::Point2::from([54_f32, 0.]);
     let distance = mint_2d::distance_to_line_squared(&line.start, &line.end, &point);
     let correct = 100.0_f32 * 100.0;
-    assert!(
-        mint_2d::ulps_eq(&distance, &correct),
-        "{}!={}",
-        distance,
-        correct
-    );
+    assert!(ulps_eq!(&distance, &correct), "{}!={}", distance, correct);
 }
 
 #[cfg(feature = "impl-mint")]
@@ -220,7 +206,7 @@ fn triangle_area() {
             let area2 = mint_3d::Line3::triangle_area_squared_times_4(&p1, &p2, &p3);
             //println!("area3 = {}", area2);
 
-            assert!(mint_2d::ulps_eq(&area1, &area2));
+            assert!(ulps_eq!(&area1, &area2));
         }
     }
 }

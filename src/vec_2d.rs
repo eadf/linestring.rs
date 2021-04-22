@@ -46,6 +46,7 @@ licenses /why-not-lgpl.html>.
 use super::vec_3d;
 #[allow(unused_imports)]
 use crate::LinestringError;
+use approx::ulps_eq;
 //#[cfg(feature = "impl-vecmath")]
 //use vecmath::Matrix4;
 use itertools::Itertools;
@@ -156,7 +157,7 @@ where
         let q_minus_p_cross_r = cross_z(&q_minus_p, &r);
 
         // If r × s = 0 then the two lines are parallel
-        if ulps_eq(&r_cross_s, &T::zero()) {
+        if ulps_eq!(&r_cross_s, &T::zero()) {
             // one (or both) of the lines may be a point
             let self_is_a_point = point_ulps_eq(&self.start, &self.end);
             let other_is_a_point = point_ulps_eq(&other.start, &other.end);
@@ -172,7 +173,7 @@ where
             }
 
             // If r × s = 0 and (q − p) × r = 0, then the two lines are collinear.
-            if ulps_eq(&q_minus_p_cross_r, &T::zero()) {
+            if ulps_eq!(&q_minus_p_cross_r, &T::zero()) {
                 let r_dot_r = dot(&r, &r);
                 let r_div_r_dot_r = div(&r, r_dot_r);
                 let s_dot_r = dot(&s, &r);
@@ -213,8 +214,8 @@ where
     ) -> Result<Option<Intersection<T>>, LinestringError> {
         let middle_sub_start = [middle[0] - start[0], middle[1] - start[0]];
         let middle_sub_end = [middle[0] - end[0], middle[1] - end[1]];
-        let start_is_vertical = ulps_eq(&middle_sub_start[0], &T::zero());
-        let end_is_vertical = ulps_eq(&middle_sub_end[0], &T::zero());
+        let start_is_vertical = ulps_eq!(&middle_sub_start[0], &T::zero());
+        let end_is_vertical = ulps_eq!(&middle_sub_end[0], &T::zero());
 
         if start_is_vertical && end_is_vertical {
             // both lines are vertical
@@ -247,7 +248,7 @@ where
         let start_slope = middle_sub_start[0] / middle_sub_start[1];
         let end_slope = middle_sub_end[0] / middle_sub_end[1];
 
-        if !ulps_eq(&start_slope, &end_slope) {
+        if !ulps_eq!(&start_slope, &end_slope) {
             return Ok(None);
         }
 
@@ -1532,10 +1533,10 @@ where
     /// returns true if aabb contains a point (inclusive)
     #[inline(always)]
     fn contains_point_inclusive_(aabb: &([T; 2], [T; 2]), point: &[T; 2]) -> bool {
-        (aabb.0[0] <= point[0] || ulps_eq(&aabb.0[0], &point[0]))
-            && (aabb.0[1] <= point[1] || ulps_eq(&aabb.0[1], &point[1]))
-            && (aabb.1[0] >= point[0] || ulps_eq(&aabb.1[0], &point[0]))
-            && (aabb.1[1] >= point[1] || ulps_eq(&aabb.1[1], &point[1]))
+        (aabb.0[0] <= point[0] || ulps_eq!(&aabb.0[0], &point[0]))
+            && (aabb.0[1] <= point[1] || ulps_eq!(&aabb.0[1], &point[1]))
+            && (aabb.1[0] >= point[0] || ulps_eq!(&aabb.1[0], &point[0]))
+            && (aabb.1[1] >= point[1] || ulps_eq!(&aabb.1[1], &point[1]))
     }
 
     pub fn operation<F>(&mut self, f: F)
@@ -1563,10 +1564,10 @@ where
         + approx::AbsDiffEq<Epsilon = T>,
 {
     // take care of end point equality
-    if ulps_eq(&line.start[0], &point[0]) && ulps_eq(&line.start[1], &point[1]) {
+    if ulps_eq!(&line.start[0], &point[0]) && ulps_eq!(&line.start[1], &point[1]) {
         return Some(Intersection::Intersection(*point));
     }
-    if ulps_eq(&line.end[0], &point[0]) && ulps_eq(&line.end[1], &point[1]) {
+    if ulps_eq!(&line.end[0], &point[0]) && ulps_eq!(&line.end[1], &point[1]) {
         return Some(Intersection::Intersection(*point));
     }
 
@@ -1583,7 +1584,7 @@ where
 
     #[cfg(feature = "console_trace")]
     println!("ab={:?}, ap={:?}, pb={:?}, ap+pb={:?}", ab, ap, pb, ap + pb);
-    if ulps_eq(&ab, &(ap + pb)) {
+    if ulps_eq!(&ab, &(ap + pb)) {
         return Some(Intersection::Intersection(*point));
     }
     None
@@ -1778,20 +1779,7 @@ where
         + Sync
         + approx::AbsDiffEq<Epsilon = T>,
 {
-    ulps_eq(&a[0], &b[0]) && ulps_eq(&a[1], &b[1])
-}
-
-#[inline(always)]
-pub fn ulps_eq<T>(a: &T, b: &T) -> bool
-where
-    T: num_traits::Float
-        + std::fmt::Debug
-        + approx::AbsDiffEq
-        + approx::UlpsEq
-        + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
-{
-    T::ulps_eq(a, b, T::default_epsilon(), T::default_max_ulps())
+    ulps_eq!(&a[0], &b[0]) && ulps_eq!(&a[1], &b[1])
 }
 
 /// This is a simple but efficient affine transformation object.
