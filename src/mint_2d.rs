@@ -763,7 +763,7 @@ where
             //print!("[{:?},{:?}],", p.x, p.y,);
             //}
             //println!("]");
-            Ok(!result.is_empty())
+            Ok(!result.len() > 0)
         }
     }
 
