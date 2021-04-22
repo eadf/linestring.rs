@@ -1005,14 +1005,16 @@ where
                 if let Some(p1) = point_set.get(&str1) {
                     writeln!(file, "l {} {}", p0 + 1, p1 + 1)?;
                 } else {
-                    return Err(LinestringError::UnknownError {
-                        txt: format!("HashMap can't find the key:{}", str1),
-                    });
+                    return Err(LinestringError::InternalError(format!(
+                        "HashMap can't find the key:{}",
+                        str1
+                    )));
                 }
             } else {
-                return Err(LinestringError::UnknownError {
-                    txt: format!("HashMap can't find the key:{}", str0),
-                });
+                return Err(LinestringError::InternalError(format!(
+                    "HashMap can't find the key:{}",
+                    str0
+                )));
             }
         }
     }

@@ -58,22 +58,22 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum LinestringError {
     #[error("Your line-strings are self-intersecting.")]
-    SelfIntersectingData { txt: String },
+    SelfIntersectingData(String),
 
     #[error("The input data is not 2D")]
-    InputNotPLane { txt: String },
+    InputNotPLane(String),
 
     #[error("Invalid data")]
-    InvalidData { txt: String },
+    InvalidData(String),
 
-    #[error("Unkown error")]
-    UnknownError { txt: String },
-
-    #[error("Aabb error")]
-    AabbError { txt: String },
+    #[error("Unknown error")]
+    InternalError(String),
 
     #[error("Aabb error")]
-    TransformError { txt: String },
+    AabbError(String),
+
+    #[error("Aabb error")]
+    TransformError(String),
 
     #[error(transparent)]
     IoError(#[from] std::io::Error),

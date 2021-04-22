@@ -1218,28 +1218,28 @@ where
     pub fn take_from_internal(&mut self, other: &mut Self) -> Result<(), LinestringError> {
         // sanity check
         if other.convex_hull.is_none() {
-            return Err(LinestringError::InvalidData {
-                txt: "'other' did not contain a valid 'convex_hull' field".to_string(),
-            });
+            return Err(LinestringError::InvalidData(
+                "'other' did not contain a valid 'convex_hull' field".to_string(),
+            ));
         }
         if self.aabb.get_low().is_none() {
             //println!("self.aabb {:?}", self.aabb);
             //println!("other.aabb {:?}", other.aabb);
-            return Err(LinestringError::InvalidData {
-                txt: "'self' did not contain a valid 'aabb' field".to_string(),
-            });
+            return Err(LinestringError::InvalidData(
+                "'self' did not contain a valid 'aabb' field".to_string(),
+            ));
         }
         if other.aabb.get_low().is_none() {
-            return Err(LinestringError::InvalidData {
-                txt: "'other' did not contain a valid 'aabb' field".to_string(),
-            });
+            return Err(LinestringError::InvalidData(
+                "'other' did not contain a valid 'aabb' field".to_string(),
+            ));
         }
         if !self.aabb.contains_aabb(&other.aabb) {
             //println!("self.aabb {:?}", self.aabb);
             //println!("other.aabb {:?}", other.aabb);
-            return Err(LinestringError::InvalidData {
-                txt: "The 'other.aabb' is not contained within 'self.aabb'".to_string(),
-            });
+            return Err(LinestringError::InvalidData(
+                "The 'other.aabb' is not contained within 'self.aabb'".to_string(),
+            ));
         }
         if self.internals.is_none() {
             self.internals = Some(Vec::<(Aabb2<T>, LineString2<T>)>::new())
@@ -1710,9 +1710,9 @@ where
                 }
             }
         }
-        Err(LinestringError::AabbError {
-            txt: "could not get dimension of the AABB".to_string(),
-        })
+        Err(LinestringError::AabbError(
+            "could not get dimension of the AABB".to_string(),
+        ))
     }
 
     /// transform from dest (b) coordinate system to source (a) coordinate system
@@ -1753,9 +1753,9 @@ where
         if x.is_finite() && y.is_finite() {
             Ok(nalgebra::Point2::new(x, y))
         } else {
-            Err(LinestringError::TransformError {
-                txt: "Transformation out of bounds".to_string(),
-            })
+            Err(LinestringError::TransformError(
+                "Transformation out of bounds".to_string(),
+            ))
         }
     }
 
@@ -1796,9 +1796,9 @@ where
         if x.is_finite() && y.is_finite() {
             Ok(nalgebra::Point2::new(x, y))
         } else {
-            Err(LinestringError::TransformError {
-                txt: "Transformation out of bounds".to_string(),
-            })
+            Err(LinestringError::TransformError(
+                "Transformation out of bounds".to_string(),
+            ))
         }
     }
 
@@ -1812,9 +1812,9 @@ where
         if x1.is_finite() && y1.is_finite() && x2.is_finite() && y2.is_finite() {
             Ok([x1, y1, x2, y2])
         } else {
-            Err(LinestringError::TransformError {
-                txt: "Transformation out of bounds".to_string(),
-            })
+            Err(LinestringError::TransformError(
+                "Transformation out of bounds".to_string(),
+            ))
         }
     }
 
@@ -1829,9 +1829,9 @@ where
         if x1.is_finite() && y1.is_finite() && x2.is_finite() && y2.is_finite() {
             Ok([x1, y1, x2, y2])
         } else {
-            Err(LinestringError::TransformError {
-                txt: "Transformation out of bounds".to_string(),
-            })
+            Err(LinestringError::TransformError(
+                "Transformation out of bounds".to_string(),
+            ))
         }
     }
 }

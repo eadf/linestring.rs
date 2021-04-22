@@ -492,9 +492,9 @@ where
         if let Some(rv) = self.result.take() {
             Ok(Box::new(rv.into_iter().map(|x| (x.0.pos, x.1))))
         } else {
-            Err(LinestringError::UnknownError {
-                txt: "Results already taken?? This should not happen".to_string(),
-            })
+            Err(LinestringError::InternalError(
+                "Results already taken?? This should not happen".to_string(),
+            ))
         }
     }
 
@@ -530,7 +530,9 @@ where
     where
         I: Iterator<Item = nalgebra_2d::Line2<T>>,
     {
-        let mut site_events = self.site_events.take().unwrap();
+        let mut site_events = self.site_events.take().ok_or_else(|| {
+            LinestringError::InternalError("with_lines() could not take 'site_events'".to_string())
+        })?;
 
         for (index, mut aline) in input_iter.enumerate() {
             if !(aline.start.x.is_finite()
@@ -538,9 +540,9 @@ where
                 && aline.end.x.is_finite()
                 && aline.end.y.is_finite())
             {
-                return Err(LinestringError::InvalidData {
-                    txt: "Some of the points are infinite".to_string(),
-                });
+                return Err(LinestringError::InvalidData(
+                    "Some of the points are infinite".to_string(),
+                ));
             }
 
             // Re-arrange so that:
@@ -590,7 +592,11 @@ where
         T: 'a,
         I: Iterator<Item = &'a nalgebra_2d::Line2<T>>,
     {
-        let mut site_events = self.site_events.take().unwrap();
+        let mut site_events = self.site_events.take().ok_or_else(|| {
+            LinestringError::InternalError(
+                "with_ref_lines() could not take 'site_events'".to_string(),
+            )
+        })?;
 
         for (index, aline) in input_iter.enumerate() {
             if !(aline.start.x.is_finite()
@@ -598,9 +604,9 @@ where
                 && aline.end.x.is_finite()
                 && aline.end.y.is_finite())
             {
-                return Err(LinestringError::InvalidData {
-                    txt: "Input data contains NaN and/or Inf".to_string(),
-                });
+                return Err(LinestringError::InvalidData(
+                    "Input data contains NaN and/or Inf".to_string(),
+                ));
             }
 
             // Re-arrange so that:
@@ -695,8 +701,7 @@ where
 
     #[allow(unused_assignments)]
     #[allow(clippy::type_complexity)]
-    /// handles input event, returns true when done
-    /// If interactive is set, the method will handle only one event for each call
+    /// Handles input events, returns an iterator containing the results when done.
     pub fn compute<'a>(
         &mut self,
     ) -> Result<
@@ -708,11 +713,26 @@ where
     {
         // make the borrow checker happy by breaking the link between self and all the
         // containers and their iterators.
-        let mut active_lines = self.active_lines.take().unwrap();
-        let mut site_events = self.site_events.take().unwrap();
-        let mut result = self.result.take().unwrap();
-        let mut neighbour_priority = self.neighbour_priority.take().unwrap();
-        let mut connected_priority = self.connected_priority.take().unwrap();
+        let mut active_lines = self.active_lines.take().ok_or_else(|| {
+            LinestringError::InternalError("compute() could not take 'active_lines'".to_string())
+        })?;
+        let mut site_events = self.site_events.take().ok_or_else(|| {
+            LinestringError::InternalError("compute() could not take 'site_events'".to_string())
+        })?;
+        let mut result = self
+            .result
+            .take()
+            .ok_or_else(|| LinestringError::InternalError("Could not take 'result'".to_string()))?;
+        let mut neighbour_priority = self.neighbour_priority.take().ok_or_else(|| {
+            LinestringError::InternalError(
+                "compute() could not take 'neighbour_priority'".to_string(),
+            )
+        })?;
+        let mut connected_priority = self.connected_priority.take().ok_or_else(|| {
+            LinestringError::InternalError(
+                "compute() could not take 'connected_priority'".to_string(),
+            )
+        })?;
 
         loop {
             if let Some((key, event)) = site_events.pop_pair() {
