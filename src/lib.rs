@@ -49,6 +49,7 @@ licenses /why-not-lgpl.html>.
 #![deny(unused_qualifications)]
 #![deny(unused_results)]
 #![deny(unused_imports)]
+#![feature(map_first_last)]
 
 //! This is a library that deals with lines in 2D and 3D space.
 //! The library is implemented for a couple of independent 2d/3d packages:nalgebra,cgmath,vecmath and mint.

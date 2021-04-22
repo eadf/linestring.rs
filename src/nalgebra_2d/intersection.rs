@@ -48,6 +48,7 @@ use approx::ulps_eq;
 use core::fmt;
 use fnv::FnvHashSet;
 use std::cmp;
+use std::collections::BTreeMap;
 use std::convert::identity;
 use std::marker::PhantomData;
 
@@ -444,11 +445,11 @@ where
     // counted as an intersection.
     pub ignore_end_point_intersections: bool,
     // The unhandled events
-    site_events: Option<rb_tree::RBMap<SiteEventKey<T>, SiteEvent<T>>>,
+    site_events: Option<BTreeMap<SiteEventKey<T>, SiteEvent<T>>>,
     // The lines we are considering at any given point in time
     active_lines: Option<FnvHashSet<usize>>,
     // A list of intersection points and the line segments involved in each intersection
-    result: Option<rb_tree::RBMap<SiteEventKey<T>, Vec<usize>>>,
+    result: Option<BTreeMap<SiteEventKey<T>, Vec<usize>>>,
     // The 'best' lines surrounding the event point but not directly connected to the point.
     neighbour_priority: Option<MinMax<T>>,
     // The 'best' lines directly connected to the event point.
@@ -467,9 +468,9 @@ where
             sweepline_pos: nalgebra::Point2::new(-T::max_value(), -T::max_value()),
             stop_at_first_intersection: false,
             ignore_end_point_intersections: false,
-            site_events: Some(rb_tree::RBMap::new()),
+            site_events: Some(BTreeMap::new()),
             lines: Vec::<nalgebra_2d::Line2<T>>::new(),
-            result: Some(rb_tree::RBMap::new()),
+            result: Some(BTreeMap::new()),
             active_lines: Some(FnvHashSet::default()),
             neighbour_priority: Some(MinMax::new()),
             connected_priority: Some(MinMaxSlope::new()),
@@ -509,7 +510,7 @@ where
         }
     }
 
-    pub fn get_site_events(&self) -> &Option<rb_tree::RBMap<SiteEventKey<T>, SiteEvent<T>>> {
+    pub fn get_site_events(&self) -> &Option<BTreeMap<SiteEventKey<T>, SiteEvent<T>>> {
         &self.site_events
     }
 
@@ -672,7 +673,7 @@ where
     ///
     fn add_intersection_event(
         &self,
-        site_events: &mut rb_tree::RBMap<SiteEventKey<T>, SiteEvent<T>>,
+        site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent<T>>,
         position: &SiteEventKey<T>,
         intersecting_lines: &[usize],
     ) {
@@ -746,7 +747,7 @@ where
         })?;
 
         loop {
-            if let Some((key, event)) = site_events.pop_pair() {
+            if let Some((key, event)) = site_events.pop_first() {
                 self.handle_event(
                     &key,
                     &event,
@@ -784,8 +785,8 @@ where
         active_lines: &mut FnvHashSet<usize>,
         neighbour_priority: &mut MinMax<T>,
         connected_priority: &mut MinMaxSlope<T>,
-        site_events: &mut rb_tree::RBMap<SiteEventKey<T>, SiteEvent<T>>,
-        result: &mut rb_tree::RBMap<SiteEventKey<T>, Vec<usize>>,
+        site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent<T>>,
+        result: &mut BTreeMap<SiteEventKey<T>, Vec<usize>>,
     ) -> Result<(), LinestringError> {
         self.sweepline_pos = key.pos;
 
@@ -987,7 +988,7 @@ where
         &mut self,
         left: &[usize],
         right: &[usize],
-        site_events: &mut rb_tree::RBMap<SiteEventKey<T>, SiteEvent<T>>,
+        site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent<T>>,
     ) -> Result<(), LinestringError> {
         for left_i in left.iter() {
             for right_i in right.iter() {
@@ -1039,7 +1040,7 @@ where
 
     fn report_intersections_to_result<'a, I>(
         &mut self,
-        result: &mut rb_tree::RBMap<SiteEventKey<T>, Vec<usize>>,
+        result: &mut BTreeMap<SiteEventKey<T>, Vec<usize>>,
         pos: &nalgebra::Point2<T>,
         intersecting_lines: I,
     ) where

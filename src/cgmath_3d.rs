@@ -300,6 +300,42 @@ where
     min_max: Option<(cgmath::Point3<T>, cgmath::Point3<T>)>,
 }
 
+struct PriorityDistance<T> {
+    key: T,
+    index: usize,
+}
+
+impl<T> PartialOrd for PriorityDistance<T>
+where
+    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+{
+    #[inline(always)]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+impl<T> Ord for PriorityDistance<T>
+where
+    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+{
+    #[inline(always)]
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.key.partial_cmp(&other.key).unwrap().reverse()
+    }
+}
+
+impl<T> PartialEq for PriorityDistance<T>
+where
+    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+{
+    #[inline(always)]
+    fn eq(&self, other: &Self) -> bool {
+        ulps_eq!(&self.key, &other.key)
+    }
+}
+
+impl<T> Eq for PriorityDistance<T> where T: PartialOrd + PartialEq + cgmath::UlpsEq {}
+
 impl<T> LineString3<T>
 where
     T: cgmath::BaseFloat + Sync,
@@ -544,9 +580,7 @@ where
         // If it is not in there or if the area doesn't match it will simply be ignored and a
         // new value pop():ed.
 
-        // A tuple is PartOrd:end by the first element
-        // RBTree::<(area:T, node_id:usize)>
-        let mut search_tree = rb_tree::RBTree::<(T, usize)>::new();
+        let mut search_tree = collections::binary_heap::BinaryHeap::<PriorityDistance<T>>::new();
         // map from node number to remaining neighbours of that node. All indices of self.points
         // FnvHashMap::<node_id:usize, (prev_node_id:usize, next_node_id:usize, area:T)>
         let mut link_tree = fnv::FnvHashMap::<usize, (usize, usize, T)>::default();
@@ -559,7 +593,10 @@ where
                 let j = iter_j.next().unwrap();
                 // define the area between point i, j & k as search criteria
                 let area = Line3::triangle_area_squared_times_4(i.1, j.1, k.1);
-                let _ = search_tree.insert((area, j.0));
+                let _ = search_tree.push(PriorityDistance {
+                    key: area,
+                    index: j.0,
+                });
                 // point j is connected to point i and k
                 let _ = link_tree.insert(j.0, (i.0, k.0, area));
             }
@@ -574,7 +611,10 @@ where
                 &self.points[j],
                 &self.points[0],
             );
-            let _ = search_tree.insert((area, j));
+            let _ = search_tree.push(PriorityDistance {
+                key: area,
+                index: j,
+            });
             let _ = link_tree.insert(j, (i, k, area));
         }
 
@@ -586,13 +626,13 @@ where
                 break;
             }
             if let Some(smallest) = search_tree.pop() {
-                if let Some(old_links) = link_tree.get(&smallest.1).copied() {
+                if let Some(old_links) = link_tree.get(&smallest.index).copied() {
                     let area = old_links.2;
-                    if smallest.0 != area {
+                    if smallest.key != area {
                         // we hit a lazily deleted node, try again
                         continue;
                     } else {
-                        let _ = link_tree.remove(&smallest.1);
+                        let _ = link_tree.remove(&smallest.index);
                     }
                     deleted_nodes += 1;
 
@@ -609,7 +649,10 @@ where
                                 &self.points[next % self_points_len],
                                 &self.points[next_next % self_points_len],
                             );
-                            let _ = search_tree.insert((area, next));
+                            let _ = search_tree.push(PriorityDistance {
+                                key: area,
+                                index: next,
+                            });
                             let _ = link_tree.insert(next, (prev, next_next, area));
 
                             let area = Line3::triangle_area_squared_times_4(
@@ -617,7 +660,10 @@ where
                                 &self.points[prev],
                                 &self.points[next % self_points_len],
                             );
-                            let _ = search_tree.insert((area, prev));
+                            let _ = search_tree.push(PriorityDistance {
+                                key: area,
+                                index: prev,
+                            });
                             let _ = link_tree.insert(prev, (prev_prev, next, area));
                             continue;
                         }
@@ -629,7 +675,10 @@ where
                             &self.points[prev],
                             &self.points[next % self_points_len],
                         );
-                        let _ = search_tree.insert((area, prev));
+                        let _ = search_tree.push(PriorityDistance {
+                            key: area,
+                            index: prev,
+                        });
                         let _ = link_tree.insert(prev, (prev_prev, next, area));
                         continue;
                     };
@@ -640,7 +689,10 @@ where
                             &self.points[next % self_points_len],
                             &self.points[next_next % self_points_len],
                         );
-                        let _ = search_tree.insert((area, next));
+                        let _ = search_tree.push(PriorityDistance {
+                            key: area,
+                            index: next,
+                        });
                         let _ = link_tree.insert(next, (prev, next_next, area));
 
                         continue;
