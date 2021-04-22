@@ -43,13 +43,13 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
 */
 use fltk::app::redraw;
+use fltk::app::MouseWheel;
 use fltk::valuator::HorNiceSlider;
 use fltk::{app, draw::*, frame::*, window::*};
+use fltk::{enums::*, prelude::*};
 use linestring::cgmath_2d::{Aabb2, LineString2, SimpleAffine};
 use std::cell::RefCell;
 use std::rc::Rc;
-use fltk::{prelude::*, enums::*};
-use fltk::app::MouseWheel;
 
 // frame size
 const HF: i32 = 565;
@@ -289,7 +289,7 @@ fn main() {
     // mouse_drag is only used inside this closure, so it does not need to be placed in
     // shared_data
     let mut mouse_drag: Option<(i32, i32)> = None;
-    wind.handle(move |_,ev| match ev {
+    wind.handle(move |_, ev| match ev {
         fltk::enums::Event::MouseWheel => {
             let event = &app::event_coords();
             let mut shared_data_bm = shared_data_c.borrow_mut();
