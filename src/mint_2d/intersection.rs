@@ -552,10 +552,6 @@ where
         &self.lines
     }
 
-    pub fn get_results(&self) -> &Option<rb_tree::RBMap<SiteEventKey<T>, Vec<usize>>> {
-        &self.result
-    }
-
     /// This removes the results from the AlgorithmData structure
     #[allow(clippy::type_complexity)]
     pub fn take_results<'a>(
