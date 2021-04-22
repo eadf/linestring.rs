@@ -6,7 +6,7 @@ fn intersection_bench(c: &mut Criterion) {
     let mut vertices = Vec::<cgmath::Point2<f32>>::with_capacity(10000);
     let mut angle = 0.0_f32;
     let mut radius = 0.1_f32;
-    for _i in 0..12000 {
+    for _i in 0..10000 {
         vertices.push(cgmath::Point2 {
             x: angle.cos() * radius,
             y: angle.sin() * radius,
