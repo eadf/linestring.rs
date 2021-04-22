@@ -51,3 +51,8 @@ fltk = "^1.0.0"
 cgmath = "^0.18.0"
 rand = "^0.8.3"
 rand_chacha = "^0.3.0"
+criterion = "^0.3.4"
+
+[[bench]]
+name = "bench"
+harness = false
