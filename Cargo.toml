@@ -52,5 +52,9 @@ rand_chacha = "^0.3.0"
 criterion = "^0.3.4"
 
 [[bench]]
-name = "bench"
+name = "intersection_bench"
+harness = false
+
+[[bench]]
+name = "simplify_bench"
 harness = false
