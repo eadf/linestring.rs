@@ -548,7 +548,8 @@ where
         &self.result
     }
 
-    // This removes the results from the AlgorithmData structure
+    /// This removes the results from the AlgorithmData structure
+    #[allow(clippy::type_complexity)]
     pub fn take_results(&mut self) -> Result<Vec<([T; 2], Vec<usize>)>, LinestringError> {
         if let Some(rv) = self.result.take() {
             Ok(rv.into_iter().map(|x| (x.0.pos, x.1)).collect())
@@ -755,6 +756,7 @@ where
     }
 
     #[allow(unused_assignments)]
+    #[allow(clippy::type_complexity)]
     /// handles input event, returns true when done
     /// If interactive is set, the method will handle only one event for each call
     pub fn compute(&mut self) -> Result<Vec<([T; 2], Vec<usize>)>, LinestringError> {

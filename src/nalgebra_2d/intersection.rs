@@ -478,7 +478,8 @@ where
         &self.result
     }
 
-    // This removes the results from the AlgorithmData structure
+    /// This removes the results from the AlgorithmData structure
+    #[allow(clippy::type_complexity)]
     pub fn take_results(
         &mut self,
     ) -> Result<Vec<(nalgebra::Point2<T>, Vec<usize>)>, LinestringError> {
@@ -687,6 +688,7 @@ where
     }
 
     #[allow(unused_assignments)]
+    #[allow(clippy::type_complexity)]
     /// handles input event, returns true when done
     /// If interactive is set, the method will handle only one event for each call
     pub fn compute(&mut self) -> Result<Vec<(nalgebra::Point2<T>, Vec<usize>)>, LinestringError> {

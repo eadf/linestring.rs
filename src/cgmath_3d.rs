@@ -130,7 +130,7 @@ impl Plane {
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     #[inline(always)]
-    pub fn to_3d<T>(&self, point: &cgmath::Point2<T>) -> cgmath::Point3<T>
+    pub fn point_to_3d<T>(&self, point: &cgmath::Point2<T>) -> cgmath::Point3<T>
     where
         T: cgmath::BaseFloat + Sync + cgmath::AbsDiffEq<Epsilon = T>,
     {
@@ -158,7 +158,7 @@ impl Plane {
     /// That way the operation is reversible (with regards to axis positions).
     #[allow(dead_code)]
     #[inline(always)]
-    fn to_2d<T>(&self, point: &cgmath::Point3<T>) -> cgmath::Point2<T>
+    fn point_to_2d<T>(&self, point: &cgmath::Point3<T>) -> cgmath::Point2<T>
     where
         T: cgmath::BaseFloat + Sync + cgmath::AbsDiffEq<Epsilon = T>,
     {

@@ -148,7 +148,7 @@ impl Plane {
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     #[inline(always)]
-    pub fn to_3d<T>(&self, point: &[T; 2]) -> [T; 3]
+    pub fn point_to_3d<T>(&self, point: &[T; 2]) -> [T; 3]
     where
         T: num_traits::Float
             + std::fmt::Debug
@@ -170,7 +170,7 @@ impl Plane {
     /// That way the operation is reversible (with regards to axis positions).
     #[allow(dead_code)]
     #[inline(always)]
-    fn to_2d<T>(&self, point: &[T; 3]) -> [T; 2]
+    fn point_to_2d<T>(&self, point: &[T; 3]) -> [T; 2]
     where
         T: num_traits::Float
             + std::fmt::Debug
