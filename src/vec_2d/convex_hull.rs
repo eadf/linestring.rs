@@ -1,5 +1,5 @@
 use crate::vec_2d;
-use cgmath::ulps_eq;
+use approx::ulps_eq;
 #[cfg(feature = "impl-rayon")]
 use rayon::prelude::*;
 use std::cmp::Ordering;
@@ -68,6 +68,34 @@ impl<
         let t1 = (b[0] - a[0]) * (c[1] - a[1]);
         let t2 = (b[1] - a[1]) * (c[0] - a[0]);
         if ulps_eq!(t1, t2) {
+            true
+        } else {
+            t1 >= t2
+        }
+    }
+
+    /// Returns true if the point 'c' lies to the 'left' of the line a->b
+    /// Returns true even if the point lies on the line a-b
+    ///```
+    /// # use linestring::vec_2d::convex_hull;
+    /// # use approx::AbsDiffEq;
+    /// # use approx::UlpsEq;
+    /// let a = [0.0_f32,0.0 ];
+    /// let b = [0.0_f32,10.0 ];
+    /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear_ulps(&a, &b, &b, f32::default_epsilon(), f32::default_max_ulps()));
+    /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear_ulps(&a, &b, &a, f32::default_epsilon(), f32::default_max_ulps()));
+    ///```
+    #[inline(always)]
+    pub fn is_point_left_allow_collinear_ulps(
+        a: &[T; 2],
+        b: &[T; 2],
+        c: &[T; 2],
+        epsilon: T::Epsilon,
+        max_ulps: u32,
+    ) -> bool {
+        let t1 = (b[0] - a[0]) * (c[1] - a[1]);
+        let t2 = (b[1] - a[1]) * (c[0] - a[0]);
+        if t1.ulps_eq(&t2, epsilon, max_ulps) {
             true
         } else {
             t1 >= t2

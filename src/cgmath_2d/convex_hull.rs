@@ -67,6 +67,34 @@ impl<T: cgmath::BaseFloat + Sync> ConvexHull<T> {
         }
     }
 
+    /// Returns true if the point 'c' lies to the 'left' of the line a->b
+    /// Returns true even if the point lies on the line a-b
+    ///```
+    /// # use linestring::cgmath_2d::convex_hull;
+    /// # use cgmath::AbsDiffEq;
+    /// # use cgmath::UlpsEq;
+    /// let a = cgmath::Point2 { x: 0.0_f32, y: 0.0 };
+    /// let b = cgmath::Point2 { x: 0.0_f32, y: 10.0 };
+    /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear_ulps(&a, &b, &b, f32::default_epsilon(), f32::default_max_ulps()));
+    /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear_ulps(&a, &b, &a, f32::default_epsilon(), f32::default_max_ulps()));
+    ///```
+    #[inline(always)]
+    pub fn is_point_left_allow_collinear_ulps(
+        a: &cgmath::Point2<T>,
+        b: &cgmath::Point2<T>,
+        c: &cgmath::Point2<T>,
+        epsilon: T::Epsilon,
+        max_ulps: u32,
+    ) -> bool {
+        let t1 = (b.x - a.x) * (c.y - a.y);
+        let t2 = (b.y - a.y) * (c.x - a.x);
+        if t1.ulps_eq(&t2, epsilon, max_ulps) {
+            true
+        } else {
+            t1 >= t2
+        }
+    }
+
     /// distance between two points squared
     #[inline(always)]
     fn distance_squared(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> T {

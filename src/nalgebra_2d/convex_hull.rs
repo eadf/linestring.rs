@@ -1,5 +1,5 @@
 use crate::nalgebra_2d;
-use cgmath::ulps_eq;
+use approx::ulps_eq;
 #[cfg(feature = "impl-rayon")]
 use rayon::prelude::*;
 use std::cmp::Ordering;
@@ -61,6 +61,34 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
         let t1 = (b.x - a.x) * (c.y - a.y);
         let t2 = (b.y - a.y) * (c.x - a.x);
         if ulps_eq!(t1, t2) {
+            true
+        } else {
+            t1 >= t2
+        }
+    }
+
+    /// Returns true if the point 'c' lies to the 'left' of the line a->b
+    /// Returns true even if the point lies on the line a-b
+    ///```
+    /// # use linestring::nalgebra_2d::convex_hull;
+    /// # use approx::AbsDiffEq;
+    /// # use approx::UlpsEq;
+    /// let a = nalgebra::Point2::new( 0.0_f32,0.0 );
+    /// let b = nalgebra::Point2::new( 0.0_f32,10.0 );
+    /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear_ulps(&a, &b, &b, f32::default_epsilon(), f32::default_max_ulps()));
+    /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear_ulps(&a, &b, &a, f32::default_epsilon(), f32::default_max_ulps()));
+    ///```
+    #[inline(always)]
+    pub fn is_point_left_allow_collinear_ulps(
+        a: &nalgebra::Point2<T>,
+        b: &nalgebra::Point2<T>,
+        c: &nalgebra::Point2<T>,
+        epsilon: T::Epsilon,
+        max_ulps: u32,
+    ) -> bool {
+        let t1 = (b.x - a.x) * (c.y - a.y);
+        let t2 = (b.y - a.y) * (c.x - a.x);
+        if t1.ulps_eq(&t2, epsilon, max_ulps) {
             true
         } else {
             t1 >= t2

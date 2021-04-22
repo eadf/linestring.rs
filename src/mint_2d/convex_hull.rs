@@ -1,5 +1,5 @@
 use crate::mint_2d;
-use cgmath::ulps_eq;
+use approx::ulps_eq;
 #[cfg(feature = "impl-rayon")]
 use rayon::prelude::*;
 use std::cmp::Ordering;
@@ -72,6 +72,34 @@ impl<
         let t1 = (b.x - a.x) * (c.y - a.y);
         let t2 = (b.y - a.y) * (c.x - a.x);
         if ulps_eq!(t1, t2) {
+            true
+        } else {
+            t1 >= t2
+        }
+    }
+
+    /// Returns true if the point 'c' lies to the 'left' of the line a->b
+    /// Returns true even if the point lies on the line a-b
+    ///```
+    /// # use linestring::mint_2d::convex_hull;
+    /// # use approx::AbsDiffEq;
+    /// # use approx::UlpsEq;
+    /// let a = mint::Point2 { x: 0.0_f32, y: 0.0 };
+    /// let b = mint::Point2 { x: 0.0_f32, y: 10.0 };
+    /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear_ulps(&a, &b, &b, f32::default_epsilon(), f32::default_max_ulps()));
+    /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear_ulps(&a, &b, &a, f32::default_epsilon(), f32::default_max_ulps()));
+    ///```
+    #[inline(always)]
+    pub fn is_point_left_allow_collinear_ulps(
+        a: &mint::Point2<T>,
+        b: &mint::Point2<T>,
+        c: &mint::Point2<T>,
+        epsilon: T::Epsilon,
+        max_ulps: u32,
+    ) -> bool {
+        let t1 = (b.x - a.x) * (c.y - a.y);
+        let t2 = (b.y - a.y) * (c.x - a.x);
+        if t1.ulps_eq(&t2, epsilon, max_ulps) {
             true
         } else {
             t1 >= t2
