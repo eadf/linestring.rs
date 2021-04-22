@@ -1,4 +1,5 @@
 use crate::vec_2d;
+use cgmath::ulps_eq;
 #[cfg(feature = "impl-rayon")]
 use rayon::prelude::*;
 use std::cmp::Ordering;
@@ -64,7 +65,13 @@ impl<
     ///```
     #[inline(always)]
     pub fn is_point_left_allow_collinear(a: &[T; 2], b: &[T; 2], c: &[T; 2]) -> bool {
-        (b[0] - a[0]) * (c[1] - a[1]) >= (b[1] - a[1]) * (c[0] - a[0])
+        let t1 = (b[0] - a[0]) * (c[1] - a[1]);
+        let t2 = (b[1] - a[1]) * (c[0] - a[0]);
+        if ulps_eq!(t1, t2) {
+            true
+        } else {
+            t1 >= t2
+        }
     }
 
     /// distance between two points squared

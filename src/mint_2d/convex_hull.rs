@@ -1,4 +1,5 @@
 use crate::mint_2d;
+use cgmath::ulps_eq;
 #[cfg(feature = "impl-rayon")]
 use rayon::prelude::*;
 use std::cmp::Ordering;
@@ -68,7 +69,13 @@ impl<
         b: &mint::Point2<T>,
         c: &mint::Point2<T>,
     ) -> bool {
-        (b.x - a.x) * (c.y - a.y) >= (b.y - a.y) * (c.x - a.x)
+        let t1 = (b.x - a.x) * (c.y - a.y);
+        let t2 = (b.y - a.y) * (c.x - a.x);
+        if ulps_eq!(t1, t2) {
+            true
+        } else {
+            t1 >= t2
+        }
     }
 
     /// distance between two points squared
