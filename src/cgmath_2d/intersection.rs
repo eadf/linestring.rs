@@ -484,9 +484,9 @@ where
     // This removes the results from the AlgorithmData structure
     pub fn take_results(
         &mut self,
-    ) -> Result<rb_tree::RBMap<SiteEventKey<T>, Vec<usize>>, LinestringError> {
+    ) -> Result<Vec<(cgmath::Point2<T>, Vec<usize>)>, LinestringError> {
         if let Some(rv) = self.result.take() {
-            Ok(rv)
+            Ok(rv.into_iter().map(|x| (x.0.pos, x.1)).collect())
         } else {
             Err(LinestringError::UnknownError {
                 txt: "Results already taken?? This should not happen".to_string(),
@@ -692,9 +692,7 @@ where
     #[allow(unused_assignments)]
     /// handles input event, returns true when done
     /// If interactive is set, the method will handle only one event for each call
-    pub fn compute(
-        &mut self,
-    ) -> Result<rb_tree::RBMap<SiteEventKey<T>, Vec<usize>>, LinestringError> {
+    pub fn compute(&mut self) -> Result<Vec<(cgmath::Point2<T>, Vec<usize>)>, LinestringError> {
         // make the borrow checker happy by breaking the link between self and all the
         // containers and their iterators.
         let mut active_lines = self.active_lines.take().unwrap();
