@@ -688,7 +688,7 @@ where
             //print!("[{:?},{:?}],", p.x, p.y,);
             //}
             //println!("]");
-            Ok(!result.len() > 0)
+            Ok(result.len() > 0)
         }
     }
 
