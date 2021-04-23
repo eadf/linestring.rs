@@ -443,14 +443,14 @@ where
     /// <https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm>
     pub fn discretise_3d(&self, max_dist: T) -> nalgebra_3d::LineString3<T> {
         let mut rv = nalgebra_3d::LineString3::default().with_connected(false);
-        let distance = -distance_to_point_squared(&self.start_point, &self.cell_point).sqrt();
+        let z_comp = -distance_to_point_squared(&self.start_point, &self.cell_point).sqrt();
         rv.points
-            .push([self.start_point.x, self.start_point.y, distance].into());
+            .push([self.start_point.x, self.start_point.y, z_comp].into());
 
-        let distance = -distance_to_point_squared(&self.end_point, &self.cell_point).sqrt();
+        let z_comp = -distance_to_point_squared(&self.end_point, &self.cell_point).sqrt();
         // todo, don't insert end_point and then pop it again a few lines later..
         rv.points
-            .push([self.end_point.x, self.end_point.y, distance].into());
+            .push([self.end_point.x, self.end_point.y, z_comp].into());
 
         // Apply the linear transformation to move start point of the segment to
         // the point with coordinates (0, 0) and the direction of the segment to
@@ -509,13 +509,13 @@ where
                     + self.segment.start.x;
                 let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
                     + self.segment.start.y;
-                let distance = -distance_to_point_squared(
+                let z_comp = -distance_to_point_squared(
                     &nalgebra::Point2::new(inter_x, inter_y),
                     &self.cell_point,
                 )
                 .sqrt();
                 rv.points
-                    .push(nalgebra::Point3::new(inter_x, inter_y, distance));
+                    .push(nalgebra::Point3::new(inter_x, inter_y, z_comp));
                 cur_x = new_x;
                 cur_y = new_y;
             } else {

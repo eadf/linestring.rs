@@ -488,14 +488,14 @@ where
     /// <https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm>
     pub fn discretise_3d(&self, max_dist: T) -> vec_3d::LineString3<T> {
         let mut rv = vec_3d::LineString3::default().with_connected(false);
-        let distance = -distance_to_point_squared(&self.start_point, &self.cell_point).sqrt();
+        let z_comp = -distance_to_point_squared(&self.start_point, &self.cell_point).sqrt();
         rv.points
-            .push([self.start_point[0], self.start_point[1], distance]);
+            .push([self.start_point[0], self.start_point[1], z_comp].into());
 
-        let distance = -distance_to_point_squared(&self.end_point, &self.cell_point).sqrt();
+        let z_comp = -distance_to_point_squared(&self.end_point, &self.cell_point).sqrt();
         // todo, don't insert end_point and then pop it again a few lines later..
         rv.points
-            .push([self.end_point[0], self.end_point[1], distance]);
+            .push([self.end_point[0], self.end_point[1], z_comp].into());
 
         // Apply the linear transformation to move start point of the segment to
         // the point with coordinates (0, 0) and the direction of the segment to
@@ -554,9 +554,9 @@ where
                     + self.segment.start[0];
                 let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
                     + self.segment.start[1];
-                let distance =
+                let z_comp =
                     -distance_to_point_squared(&[inter_x, inter_y], &self.cell_point).sqrt();
-                rv.points.push([inter_x, inter_y, distance]);
+                rv.points.push([inter_x, inter_y, z_comp]);
                 cur_x = new_x;
                 cur_y = new_y;
             } else {
