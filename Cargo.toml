@@ -1,6 +1,6 @@
 [package]
 name = "linestring"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["eadf"]
 edition = "2018"
 description = "2d and 3d polylines"
@@ -16,15 +16,13 @@ impl-mint = ["mint"]
 impl-vecmath = ["vecmath"]
 impl-vec = []
 impl-rayon = ["rayon"]
-
+# used for debugging purposes
+console_trace = []
 # everything is enabled by default, or else rust doc wont find anything
 # i.e. disable all features except mint with this dependency:
 #  [dependencies]
 #  linestring = {version="^0.0.10",default-features=false,features=["impl-mint"]}
 default = ["impl-cgmath", "impl-nalgebra", "impl-mint", "impl-vecmath", "impl-vec", "impl-rayon"]
-
-# used for debugging purposes
-console_trace = []
 
 [dependencies]
 cgmath = { version = "^0.18.0", optional=true }
