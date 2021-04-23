@@ -359,6 +359,8 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
     /// # use linestring::nalgebra_2d;
     /// # use linestring::nalgebra_2d::convex_hull;
     /// # use rand::{Rng, SeedableRng};
+    /// # use approx::AbsDiffEq;
+    /// # use approx::UlpsEq;
     ///
     /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
     /// let mut points = Vec::<nalgebra::Point2<f32>>::new();
@@ -379,11 +381,16 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
     /// let b = nalgebra_2d::LineString2::<f32>::default().with_points(points);
     /// let b = convex_hull::ConvexHull::graham_scan(b.points().iter());
     ///
-    /// assert!(convex_hull::ConvexHull::contains(&a, &b));
-    /// assert!(!convex_hull::ConvexHull::contains(&b, &a));
+    /// assert!(convex_hull::ConvexHull::contains(&a, &b, f32::default_epsilon(), f32::default_max_ulps()));
+    /// assert!(!convex_hull::ConvexHull::contains(&b, &a, f32::default_epsilon(), f32::default_max_ulps()));
     ///```
     #[cfg(feature = "impl-rayon")]
-    pub fn contains(a: &nalgebra_2d::LineString2<T>, b: &nalgebra_2d::LineString2<T>) -> bool {
+    pub fn contains(
+        a: &nalgebra_2d::LineString2<T>,
+        b: &nalgebra_2d::LineString2<T>,
+        epsilon: T::Epsilon,
+        max_ulps: u32,
+    ) -> bool {
         if a.len() <= 1 {
             return false;
         }
@@ -396,7 +403,9 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
             .find_map_any(|l| -> Option<()> {
                 for step1 in 0..4 {
                     for p in b.points.iter().skip(step1).step_by(4) {
-                        if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
+                        if !Self::is_point_left_allow_collinear_ulps(
+                            &l.start, &l.end, p, epsilon, max_ulps,
+                        ) {
                             //println!("The point {:?} is not left of {:?}", p, l);
                             return Some(());
                         }

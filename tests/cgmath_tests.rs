@@ -1,6 +1,10 @@
 #[cfg(feature = "impl-cgmath")]
 use cgmath::ulps_eq;
 #[cfg(feature = "impl-cgmath")]
+use cgmath::AbsDiffEq;
+#[cfg(feature = "impl-cgmath")]
+use cgmath::UlpsEq;
+#[cfg(feature = "impl-cgmath")]
 use linestring::cgmath_2d;
 #[cfg(feature = "impl-cgmath")]
 use linestring::cgmath_3d;
@@ -734,6 +738,16 @@ fn convex_hull_3() {
     let b = cgmath_2d::LineString2::<f32>::default().with_points(points);
     let b = convex_hull::ConvexHull::graham_scan(b.points().iter());
 
-    assert!(convex_hull::ConvexHull::contains(&a, &b));
-    assert!(!convex_hull::ConvexHull::contains(&b, &a));
+    assert!(convex_hull::ConvexHull::contains(
+        &a,
+        &b,
+        f32::default_epsilon(),
+        f32::default_max_ulps()
+    ));
+    assert!(!convex_hull::ConvexHull::contains(
+        &b,
+        &a,
+        f32::default_epsilon(),
+        f32::default_max_ulps()
+    ));
 }

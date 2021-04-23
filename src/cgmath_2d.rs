@@ -892,34 +892,32 @@ where
         }
     }
 
-    /// A naïve implementation of Ramer–Douglas–Peucker algorithm
+    /// A naïve recursive implementation of Ramer–Douglas–Peucker algorithm
     /// It spawns a lot of Vec, but it seems to work
     fn _simplify(distance_predicate_sq: T, slice: &[cgmath::Point2<T>]) -> Vec<cgmath::Point2<T>> {
         //println!("input dist:{:?} slice{:?}", distance_predicate_sq, slice);
         if slice.len() <= 2 {
             return slice[1..].to_vec();
         }
+        // unwrap is safe since we tested len()>2
         let start_point = slice.first().unwrap();
         let end_point = slice.last().unwrap();
-        let identical_points = point_ulps_eq(&start_point, &end_point);
 
         let mut max_dist_sq = (-T::one(), 0_usize);
-
+        let mut found_something = false;
         // find the point with largest distance to start_point<->endpoint line
         for (i, point) in slice.iter().enumerate().take(slice.len() - 1).skip(1) {
-            let sq_d = if identical_points {
-                distance_to_point_squared(start_point, point)
-            } else {
-                distance_to_line_squared(start_point, end_point, point)
-            };
+            let sq_d = distance_to_line_squared_safe(start_point, end_point, point);
+
             //println!("sq_d:{:?}", sq_d);
             if sq_d > max_dist_sq.0 && sq_d > distance_predicate_sq {
                 max_dist_sq = (sq_d, i);
+                found_something = true;
             }
         }
 
         //println!("max_dist_sq: {:?}", max_dist_sq);
-        if max_dist_sq.1 == 0 {
+        if !found_something {
             // no point was outside the distance limit, return a new list only containing the
             // end point (start point is implicit)
             //println!("return start-end");
