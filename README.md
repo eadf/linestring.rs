@@ -52,6 +52,11 @@ linestring = {version="^0.2.0",default-features=false,features=["impl-vec", "imp
 The difference between ```impl-vecmath``` and ```impl-vec``` is that the ```impl-vecmath``` feature supports 
 matrix transformations.
 
+## Rust requirement
+
+Requires `#![feature(map_first_last)]` `#![feature(hash_drain_filter)]` and `#![feature(map_first_last)]` i.e. `rust +nightly`
+
+
 ## Demo GUI
 Run the line simplification example with :
 ```fish
