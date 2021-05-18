@@ -656,8 +656,8 @@ where
 
         let mut search_tree = collections::binary_heap::BinaryHeap::<PriorityDistance<T>>::new();
         // map from node number to remaining neighbours of that node. All indices of self.points
-        // FnvHashMap::<node_id:usize, (prev_node_id:usize, next_node_id:usize, area:T)>
-        let mut link_tree = fnv::FnvHashMap::<usize, (usize, usize, T)>::default();
+        // AHashMap::<node_id:usize, (prev_node_id:usize, next_node_id:usize, area:T)>
+        let mut link_tree = ahash::AHashMap::<usize, (usize, usize, T)>::default();
         {
             let mut iter_i = self.points.iter().enumerate();
             let mut iter_j = self.points.iter().enumerate().skip(1);

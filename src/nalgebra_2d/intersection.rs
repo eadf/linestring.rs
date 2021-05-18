@@ -44,9 +44,9 @@ licenses /why-not-lgpl.html>.
  */
 
 use crate::{nalgebra_2d, LinestringError};
+use ahash::AHashSet;
 use approx::ulps_eq;
 use core::fmt;
-use fnv::FnvHashSet;
 use std::cmp;
 use std::collections::BTreeMap;
 use std::convert::identity;
@@ -447,7 +447,7 @@ where
     // The unhandled events
     site_events: Option<BTreeMap<SiteEventKey<T>, SiteEvent<T>>>,
     // The lines we are considering at any given point in time
-    active_lines: Option<FnvHashSet<usize>>,
+    active_lines: Option<AHashSet<usize>>,
     // A list of intersection points and the line segments involved in each intersection
     result: Option<BTreeMap<SiteEventKey<T>, Vec<usize>>>,
     // The 'best' lines surrounding the event point but not directly connected to the point.
@@ -471,7 +471,7 @@ where
             site_events: Some(BTreeMap::new()),
             lines: Vec::<nalgebra_2d::Line2<T>>::new(),
             result: Some(BTreeMap::new()),
-            active_lines: Some(FnvHashSet::default()),
+            active_lines: Some(AHashSet::default()),
             neighbour_priority: Some(MinMax::new()),
             connected_priority: Some(MinMaxSlope::new()),
         }
@@ -514,8 +514,14 @@ where
         &self.site_events
     }
 
-    pub fn get_active_lines(&self) -> &Option<FnvHashSet<usize>> {
-        &self.active_lines
+    /// Returns an iterator to the active lines, while hiding the internal implementation
+    /// of self.active_lines
+    pub fn get_active_lines<'a>(&'a self) -> Box<dyn Iterator<Item = &usize> + 'a> {
+        if let Some(ref active_lines) = self.active_lines {
+            Box::new(active_lines.iter())
+        } else {
+            Box::new(None.iter())
+        }
     }
 
     pub fn with_stop_at_first_intersection(
@@ -782,7 +788,7 @@ where
         &mut self,
         key: &SiteEventKey<T>,
         event: &SiteEvent<T>,
-        active_lines: &mut FnvHashSet<usize>,
+        active_lines: &mut AHashSet<usize>,
         neighbour_priority: &mut MinMax<T>,
         connected_priority: &mut MinMaxSlope<T>,
         site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent<T>>,
