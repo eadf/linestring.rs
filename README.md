@@ -73,4 +73,3 @@ cargo run --example fltk_gui --no-default-features --features impl-cgmath,impl-r
 - [ ] Stable overlapping co-linear line detection
 - [x] Better event handling in fltk_gui
 - [x] Migrate to ahash
-
