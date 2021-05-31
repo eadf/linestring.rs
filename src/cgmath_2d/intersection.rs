@@ -44,7 +44,6 @@ licenses /why-not-lgpl.html>.
  */
 
 use crate::{cgmath_2d, LinestringError};
-use ahash::AHashSet;
 use cgmath::ulps_eq;
 use core::fmt;
 use std::cmp;
@@ -447,7 +446,7 @@ where
     // The unhandled events
     site_events: Option<BTreeMap<SiteEventKey<T>, SiteEvent<T>>>,
     // The lines we are considering at any given point in time
-    active_lines: Option<AHashSet<usize>>,
+    active_lines: Option<fnv::FnvHashSet<usize>>,
     // A list of intersection points and the line segments involved in each intersection
     result: Option<BTreeMap<SiteEventKey<T>, Vec<usize>>>,
     // The 'best' lines surrounding the event point but not directly connected to the point.
@@ -474,7 +473,7 @@ where
             site_events: Some(BTreeMap::new()),
             lines: Vec::<cgmath_2d::Line2<T>>::new(),
             result: Some(BTreeMap::new()),
-            active_lines: Some(AHashSet::default()),
+            active_lines: Some(fnv::FnvHashSet::default()),
             neighbour_priority: Some(MinMax::new()),
             connected_priority: Some(MinMaxSlope::new()),
         }
@@ -794,7 +793,7 @@ where
         &mut self,
         key: &SiteEventKey<T>,
         event: &SiteEvent<T>,
-        active_lines: &mut AHashSet<usize>,
+        active_lines: &mut fnv::FnvHashSet<usize>,
         neighbour_priority: &mut MinMax<T>,
         connected_priority: &mut MinMaxSlope<T>,
         site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent<T>>,

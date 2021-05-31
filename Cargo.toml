@@ -33,6 +33,7 @@ rayon = { version = "1.5", optional = true }
 num-traits = "0.2"
 approx = "0.4"
 ahash = "0.7"
+fnv = "1.0"
 thiserror = "1.0"
 itertools = "0.10"
 yabf = "0.1"
