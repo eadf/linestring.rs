@@ -832,7 +832,7 @@ where
         &self.aabb
     }
 
-    #[cfg(feature = "impl-vecmath")]
+    #[cfg(feature = "vecmath")]
     pub fn transform(&self, mat: &vecmath::Matrix4<T>) -> Self {
         Self {
             set: self.set.iter().map(|x| x.transform(mat)).collect(),
@@ -956,7 +956,7 @@ where
         None
     }
 
-    #[cfg(feature = "impl-vecmath")]
+    #[cfg(feature = "vecmath")]
     pub fn transform(&self, matrix4x4: &vecmath::Matrix4<T>) -> Self {
         if let Some(min_max) = self.min_max {
             Self {
