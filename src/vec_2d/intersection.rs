@@ -1084,7 +1084,7 @@ where
                 #[cfg(feature = "console_trace")]
                 print!("testing intersection between {} and {}: ", left_i, right_i);
 
-                if let Some(intersection_p) = left_l.intersection_point(&right_l) {
+                if let Some(intersection_p) = left_l.intersection_point(right_l) {
                     let intersection_p = intersection_p.single();
                     if !intersection_p[0].is_finite() || !intersection_p[1].is_finite() {
                         return Err(LinestringError::InvalidData(format!(

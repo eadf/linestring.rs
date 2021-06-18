@@ -45,7 +45,7 @@ licenses /why-not-lgpl.html>.
 
 use crate::{nalgebra_2d, LinestringError};
 use ahash::AHashSet;
-use approx::ulps_eq;
+use approx::{ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 use core::fmt;
 use std::cmp;
 use std::collections::BTreeMap;
@@ -55,14 +55,26 @@ use std::marker::PhantomData;
 #[derive(Clone, Copy)]
 pub struct SiteEventKey<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub pos: nalgebra::Point2<T>,
 }
 
 impl<T> SiteEventKey<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub fn new(x: T, y: T) -> Self {
         Self {
@@ -73,7 +85,13 @@ where
 
 impl<T> std::fmt::Debug for SiteEventKey<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("")
@@ -85,7 +103,13 @@ where
 
 impl<T> PartialOrd for SiteEventKey<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
@@ -103,7 +127,13 @@ where
 
 impl<T> Ord for SiteEventKey<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     /// It should be impossible for a !is_finite() number to be added to SiteEventKey
     #[inline(always)]
@@ -114,7 +144,13 @@ where
 
 impl<T> PartialEq for SiteEventKey<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
@@ -122,7 +158,16 @@ where
     }
 }
 
-impl<T> Eq for SiteEventKey<T> where T: nalgebra::RealField + Sync {}
+impl<T> Eq for SiteEventKey<T> where
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast
+{
+}
 
 /// A container struct that keeps track of the lines around a pivot point.
 /// It only stores the lines with highest x value left of pivot point, and lines with lowest x
@@ -130,7 +175,13 @@ impl<T> Eq for SiteEventKey<T> where T: nalgebra::RealField + Sync {}
 /// leaning towards pivot point have priority.
 struct MinMax<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     best_left: Option<T>,
     slope: MinMaxSlope<T>,
@@ -139,7 +190,13 @@ where
 
 impl<T> MinMax<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn new() -> Self {
         Self {
@@ -218,7 +275,13 @@ where
 
 struct MinMaxSlope<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     best_left: Option<T>, // slope
     candidates_left: Vec<usize>,
@@ -229,7 +292,13 @@ where
 
 impl<T> MinMaxSlope<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn new() -> Self {
         Self {
@@ -349,7 +418,13 @@ where
 ///
 pub struct SiteEvent<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     drop: Option<Vec<usize>>,
     add: Option<Vec<usize>>,
@@ -360,7 +435,13 @@ where
 
 impl<T> SiteEvent<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub(crate) fn with_intersection(i: &[usize]) -> Self {
         Self {
@@ -401,7 +482,13 @@ fn sweepline_intersection<T>(
     other: &nalgebra_2d::Line2<T>,
 ) -> Option<(T, T)>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
     let y1 = other.start.y;
@@ -433,7 +520,13 @@ where
 /// to take() them and make the borrow-checker happy.
 pub struct IntersectionData<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     // sweep-line position
     sweepline_pos: nalgebra::Point2<T>,
@@ -461,7 +554,13 @@ where
 
 impl<T> Default for IntersectionData<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn default() -> Self {
         Self {
@@ -480,7 +579,13 @@ where
 
 impl<T> IntersectionData<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub fn get_sweepline_pos(&self) -> &nalgebra::Point2<T> {
         &self.sweepline_pos
@@ -1007,7 +1112,7 @@ where
                 #[cfg(feature = "console_trace")]
                 print!("testing intersection between {} and {}: ", left_i, right_i);
 
-                if let Some(intersection_p) = left_l.intersection_point(&right_l) {
+                if let Some(intersection_p) = left_l.intersection_point(right_l) {
                     let intersection_p = intersection_p.single();
                     if !intersection_p.x.is_finite() || !intersection_p.y.is_finite() {
                         return Err(LinestringError::InvalidData(format!(

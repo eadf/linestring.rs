@@ -46,7 +46,7 @@ licenses /why-not-lgpl.html>.
 use super::nalgebra_3d;
 #[allow(unused_imports)]
 use crate::LinestringError;
-use approx::ulps_eq;
+use approx::{ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 
 use itertools::Itertools;
 #[allow(unused_imports)]
@@ -63,7 +63,13 @@ pub mod intersection;
 /// Placeholder for different 2d shapes
 pub enum Shape2d<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     Line(Line2<T>),
     Linestring(LineString2<T>),
@@ -74,7 +80,13 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub start: nalgebra::Point2<T>,
     pub end: nalgebra::Point2<T>,
@@ -82,7 +94,13 @@ where
 
 impl<T> Line2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub fn new(start: nalgebra::Point2<T>, end: nalgebra::Point2<T>) -> Self {
         Self { start, end }
@@ -95,7 +113,13 @@ where
     #[allow(clippy::suspicious_operation_groupings)]
     pub fn intersection_point(&self, other: &Self) -> Option<Intersection<T>>
     where
-        T: nalgebra::RealField + Sync,
+        T: nalgebra::RealField
+            + Sync
+            + AbsDiffEq<Epsilon = T>
+            + UlpsEq<Epsilon = T>
+            + RelativeEq<Epsilon = T>
+            + UlpsEq<Epsilon = T>
+            + num_traits::cast::NumCast,
     {
         // AABB tests
         if self.end.x > other.end.x
@@ -271,7 +295,13 @@ where
 // Todo is this a subset of "impl<T> From<[T; 4]> for Line2<T>"?
 impl<T> Into<[T; 4]> for Line2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn into(self) -> [T; 4] {
         [self.start.x, self.start.y, self.end.x, self.end.y]
@@ -281,7 +311,13 @@ where
 // [Into<Point<T>>,Into<Point<T>>] -> Line2<T>
 impl<T, IT> From<[IT; 2]> for Line2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
     IT: Copy + Into<nalgebra::Point2<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Line2<T> {
@@ -292,7 +328,13 @@ where
 // [T,T,T,T] -> Line2<T>
 impl<T> From<[T; 4]> for Line2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn from(coordinate: [T; 4]) -> Line2<T> {
         Line2::<T>::new(
@@ -314,7 +356,13 @@ where
 #[derive(Clone, Hash, fmt::Debug)]
 pub struct VoronoiParabolicArc<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     // input geometry of voronoi graph
     pub segment: Line2<T>,
@@ -327,7 +375,13 @@ where
 
 impl<T> VoronoiParabolicArc<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub fn new(
         segment: Line2<T>,
@@ -573,7 +627,13 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub(crate) points: Vec<nalgebra::Point2<T>>,
 
@@ -584,7 +644,13 @@ where
 
 impl<T> Default for LineString2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     #[inline]
     fn default() -> Self {
@@ -602,16 +668,28 @@ struct PriorityDistance<T> {
 
 impl<T> PartialOrd for PriorityDistance<T>
 where
-    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 impl<T> Ord for PriorityDistance<T>
 where
-    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     #[inline(always)]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
@@ -621,18 +699,39 @@ where
 
 impl<T> PartialEq for PriorityDistance<T>
 where
-    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
         ulps_eq!(&self.key, &other.key)
     }
 }
-impl<T> Eq for PriorityDistance<T> where T: PartialOrd + PartialEq + cgmath::UlpsEq {}
+impl<T> Eq for PriorityDistance<T> where
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast
+{
+}
 
 impl<T> LineString2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
@@ -1088,7 +1187,13 @@ where
 
 impl<T> From<Aabb2<T>> for LineString2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     /// creates a connected LineString2 from the outlines of the Aabb2
     fn from(other: Aabb2<T>) -> Self {
@@ -1114,7 +1219,13 @@ where
 
 impl<T, IC> std::iter::FromIterator<IC> for LineString2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
     IC: Into<nalgebra::Point2<T>>,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
@@ -1133,7 +1244,13 @@ where
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     set: Vec<LineString2<T>>,
     aabb: Aabb2<T>,
@@ -1143,7 +1260,13 @@ where
 
 impl<T> Default for LineStringSet2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     #[inline]
     fn default() -> Self {
@@ -1158,7 +1281,13 @@ where
 
 impl<T> LineStringSet2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     /// steal the content of 'other' leaving it empty
     pub fn steal_from(other: &mut LineStringSet2<T>) -> Self {
@@ -1337,14 +1466,26 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     min_max: Option<(nalgebra::Point2<T>, nalgebra::Point2<T>)>,
 }
 
 impl<T, IT> From<[IT; 2]> for Aabb2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
     IT: Copy + Into<nalgebra::Point2<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb2<T> {
@@ -1357,7 +1498,13 @@ where
 
 impl<T> From<[T; 4]> for Aabb2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn from(coordinate: [T; 4]) -> Aabb2<T> {
         let mut rv = Aabb2::default();
@@ -1369,7 +1516,13 @@ where
 
 impl<T> Default for Aabb2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     #[inline]
     fn default() -> Self {
@@ -1379,7 +1532,13 @@ where
 
 impl<T> Aabb2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub fn new(point: &nalgebra::Point2<T>) -> Self {
         Self {
@@ -1506,7 +1665,13 @@ pub fn intersect_line_point<T>(
     point: &nalgebra::Point2<T>,
 ) -> Option<Intersection<T>>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     // take care of end point equality
     if ulps_eq!(&line.start.x, &point.x) && ulps_eq!(&line.start.y, &point.y) {
@@ -1538,7 +1703,13 @@ where
 #[allow(dead_code)]
 pub enum Intersection<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     // Normal one point intersection
     Intersection(nalgebra::Point2<T>),
@@ -1548,7 +1719,13 @@ where
 
 impl<T> Intersection<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     /// return a single, simple intersection point
     pub fn single(&self) -> nalgebra::Point2<T> {
@@ -1561,7 +1738,13 @@ where
 
 impl<T> fmt::Debug for Intersection<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -1578,7 +1761,13 @@ pub fn scale_to_coordinate<T>(
     scale: T,
 ) -> nalgebra::Point2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     nalgebra::Point2::new(point.x + scale * vector.x, point.y + scale * vector.y)
 }
@@ -1587,7 +1776,13 @@ where
 /// Divides a 'vector' by 'b'. Obviously, don't feed this with 'b' == 0
 fn div<T>(a: &nalgebra::Vector2<T>, b: T) -> nalgebra::Vector2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     nalgebra::Vector2::<T>::new(a.x / b, a.y / b)
 }
@@ -1597,7 +1792,13 @@ where
 /// This is a compatibility workaround for 2d packages without any math
 fn sub<T>(a: &nalgebra::Point2<T>, b: &nalgebra::Point2<T>) -> nalgebra::Vector2<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     a - b
 }
@@ -1608,7 +1809,13 @@ where
 /// This function returns the z component of v × w (if we pretend v and w are two dimensional)
 fn cross_z<T>(v: &nalgebra::Vector2<T>, w: &nalgebra::Vector2<T>) -> T
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     v.x * w.y - v.y * w.x
 }
@@ -1625,7 +1832,13 @@ pub fn distance_to_line_squared<T>(
     p: &nalgebra::Point2<T>,
 ) -> T
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     let a_sub_b = sub(a, b);
     let a_sub_p = sub(a, p);
@@ -1643,7 +1856,13 @@ pub fn distance_to_line_squared_safe<T>(
     p: &nalgebra::Point2<T>,
 ) -> T
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     if point_ulps_eq(a, b) {
         // give the point-to-point answer if the segment is a point
@@ -1661,7 +1880,13 @@ where
 /// The distance² between the two points
 pub fn distance_to_point_squared<T>(a: &nalgebra::Point2<T>, b: &nalgebra::Point2<T>) -> T
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     let v = sub(a, b);
     v.x * v.x + v.y * v.y
@@ -1671,7 +1896,13 @@ where
 /// calculate the dot product of two vectors
 fn dot<T>(a: &nalgebra::Vector2<T>, b: &nalgebra::Vector2<T>) -> T
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     a.x * b.x + a.y * b.y
 }
@@ -1679,7 +1910,13 @@ where
 #[inline(always)]
 pub fn point_ulps_eq<T>(a: &nalgebra::Point2<T>, b: &nalgebra::Point2<T>) -> bool
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     ulps_eq!(&a.x, &b.x) && ulps_eq!(&a.y, &b.y)
 }
@@ -1688,7 +1925,16 @@ where
 /// It can pan, zoom and flip points around center axis but not rotate.
 /// It does not handle vector transformation, only points.
 #[derive(PartialEq, Clone, fmt::Debug)]
-pub struct SimpleAffine<T: nalgebra::RealField> {
+pub struct SimpleAffine<T>
+where
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
+{
     /// The offsets used to center the 'source' coordinate system. Typically the input geometry
     /// in this case.
     pub a_offset: [T; 2],
@@ -1699,7 +1945,16 @@ pub struct SimpleAffine<T: nalgebra::RealField> {
     pub b_offset: [T; 2],
 }
 
-impl<T: nalgebra::RealField + Sync> Default for SimpleAffine<T> {
+impl<T> Default for SimpleAffine<T>
+where
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
+{
     #[inline]
     fn default() -> Self {
         Self {
@@ -1712,7 +1967,13 @@ impl<T: nalgebra::RealField + Sync> Default for SimpleAffine<T> {
 
 impl<T> SimpleAffine<T>
 where
-    T: nalgebra::RealField + Sync + num_traits::cast::NumCast,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub fn new(a_aabb: &Aabb2<T>, b_aabb: &Aabb2<T>) -> Result<Self, LinestringError> {
         let min_dim = T::from(1.0).unwrap();

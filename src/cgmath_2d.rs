@@ -621,7 +621,7 @@ where
 {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 impl<T> Ord for PriorityDistance<T>
@@ -1730,7 +1730,10 @@ where
 /// It can pan, zoom and flip points around center axis but not rotate.
 /// It does not handle vector transformation, only points.
 #[derive(PartialEq, Clone, fmt::Debug)]
-pub struct SimpleAffine<T: cgmath::BaseFloat> {
+pub struct SimpleAffine<T>
+where
+    T: cgmath::BaseFloat + Sync,
+{
     /// The offsets used to center the 'source' coordinate system. Typically the input geometry
     /// in this case.
     pub a_offset: [T; 2],
@@ -1741,7 +1744,10 @@ pub struct SimpleAffine<T: cgmath::BaseFloat> {
     pub b_offset: [T; 2],
 }
 
-impl<T: cgmath::BaseFloat + Sync> Default for SimpleAffine<T> {
+impl<T> Default for SimpleAffine<T>
+where
+    T: cgmath::BaseFloat + Sync,
+{
     #[inline]
     fn default() -> Self {
         Self {

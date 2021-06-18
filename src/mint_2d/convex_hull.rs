@@ -5,25 +5,26 @@ use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
-pub struct ConvexHull<
+pub struct ConvexHull<T>
+where
     T: num_traits::Float
         + std::fmt::Debug
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
         + approx::AbsDiffEq<Epsilon = T>,
-> {
+{
     pd: PhantomData<T>,
 }
 
-impl<
-        T: num_traits::Float
-            + std::fmt::Debug
-            + approx::AbsDiffEq
-            + approx::UlpsEq
-            + Sync
-            + approx::AbsDiffEq<Epsilon = T>,
-    > ConvexHull<T>
+impl<T> ConvexHull<T>
+where
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     /// finds the point with lowest x
     fn find_lowest_x(linestring: &[mint::Point2<T>]) -> (usize, mint::Point2<T>) {

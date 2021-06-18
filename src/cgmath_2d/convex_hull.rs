@@ -5,11 +5,17 @@ use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
-pub struct ConvexHull<T: cgmath::BaseFloat + Sync> {
+pub struct ConvexHull<T>
+where
+    T: cgmath::BaseFloat + Sync,
+{
     pd: PhantomData<T>,
 }
 
-impl<T: cgmath::BaseFloat + Sync> ConvexHull<T> {
+impl<T> ConvexHull<T>
+where
+    T: cgmath::BaseFloat + Sync,
+{
     /// finds the point with lowest x
     fn find_lowest_x(linestring: &[cgmath::Point2<T>]) -> (usize, cgmath::Point2<T>) {
         let mut lowest = linestring[0];

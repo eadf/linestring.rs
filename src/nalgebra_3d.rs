@@ -45,7 +45,7 @@ licenses /why-not-lgpl.html>.
 
 use super::nalgebra_2d;
 use crate::LinestringError;
-use approx::ulps_eq;
+use approx::{ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 
 use itertools::Itertools;
 use std::collections;
@@ -59,7 +59,13 @@ use std::path;
 /// Placeholder for different 3d shapes
 pub enum Shape3d<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     Line(Line3<T>),
     Linestring(LineString3<T>),
@@ -84,11 +90,21 @@ impl Plane {
     ///
     /// It's not possible to compare to zero exactly because blender
     /// leaves some decimal in coordinates that's suppose to be zero.
-    pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
+    pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Self>
     where
-        T: nalgebra::RealField + Sync + approx::AbsDiffEq<Epsilon = T>,
+        T: nalgebra::RealField
+            + Sync
+            + AbsDiffEq<Epsilon = T>
+            + UlpsEq<Epsilon = T>
+            + RelativeEq<Epsilon = T>
+            + UlpsEq<Epsilon = T>
+            + num_traits::cast::NumCast,
     {
-        Plane::get_plane_relaxed(aabb, T::default_epsilon(), T::default_max_ulps())
+        Plane::get_plane_relaxed(
+            aabb,
+            <T as AbsDiffEq>::default_epsilon(),
+            <T as UlpsEq>::default_max_ulps(),
+        )
     }
 
     /// Try to figure out what axes defines the plane.
@@ -98,9 +114,19 @@ impl Plane {
     ///
     /// It's not possible to compare to zero exactly because blender
     /// leaves some decimal in coordinates that's suppose to be zero.
-    pub fn get_plane_relaxed<T>(aabb: &Aabb3<T>, epsilon: T, max_ulps: u32) -> Option<Plane>
+    pub fn get_plane_relaxed<T>(
+        aabb: &Aabb3<T>,
+        epsilon: <T as AbsDiffEq>::Epsilon,
+        max_ulps: u32,
+    ) -> Option<Plane>
     where
-        T: nalgebra::RealField + Sync + approx::AbsDiffEq<Epsilon = T>,
+        T: nalgebra::RealField
+            + Sync
+            + AbsDiffEq<Epsilon = T>
+            + UlpsEq<Epsilon = T>
+            + RelativeEq<Epsilon = T>
+            + UlpsEq<Epsilon = T>
+            + num_traits::cast::NumCast,
     {
         if let Some(low_bound) = aabb.get_low() {
             if let Some(high_bound) = aabb.get_high() {
@@ -109,9 +135,9 @@ impl Plane {
                 let dz = high_bound.z - low_bound.z;
                 let max_delta = T::max(T::max(dx, dy), dz);
 
-                let dx = T::zero().ulps_eq(&(dx / max_delta), epsilon, max_ulps);
-                let dy = T::zero().ulps_eq(&(dy / max_delta), epsilon, max_ulps);
-                let dz = T::zero().ulps_eq(&(dz / max_delta), epsilon, max_ulps);
+                let dx = UlpsEq::ulps_eq(&T::zero(), &(dx / max_delta), epsilon, max_ulps);
+                let dy = UlpsEq::ulps_eq(&T::zero(), &(dy / max_delta), epsilon, max_ulps);
+                let dz = UlpsEq::ulps_eq(&T::zero(), &(dz / max_delta), epsilon, max_ulps);
 
                 if dx && !dy && !dz {
                     return Some(Plane::ZY);
@@ -133,7 +159,13 @@ impl Plane {
     #[inline(always)]
     pub fn point_to_3d<T>(&self, point: &nalgebra::Point2<T>) -> nalgebra::Point3<T>
     where
-        T: nalgebra::RealField + Sync + approx::AbsDiffEq<Epsilon = T>,
+        T: nalgebra::RealField
+            + Sync
+            + AbsDiffEq<Epsilon = T>
+            + UlpsEq<Epsilon = T>
+            + RelativeEq<Epsilon = T>
+            + UlpsEq<Epsilon = T>
+            + num_traits::cast::NumCast,
     {
         match self {
             Plane::XY => nalgebra::Point3::new(point.x, point.y, T::zero()),
@@ -149,7 +181,13 @@ impl Plane {
     #[inline(always)]
     fn point_to_2d<T>(&self, point: &nalgebra::Point3<T>) -> nalgebra::Point2<T>
     where
-        T: nalgebra::RealField + Sync + approx::AbsDiffEq<Epsilon = T>,
+        T: nalgebra::RealField
+            + Sync
+            + AbsDiffEq<Epsilon = T>
+            + UlpsEq<Epsilon = T>
+            + RelativeEq<Epsilon = T>
+            + UlpsEq<Epsilon = T>
+            + num_traits::cast::NumCast,
     {
         match self {
             Plane::XY => nalgebra::Point2::new(point.x, point.y),
@@ -163,7 +201,13 @@ impl Plane {
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub start: nalgebra::Point3<T>,
     pub end: nalgebra::Point3<T>,
@@ -171,7 +215,13 @@ where
 
 impl<T> Line3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub fn new(start: nalgebra::Point3<T>, end: nalgebra::Point3<T>) -> Self {
         Self { start, end }
@@ -209,7 +259,13 @@ where
 #[allow(clippy::from_over_into)]
 impl<T> Into<[T; 6]> for Line3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn into(self) -> [T; 6] {
         [
@@ -225,7 +281,13 @@ where
 
 impl<T, IT> From<[IT; 2]> for Line3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
     IT: Copy + Into<nalgebra::Point3<T>>,
 {
     fn from(pos: [IT; 2]) -> Line3<T> {
@@ -235,7 +297,13 @@ where
 
 impl<T> From<[T; 6]> for Line3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn from(l: [T; 6]) -> Line3<T> {
         Line3::<T>::new([l[0], l[1], l[2]].into(), [l[3], l[4], l[5]].into())
@@ -249,7 +317,13 @@ where
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub(crate) points: Vec<nalgebra::Point3<T>>,
 
@@ -263,7 +337,13 @@ where
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub set: Vec<LineString3<T>>,
     pub aabb: Aabb3<T>,
@@ -274,7 +354,13 @@ where
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Aabb3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     min_max: Option<(nalgebra::Point3<T>, nalgebra::Point3<T>)>,
 }
@@ -286,16 +372,28 @@ struct PriorityDistance<T> {
 
 impl<T> PartialOrd for PriorityDistance<T>
 where
-    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 impl<T> Ord for PriorityDistance<T>
 where
-    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     #[inline(always)]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
@@ -305,7 +403,13 @@ where
 
 impl<T> PartialEq for PriorityDistance<T>
 where
-    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
@@ -313,11 +417,26 @@ where
     }
 }
 
-impl<T> Eq for PriorityDistance<T> where T: PartialOrd + PartialEq + cgmath::UlpsEq {}
+impl<T> Eq for PriorityDistance<T> where
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast
+{
+}
 
 impl<T> LineString3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub fn default() -> Self {
         Self {
@@ -714,7 +833,13 @@ where
 
 impl<T, IC: Into<nalgebra::Point3<T>>> std::iter::FromIterator<IC> for LineString3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString3 {
@@ -726,7 +851,13 @@ where
 
 impl<T> LineStringSet3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub fn default() -> Self {
         Self {
@@ -791,7 +922,13 @@ where
 
 impl<T, IT> From<[IT; 2]> for Aabb3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
     IT: Copy + Into<nalgebra::Point3<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb3<T> {
@@ -803,7 +940,13 @@ where
 
 impl<T> From<[T; 6]> for Aabb3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     fn from(coordinate: [T; 6]) -> Aabb3<T> {
         Aabb3 {
@@ -817,7 +960,13 @@ where
 
 impl<T> Aabb3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     pub fn default() -> Self {
         Self { min_max: None }
@@ -934,7 +1083,13 @@ where
 #[inline(always)]
 pub fn point_ulps_eq<T>(a: &nalgebra::Point3<T>, b: &nalgebra::Point3<T>) -> bool
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     ulps_eq!(&a.x, &b.x) && ulps_eq!(&a.y, &b.y) && ulps_eq!(&a.z, &b.z)
 }
@@ -943,7 +1098,13 @@ where
 /// subtracts point b from point a resulting in a vector
 fn sub<T>(a: &nalgebra::Point3<T>, b: &nalgebra::Point3<T>) -> nalgebra::Vector3<T>
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     a - b
 }
@@ -952,7 +1113,13 @@ where
 #[inline(always)]
 fn cross_abs_squared<T>(a: &nalgebra::Vector3<T>, b: &nalgebra::Vector3<T>) -> T
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     let x = a.y * b.z - a.z * b.y;
     let y = a.z * b.x - a.x * b.z;
@@ -972,7 +1139,13 @@ pub fn distance_to_line_squared<T>(
     p: &nalgebra::Point3<T>,
 ) -> T
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     let a_sub_b = sub(a, b);
     let a_sub_p = sub(a, p);
@@ -990,7 +1163,13 @@ pub fn distance_to_line_squared_safe<T>(
     p: &nalgebra::Point3<T>,
 ) -> T
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     if point_ulps_eq(a, b) {
         // give the point-to-point answer if the segment is a point
@@ -1008,7 +1187,13 @@ where
 /// The distance² between the two points
 pub fn distance_to_point_squared<T>(a: &nalgebra::Point3<T>, b: &nalgebra::Point3<T>) -> T
 where
-    T: nalgebra::RealField + Sync,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
 {
     let v = sub(a, b);
     v.x * v.x + v.y * v.y + v.z * v.z
@@ -1023,7 +1208,14 @@ pub fn save_to_obj_file<T>(
     lines: Vec<Vec<Line3<T>>>,
 ) -> Result<(), LinestringError>
 where
-    T: nalgebra::RealField + Sync + fmt::Display,
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast
+        + fmt::Display,
 {
     let mut point_set = collections::HashMap::<String, usize>::new();
     // try to de-duplicate points

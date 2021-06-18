@@ -90,7 +90,7 @@ impl Plane {
     ///
     /// It's not possible to compare to zero exactly because blender
     /// leaves some decimal in coordinates that's suppose to be zero.
-    pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Plane>
+    pub fn get_plane<T>(aabb: &Aabb3<T>) -> Option<Self>
     where
         T: num_traits::Float
             + std::fmt::Debug
@@ -357,7 +357,7 @@ where
 {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 impl<T> Ord for PriorityDistance<T>

@@ -676,7 +676,7 @@ where
 {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 impl<T> Ord for PriorityDistance<T>
@@ -1903,7 +1903,14 @@ where
 /// It can pan, zoom and flip points around center axis but not rotate.
 /// It does not handle vector transformation, only points.
 #[derive(PartialEq, Clone, fmt::Debug)]
-pub struct SimpleAffine<T: num_traits::Float + std::fmt::Debug + approx::AbsDiffEq + approx::UlpsEq>
+pub struct SimpleAffine<T>
+where
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     /// The offsets used to center the 'source' coordinate system. Typically the input geometry
     /// in this case.
@@ -1915,14 +1922,14 @@ pub struct SimpleAffine<T: num_traits::Float + std::fmt::Debug + approx::AbsDiff
     pub b_offset: [T; 2],
 }
 
-impl<
-        T: num_traits::Float
-            + std::fmt::Debug
-            + approx::AbsDiffEq
-            + approx::UlpsEq
-            + Sync
-            + approx::AbsDiffEq<Epsilon = T>,
-    > Default for SimpleAffine<T>
+impl<T> Default for SimpleAffine<T>
+where
+    T: num_traits::Float
+        + std::fmt::Debug
+        + approx::AbsDiffEq
+        + approx::UlpsEq
+        + Sync
+        + approx::AbsDiffEq<Epsilon = T>,
 {
     #[inline]
     fn default() -> Self {

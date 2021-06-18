@@ -1,15 +1,33 @@
 use crate::nalgebra_2d;
-use approx::ulps_eq;
+use approx::{ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 #[cfg(feature = "impl-rayon")]
 use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
-pub struct ConvexHull<T: nalgebra::RealField + Sync> {
+pub struct ConvexHull<T>
+where
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
+{
     pd: PhantomData<T>,
 }
 
-impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
+impl<T> ConvexHull<T>
+where
+    T: nalgebra::RealField
+        + Sync
+        + AbsDiffEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + RelativeEq<Epsilon = T>
+        + UlpsEq<Epsilon = T>
+        + num_traits::cast::NumCast,
+{
     /// finds the point with lowest x
     fn find_lowest_x(linestring: &[nalgebra::Point2<T>]) -> (usize, nalgebra::Point2<T>) {
         let mut lowest = linestring[0];
@@ -83,12 +101,12 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
         a: &nalgebra::Point2<T>,
         b: &nalgebra::Point2<T>,
         c: &nalgebra::Point2<T>,
-        epsilon: T::Epsilon,
+        epsilon: <T as AbsDiffEq>::Epsilon,
         max_ulps: u32,
     ) -> bool {
         let t1 = (b.x - a.x) * (c.y - a.y);
         let t2 = (b.y - a.y) * (c.x - a.x);
-        if t1.ulps_eq(&t2, epsilon, max_ulps) {
+        if UlpsEq::ulps_eq(&t1, &t2, epsilon, max_ulps) {
             true
         } else {
             t1 >= t2
@@ -388,7 +406,7 @@ impl<T: nalgebra::RealField + Sync> ConvexHull<T> {
     pub fn contains(
         a: &nalgebra_2d::LineString2<T>,
         b: &nalgebra_2d::LineString2<T>,
-        epsilon: T::Epsilon,
+        epsilon: <T as AbsDiffEq>::Epsilon,
         max_ulps: u32,
     ) -> bool {
         if a.len() <= 1 {
