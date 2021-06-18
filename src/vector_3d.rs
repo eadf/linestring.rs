@@ -43,7 +43,7 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
 */
 
-use super::vec_2d;
+use super::vector_2d;
 use crate::LinestringError;
 use approx::ulps_eq;
 //#[cfg(feature = "impl-vecmath")]
@@ -69,7 +69,7 @@ where
 {
     Line(Line3<T>),
     Linestring(LineString3<T>),
-    ParabolicArc(crate::vec_2d::VoronoiParabolicArc<T>),
+    ParabolicArc(crate::vector_2d::VoronoiParabolicArc<T>),
 }
 
 /// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
@@ -431,8 +431,8 @@ where
     /// Copy this linestring3 into a linestring2, keeping the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_2d(&self, plane: Plane) -> vec_2d::LineString2<T> {
-        let mut rv: vec_2d::LineString2<T> = match plane {
+    pub fn copy_to_2d(&self, plane: Plane) -> vector_2d::LineString2<T> {
+        let mut rv: vector_2d::LineString2<T> = match plane {
             Plane::XY => self.points.iter().map(|p3d| [p3d[0], p3d[1]]).collect(),
             Plane::XZ => self.points.iter().map(|p3d| [p3d[0], p3d[2]]).collect(),
             Plane::ZY => self.points.iter().map(|p3d| [p3d[2], p3d[1]]).collect(),
@@ -843,8 +843,8 @@ where
     /// Copy this linestringset3 into a linestringset2, populating the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_2d(&self, plane: Plane) -> vec_2d::LineStringSet2<T> {
-        let mut rv = vec_2d::LineStringSet2::with_capacity(self.set.len());
+    pub fn copy_to_2d(&self, plane: Plane) -> vector_2d::LineStringSet2<T> {
+        let mut rv = vector_2d::LineStringSet2::with_capacity(self.set.len());
         for ls in self.set.iter() {
             rv.push(ls.copy_to_2d(plane));
         }

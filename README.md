@@ -2,7 +2,7 @@
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)
-[![dependency status](https://deps.rs/crate/linestring/0.4.0/status.svg)](https://deps.rs/crate/linestring/0.4.0)
+[![dependency status](https://deps.rs/crate/linestring/0.5.0/status.svg)](https://deps.rs/crate/linestring/0.5.0)
 
 # Line library for Rust
 
@@ -32,35 +32,34 @@ More implementations could be added if required.
 
 If you want to use this library in your cgmath project you add this to your Cargo.toml:
 ```cargo
-linestring = {version="^0.4.0",default-features=false,features=["impl-cgmath", "impl-rayon"]}
+linestring = {version="0.5",default-features=false,features=["cgmath", "rayon"]}
 ```
 Same thing for the other supported 2d/3d libraries: 
 ```cargo
-linestring = {version="^0.4.0",default-features=false,features=["impl-nalgebra", "impl-rayon"]}
+linestring = {version="0.5",default-features=false,features=["nalgebra", "rayon"]}
 ```
 
 ```cargo
-linestring = {version="^0.4.0",default-features=false,features=["impl-mint", "impl-rayon"]}
+linestring = {version="0.5",default-features=false,features=["mint", "rayon"]}
 ```
 
 ```cargo
-linestring = {version="^0.4.0",default-features=false,features=["impl-vecmath", "impl-rayon"]}
+linestring = {version="0.5",default-features=false,features=["vecmath", "rayon"]}
 ```
 ```cargo
-linestring = {version="^0.4.0",default-features=false,features=["impl-vec", "impl-rayon"]}
+linestring = {version="0.5",default-features=false,features=["vector", "rayon"]}
 ```
-The difference between ```impl-vecmath``` and ```impl-vec``` is that the ```impl-vecmath``` feature supports 
+The difference between ```vecmath``` and ```vector``` is that the ```vecmath``` feature supports 
 matrix transformations.
 
-## Rust requirement
+## Rust toolchains
 
-Requires `#![feature(map_first_last)]` i.e. `rust +nightly`
-
+This crate uses `#![feature(map_first_last)]` if compiled by +nightly. This is functionality is inefficiently emulated when +stable is used.
 
 ## Demo GUI
 Run the line simplification example with :
 ```fish
-cargo run --example fltk_gui --no-default-features --features impl-cgmath,impl-rayon
+cargo run --example fltk_gui --no-default-features --features cgmath,rayon
 ```
 
 ## Todo

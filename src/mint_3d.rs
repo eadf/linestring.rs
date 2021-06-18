@@ -258,7 +258,7 @@ where
     }
 
     /// Return a new line containing the matrix transformed points
-    #[cfg(not(feature = "impl-mint"))]
+    #[cfg(not(feature = "mint"))]
     pub fn transform(&self, matrix4x4: &mint::ColumnMatrix4<T>) -> Self {
         Self {
             start: matrix4x4.transform_point(self.start),
@@ -535,7 +535,7 @@ where
     }
 
     /// Return a new LineString3 containing the matrix transformed points
-    #[cfg(not(feature = "impl-mint"))]
+    #[cfg(not(feature = "mint"))]
     pub fn transform(&self, matrix4x4: &mint::ColumnMatrix4<T>) -> Self {
         Self {
             points: self
@@ -868,7 +868,7 @@ where
         &self.aabb
     }
 
-    #[cfg(not(feature = "impl-mint"))]
+    #[cfg(not(feature = "mint"))]
     pub fn transform(&self, mat: &mint::ColumnMatrix4<T>) -> Self {
         Self {
             set: self.set.iter().map(|x| x.transform(mat)).collect(),
@@ -1000,7 +1000,7 @@ where
         None
     }
 
-    #[cfg(not(feature = "impl-mint"))]
+    #[cfg(not(feature = "mint"))]
     pub fn transform(&self, matrix4x4: &mint::ColumnMatrix4<T>) -> Self {
         if let Some(min_max) = self.min_max {
             Self {

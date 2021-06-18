@@ -43,7 +43,7 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
 */
 
-use super::vec_3d;
+use super::vector_3d;
 #[allow(unused_imports)]
 use crate::LinestringError;
 use approx::ulps_eq;
@@ -282,8 +282,8 @@ where
     /// Copy this lines2 into a line3, populating the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_3d(&self, plane: vec_3d::Plane) -> vec_3d::Line3<T> {
-        vec_3d::Line3::new(plane.point_to_3d(&self.start), plane.point_to_3d(&self.end))
+    pub fn copy_to_3d(&self, plane: vector_3d::Plane) -> vector_3d::Line3<T> {
+        vector_3d::Line3::new(plane.point_to_3d(&self.start), plane.point_to_3d(&self.end))
     }
 }
 
@@ -464,8 +464,8 @@ where
     }
 
     /// Convert this parable abstraction into a single straight line
-    pub fn discretise_3d_straight_line(&self) -> vec_3d::LineString3<T> {
-        let mut rv = vec_3d::LineString3::default().with_connected(false);
+    pub fn discretise_3d_straight_line(&self) -> vector_3d::LineString3<T> {
+        let mut rv = vector_3d::LineString3::default().with_connected(false);
         let distance = -distance_to_line_squared_safe(
             &self.segment.start,
             &self.segment.end,
@@ -486,8 +486,8 @@ where
     ///
     /// All of this code is ported from C++ boost 1.75.0
     /// <https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm>
-    pub fn discretise_3d(&self, max_dist: T) -> vec_3d::LineString3<T> {
-        let mut rv = vec_3d::LineString3::default().with_connected(false);
+    pub fn discretise_3d(&self, max_dist: T) -> vector_3d::LineString3<T> {
+        let mut rv = vector_3d::LineString3::default().with_connected(false);
         let z_comp = -distance_to_point_squared(&self.start_point, &self.cell_point).sqrt();
         rv.points
             .push([self.start_point[0], self.start_point[1], z_comp]);
@@ -844,19 +844,19 @@ where
     /// Copy this linestring2 into a linestring3, populating the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_3d(&self, plane: vec_3d::Plane) -> vec_3d::LineString3<T> {
-        let mut rv: vec_3d::LineString3<T> = match plane {
-            vec_3d::Plane::XY => self
+    pub fn copy_to_3d(&self, plane: vector_3d::Plane) -> vector_3d::LineString3<T> {
+        let mut rv: vector_3d::LineString3<T> = match plane {
+            vector_3d::Plane::XY => self
                 .points
                 .iter()
                 .map(|p2d| [p2d[0], p2d[1], T::zero()])
                 .collect(),
-            vec_3d::Plane::XZ => self
+            vector_3d::Plane::XZ => self
                 .points
                 .iter()
                 .map(|p2d| [p2d[0], T::zero(), p2d[1]])
                 .collect(),
-            vec_3d::Plane::ZY => self
+            vector_3d::Plane::ZY => self
                 .points
                 .iter()
                 .map(|p2d| [T::zero(), p2d[1], p2d[0]])
@@ -1329,8 +1329,8 @@ where
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     /// The empty axis will be set to zero.
-    pub fn copy_to_3d(&self, plane: vec_3d::Plane) -> vec_3d::LineStringSet3<T> {
-        let mut rv = vec_3d::LineStringSet3::with_capacity(self.set.len());
+    pub fn copy_to_3d(&self, plane: vector_3d::Plane) -> vector_3d::LineStringSet3<T> {
+        let mut rv = vector_3d::LineStringSet3::with_capacity(self.set.len());
         for ls in self.set.iter() {
             rv.push(ls.copy_to_3d(plane));
         }
@@ -1930,14 +1930,14 @@ where
 
     /// transform from dest (b) coordinate system to source (a) coordinate system
     ///```
-    /// # use linestring::vec_2d;
+    /// # use linestring::vector_2d;
     /// type T = f32;
     ///
     /// // source is (-100,-100)-(100,100)
-    /// let mut aabb_source = vec_2d::Aabb2::<T>::from([-100.,-100.,100.,100.]);
+    /// let mut aabb_source = vector_2d::Aabb2::<T>::from([-100.,-100.,100.,100.]);
     /// // dest is (0,0)-(800,800.)
-    /// let mut aabb_dest = vec_2d::Aabb2::<T>::from([0.,0.,800.,800.]);
-    /// let transform = vec_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
+    /// let mut aabb_dest = vector_2d::Aabb2::<T>::from([0.,0.,800.,800.]);
+    /// let transform = vector_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
     ///
     /// assert_eq!(
     ///   transform.transform_ab(&[-100.,-100.]).unwrap(),
@@ -1971,14 +1971,14 @@ where
 
     /// Transform from source (a) coordinate system to dest (b) coordinate system
     ///```
-    /// # use linestring::vec_2d;
+    /// # use linestring::vector_2d;
     /// type T = f32;
     /// // source is (0,0)-(1,1)
-    /// let mut aabb_source = vec_2d::Aabb2::<T>::from([0.,0.,1.,1.]);
+    /// let mut aabb_source = vector_2d::Aabb2::<T>::from([0.,0.,1.,1.]);
     /// // dest is (1,1)-(2,2)
-    /// let mut aabb_dest = vec_2d::Aabb2::<T>::from([1.,1.,2.,2.]);
+    /// let mut aabb_dest = vector_2d::Aabb2::<T>::from([1.,1.,2.,2.]);
     ///
-    /// let transform = vec_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
+    /// let transform = vector_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
     /// assert_eq!(
     ///   transform.transform_ab(&[0.,0.]).unwrap(),
     ///    [1.,1.]

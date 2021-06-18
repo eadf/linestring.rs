@@ -43,7 +43,7 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
  */
 
-use crate::{vec_2d, LinestringError};
+use crate::{vector_2d, LinestringError};
 use ahash::AHashSet;
 use approx::ulps_eq;
 use core::fmt;
@@ -146,7 +146,7 @@ where
 {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
-        vec_2d::point_ulps_eq(&self.pos, &other.pos)
+        vector_2d::point_ulps_eq(&self.pos, &other.pos)
     }
 }
 
@@ -297,7 +297,7 @@ where
     }
 
     /// sort candidates based on slope, keep only the ones with 'flattest' angle to the left and right
-    fn update_both(&mut self, candidate_index: usize, lines: &[vec_2d::Line2<T>]) {
+    fn update_both(&mut self, candidate_index: usize, lines: &[vector_2d::Line2<T>]) {
         let line = lines[candidate_index];
         let candidate_slope = if ulps_eq!(&line.end[1], &line.start[1]) {
             T::infinity()
@@ -462,7 +462,7 @@ where
 
 /// Returns *one* point of intersection between the `sweepline` and `other`
 /// Second return value is the slope of the line
-fn sweepline_intersection<T>(sweepline: [T; 2], other: &vec_2d::Line2<T>) -> Option<(T, T)>
+fn sweepline_intersection<T>(sweepline: [T; 2], other: &vector_2d::Line2<T>) -> Option<(T, T)>
 where
     T: num_traits::Float
         + std::fmt::Debug
@@ -529,7 +529,7 @@ where
     connected_priority: Option<MinMaxSlope<T>>,
     // The input geometry. These lines are re-arranged so that Line.start[1] <= Line.end[1]
     // These are never changed while the algorithm is running.
-    lines: Vec<vec_2d::Line2<T>>,
+    lines: Vec<vector_2d::Line2<T>>,
 }
 
 impl<T> Default for IntersectionData<T>
@@ -547,7 +547,7 @@ where
             stop_at_first_intersection: false,
             ignore_end_point_intersections: false,
             site_events: Some(BTreeMap::new()),
-            lines: Vec::<vec_2d::Line2<T>>::new(),
+            lines: Vec::<vector_2d::Line2<T>>::new(),
             result: Some(BTreeMap::new()),
             active_lines: Some(AHashSet::default()),
             neighbour_priority: Some(MinMax::new()),
@@ -569,7 +569,7 @@ where
         &self.sweepline_pos
     }
 
-    pub fn get_lines(&self) -> &Vec<vec_2d::Line2<T>> {
+    pub fn get_lines(&self) -> &Vec<vector_2d::Line2<T>> {
         &self.lines
     }
 
@@ -626,7 +626,7 @@ where
     /// Todo: this duplicates functionality of 'with_ref_lines()', try to consolidate..
     pub fn with_lines<I>(&mut self, input_iter: I) -> Result<&mut Self, LinestringError>
     where
-        I: Iterator<Item = vec_2d::Line2<T>>,
+        I: Iterator<Item = vector_2d::Line2<T>>,
     {
         let mut site_events = self.site_events.take().ok_or_else(|| {
             LinestringError::InternalError("with_lines() could not take 'site_events'".to_string())
@@ -688,7 +688,7 @@ where
     pub fn with_ref_lines<'a, I>(&mut self, input_iter: I) -> Result<&mut Self, LinestringError>
     where
         T: 'a,
-        I: Iterator<Item = &'a vec_2d::Line2<T>>,
+        I: Iterator<Item = &'a vector_2d::Line2<T>>,
     {
         let mut site_events = self.site_events.take().ok_or_else(|| {
             LinestringError::InternalError(
@@ -711,12 +711,12 @@ where
             // SiteEvent.pos.start < SiteEvent.pos.end (primary ordering: pos[1], secondary: pos[0])
             let aline =
                 if (SiteEventKey { pos: aline.start }).lt(&(SiteEventKey { pos: aline.end })) {
-                    vec_2d::Line2 {
+                    vector_2d::Line2 {
                         start: aline.start,
                         end: aline.end,
                     }
                 } else {
-                    vec_2d::Line2 {
+                    vector_2d::Line2 {
                         start: aline.end,
                         end: aline.start,
                     }
@@ -770,8 +770,8 @@ where
                 // only add this line as an intersection if the intersection lies
                 // at the interior of the line (no end point)
                 let i_line = self.lines[*new_intersection];
-                if vec_2d::point_ulps_eq(&position.pos, &i_line.start)
-                    || vec_2d::point_ulps_eq(&position.pos, &i_line.end)
+                if vector_2d::point_ulps_eq(&position.pos, &i_line.start)
+                    || vector_2d::point_ulps_eq(&position.pos, &i_line.end)
                 {
                     continue;
                 }
@@ -830,7 +830,29 @@ where
         })?;
 
         loop {
-            if let Some((key, event)) = site_events.pop_first() {
+            if let Some((key, event)) = {
+                #[cfg(feature = "map_first_last")]
+                {
+                    site_events.pop_first()
+                }
+                #[cfg(not(feature = "map_first_last"))]
+                {
+                    // emulate pop_first
+                    if let Some((first_key, _)) = site_events.iter().next() {
+                        let first_key = first_key.clone();
+                        let v = site_events.remove(&first_key).ok_or_else(|| {
+                            LinestringError::InternalError(format!(
+                                "Found a key to pop but could not remove the value. {}:{}",
+                                file!(),
+                                line!()
+                            ))
+                        })?;
+                        Some((first_key, v))
+                    } else {
+                        None
+                    }
+                }
+            } {
                 self.handle_event(
                     &key,
                     &event,
@@ -1077,7 +1099,7 @@ where
             for right_i in right.iter() {
                 let left_l = &self.lines[*left_i];
                 let right_l = &self.lines[*right_i];
-                if vec_2d::point_ulps_eq(&left_l.end, &right_l.end) {
+                if vector_2d::point_ulps_eq(&left_l.end, &right_l.end) {
                     // if endpoints are equal they will already be in the event queue
                     continue;
                 }
@@ -1096,7 +1118,7 @@ where
                     if intersection_p[1] >= self.sweepline_pos[1]
                         && !(intersection_p[1] == self.sweepline_pos[1]
                             && intersection_p[0] < self.sweepline_pos[0])
-                        && !vec_2d::point_ulps_eq(&intersection_p, &self.sweepline_pos)
+                        && !vector_2d::point_ulps_eq(&intersection_p, &self.sweepline_pos)
                     {
                         #[cfg(feature = "console_trace")]
                         println!(

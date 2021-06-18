@@ -1,4 +1,4 @@
-use crate::vec_2d;
+use crate::vector_2d;
 use approx::ulps_eq;
 #[cfg(feature = "impl-rayon")]
 use rayon::prelude::*;
@@ -41,7 +41,7 @@ where
 
     /// Returns true if the point 'c' lies to the 'left' of the line a->b
     ///```
-    /// # use linestring::vec_2d::convex_hull;
+    /// # use linestring::vector_2d::convex_hull;
     /// let a = [0.0,0.0 ];
     /// let b = [0.0,10.0 ];
     /// let c = [-10.0,5.0 ];
@@ -58,7 +58,7 @@ where
     /// Returns true if the point 'c' lies to the 'left' of the line a->b
     /// Returns true even if the point lies on the line a-b
     ///```
-    /// # use linestring::vec_2d::convex_hull;
+    /// # use linestring::vector_2d::convex_hull;
     /// let a = [0.0,0.0 ];
     /// let b = [0.0,10.0 ];
     /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear(&a, &b, &b));
@@ -78,7 +78,7 @@ where
     /// Returns true if the point 'c' lies to the 'left' of the line a->b
     /// Returns true even if the point lies on the line a-b
     ///```
-    /// # use linestring::vec_2d::convex_hull;
+    /// # use linestring::vector_2d::convex_hull;
     /// # use approx::AbsDiffEq;
     /// # use approx::UlpsEq;
     /// let a = [0.0_f32,0.0 ];
@@ -113,7 +113,7 @@ where
     /// return the z coordinate as a scalar.
     /// The return value will be positive if the point c is 'left' of the vector a->b (ccr)
     ///```
-    /// # use linestring::vec_2d::convex_hull;
+    /// # use linestring::vector_2d::convex_hull;
     /// let a = [0.0,0.0];
     /// let b = [0.0,10.0];
     /// let c = [-10.0,5.0];
@@ -130,8 +130,8 @@ where
     /// finds the convex hull using Gift wrapping algorithm
     /// <https://en.wikipedia.org/wiki/Gift_wrapping_algorithm>
     ///```
-    /// # use linestring::vec_2d;
-    /// # use linestring::vec_2d::convex_hull;
+    /// # use linestring::vector_2d;
+    /// # use linestring::vector_2d::convex_hull;
     /// # use rand::{Rng, SeedableRng};
     /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
     /// let mut points = Vec::<[f32;2]>::new();
@@ -140,7 +140,7 @@ where
     ///   points.push(p.into());
     /// }
     ///
-    /// let a = vec_2d::LineString2::<f32>::default().with_points(points);
+    /// let a = vector_2d::LineString2::<f32>::default().with_points(points);
     /// let convex_hull = convex_hull::ConvexHull::gift_wrap(a.points().iter());
     /// let center = [2000_f32,2000.0];
     ///
@@ -153,7 +153,7 @@ where
     ///   }
     /// }
     ///```
-    pub fn gift_wrap<'a, I>(input: I) -> vec_2d::LineString2<T>
+    pub fn gift_wrap<'a, I>(input: I) -> vector_2d::LineString2<T>
     where
         I: IntoIterator<Item = &'a [T; 2]>,
         T: 'a,
@@ -162,14 +162,14 @@ where
 
         if input_points.len() <= 3 {
             //println!("shortcut points {:?} connected:{}", linestring.len(), linestring.connected);
-            let rv = vec_2d::LineString2::<T>::with_capacity(input_points.len())
+            let rv = vector_2d::LineString2::<T>::with_capacity(input_points.len())
                 .with_connected(true)
                 .with_points(input_points);
             return rv;
         }
         let (starting_point, _) = Self::find_lowest_x(&input_points);
         let mut rv =
-            vec_2d::LineString2::<T>::with_capacity(input_points.len()).with_connected(true);
+            vector_2d::LineString2::<T>::with_capacity(input_points.len()).with_connected(true);
 
         let mut already_on_hull = yabf::Yabf::with_capacity(input_points.len());
         let mut point_on_hull = starting_point;
@@ -214,8 +214,8 @@ where
     /// <https://en.wikipedia.org/wiki/Graham_scan>
     /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull
     ///```
-    /// # use linestring::vec_2d;
-    /// # use linestring::vec_2d::convex_hull;
+    /// # use linestring::vector_2d;
+    /// # use linestring::vector_2d::convex_hull;
     /// # use rand::{Rng, SeedableRng};
     /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
     /// let mut points = Vec::<[f32;2]>::new();
@@ -224,7 +224,7 @@ where
     ///   points.push(p.into());
     /// }
     ///
-    /// let a = vec_2d::LineString2::<f32>::default().with_points(points);
+    /// let a = vector_2d::LineString2::<f32>::default().with_points(points);
     /// let convex_hull = convex_hull::ConvexHull::graham_scan(a.points().iter());
     /// let center = [2000_f32,2000.0];
     ///
@@ -237,7 +237,7 @@ where
     ///   }
     /// }
     ///```
-    pub fn graham_scan<'a, I>(input: I) -> vec_2d::LineString2<T>
+    pub fn graham_scan<'a, I>(input: I) -> vector_2d::LineString2<T>
     where
         I: IntoIterator<Item = &'a [T; 2]>,
         T: 'a + Sync + approx::AbsDiffEq<Epsilon = T>,
@@ -246,7 +246,7 @@ where
 
         if input_points.len() <= 3 {
             //println!("shortcut points {:?} connected:{}", linestring.len(), linestring.connected);
-            let rv = vec_2d::LineString2::<T>::with_capacity(input_points.len())
+            let rv = vector_2d::LineString2::<T>::with_capacity(input_points.len())
                 .with_connected(true)
                 .with_points(input_points);
             return rv;
@@ -276,7 +276,7 @@ where
         input_points.sort_unstable_by(comparator);
 
         let mut rv =
-            vec_2d::LineString2::<T>::with_capacity(input_points.len()).with_connected(true);
+            vector_2d::LineString2::<T>::with_capacity(input_points.len()).with_connected(true);
         rv.points.push(starting_point);
 
         for p in input_points.iter() {
@@ -300,8 +300,8 @@ where
 
     /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull (inclusive)
     ///```
-    /// # use linestring::vec_2d;
-    /// # use linestring::vec_2d::convex_hull;
+    /// # use linestring::vector_2d;
+    /// # use linestring::vector_2d::convex_hull;
     /// # use rand::{Rng, SeedableRng};
     ///
     /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
@@ -311,7 +311,7 @@ where
     ///    points.push(p.into());
     /// }
     ///
-    /// let a = vec_2d::LineString2::<f32>::default().with_points(points);
+    /// let a = vector_2d::LineString2::<f32>::default().with_points(points);
     /// let a = convex_hull::ConvexHull::graham_scan(a.points().iter());
     ///
     /// let mut points = Vec::<[f32;2]>::new();
@@ -320,14 +320,14 @@ where
     ///    points.push(p.into());
     /// }
     ///
-    /// let b = vec_2d::LineString2::<f32>::default().with_points(points);
+    /// let b = vector_2d::LineString2::<f32>::default().with_points(points);
     /// let b = convex_hull::ConvexHull::graham_scan(b.points().iter());
     ///
     /// assert!(convex_hull::ConvexHull::contains(&a, &b));
     /// assert!(!convex_hull::ConvexHull::contains(&b, &a));
     ///```
     #[cfg(not(feature = "impl-rayon"))]
-    pub fn contains(a: &vec_2d::LineString2<T>, b: &vec_2d::LineString2<T>) -> bool {
+    pub fn contains(a: &vector_2d::LineString2<T>, b: &vector_2d::LineString2<T>) -> bool {
         if a.len() <= 1 {
             return false;
         }
@@ -354,8 +354,8 @@ where
 
     /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull (inclusive)
     ///```
-    /// # use linestring::vec_2d;
-    /// # use linestring::vec_2d::convex_hull;
+    /// # use linestring::vector_2d;
+    /// # use linestring::vector_2d::convex_hull;
     /// # use rand::{Rng, SeedableRng};
     /// # use approx::AbsDiffEq;
     /// # use approx::UlpsEq;
@@ -367,7 +367,7 @@ where
     ///    points.push(p.into());
     /// }
     ///
-    /// let a = vec_2d::LineString2::<f32>::default().with_points(points);
+    /// let a = vector_2d::LineString2::<f32>::default().with_points(points);
     /// let a = convex_hull::ConvexHull::graham_scan(a.points().iter());
     ///
     /// let mut points = Vec::<[f32;2]>::new();
@@ -376,7 +376,7 @@ where
     ///    points.push(p.into());
     /// }
     ///
-    /// let b = vec_2d::LineString2::<f32>::default().with_points(points);
+    /// let b = vector_2d::LineString2::<f32>::default().with_points(points);
     /// let b = convex_hull::ConvexHull::graham_scan(b.points().iter());
     ///
     /// assert!(convex_hull::ConvexHull::contains(&a, &b, f32::default_epsilon(), f32::default_max_ulps()));
@@ -384,8 +384,8 @@ where
     ///```
     #[cfg(feature = "impl-rayon")]
     pub fn contains(
-        a: &vec_2d::LineString2<T>,
-        b: &vec_2d::LineString2<T>,
+        a: &vector_2d::LineString2<T>,
+        b: &vector_2d::LineString2<T>,
         epsilon: T::Epsilon,
         max_ulps: u32,
     ) -> bool {
@@ -416,10 +416,10 @@ where
 
     /// Returns true if the 'a' convex hull contains the 'b' point (exclusive)
     ///```
-    /// # use linestring::vec_2d;
-    /// # use linestring::vec_2d::convex_hull;
+    /// # use linestring::vector_2d;
+    /// # use linestring::vector_2d::convex_hull;
     ///
-    /// let mut hull = vec_2d::LineString2::with_capacity(4).with_connected(true);
+    /// let mut hull = vector_2d::LineString2::with_capacity(4).with_connected(true);
     /// hull.push([0.0,0.0].into());
     /// hull.push([10.0,0.0].into());
     /// hull.push([10.0,10.0].into());
@@ -434,7 +434,7 @@ where
     ///
     ///```
     #[cfg(feature = "impl-rayon")]
-    pub fn contains_point_exclusive(a: &vec_2d::LineString2<T>, p: &[T; 2]) -> bool {
+    pub fn contains_point_exclusive(a: &vector_2d::LineString2<T>, p: &[T; 2]) -> bool {
         if a.len() <= 1 {
             return false;
         }
@@ -451,10 +451,10 @@ where
 
     /// Returns true if the 'a' convex hull contains the 'b' point (inclusive)
     ///```
-    /// # use linestring::vec_2d;
-    /// # use linestring::vec_2d::convex_hull;
+    /// # use linestring::vector_2d;
+    /// # use linestring::vector_2d::convex_hull;
     ///
-    /// let mut hull = vec_2d::LineString2::with_capacity(4).with_connected(true);
+    /// let mut hull = vector_2d::LineString2::with_capacity(4).with_connected(true);
     /// hull.push([0.0,0.0].into());
     /// hull.push([10.0,0.0].into());
     /// hull.push([10.0,10.0].into());
@@ -469,7 +469,7 @@ where
     /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[10.0,5.0].into()));
     ///```
     #[cfg(feature = "impl-rayon")]
-    pub fn contains_point_inclusive(a: &vec_2d::LineString2<T>, p: &[T; 2]) -> bool {
+    pub fn contains_point_inclusive(a: &vector_2d::LineString2<T>, p: &[T; 2]) -> bool {
         if a.len() <= 1 {
             return false;
         }

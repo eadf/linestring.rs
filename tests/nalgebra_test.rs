@@ -1,21 +1,19 @@
 use approx::ulps_eq;
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 use linestring::nalgebra_2d;
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 use linestring::nalgebra_3d;
-#[cfg(feature = "impl-nalgebra")]
-use num_traits::Float;
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 fn almost_equal<T>(x1: T, x2: T, y1: T, y2: T)
 where
-    T: nalgebra::RealField + Float,
+    T: nalgebra::RealField + approx::UlpsEq,
 {
     assert!(ulps_eq!(&x1, &x2));
     assert!(ulps_eq!(&y1, &y2));
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn linestring2_1() {
     let points: Vec<[f32; 2]> = vec![[0., 0.], [1., 1.], [2., 2.], [3., 3.], [1., 10.]];
@@ -33,7 +31,7 @@ fn linestring2_1() {
     assert_eq!(linestring.as_lines().len(), points_len);
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn linestring3_1() {
     let points: Vec<[f32; 3]> = vec![
@@ -57,7 +55,7 @@ fn linestring3_1() {
     assert_eq!(linestring.as_lines().len(), points_len);
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn line2_1() {
     let line = nalgebra_2d::Line2::<f64>::from([[10., 0.], [0., 11.]]);
@@ -65,7 +63,7 @@ fn line2_1() {
     assert_eq!(line.end, nalgebra::Point2::from([0., 11.]));
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn line3_1() {
     let line = nalgebra_3d::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
@@ -73,7 +71,7 @@ fn line3_1() {
     assert_eq!(line.end, nalgebra::Point3::from([0., 11., 9.]));
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn intersection_1() {
     let l1 = nalgebra_2d::Line2::from([200., 200., 300., 300.]);
@@ -82,7 +80,7 @@ fn intersection_1() {
     almost_equal(rv.x, 300.0, rv.y, 300.0);
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn aabb2_1() {
     let aabb = nalgebra_2d::Aabb2::from([200_f32, 200., 400., 400.]);
@@ -94,7 +92,7 @@ fn aabb2_1() {
     assert!(!aabb.contains_line_inclusive(&line));
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn d2_to_3d_to_2d_1() {
     let plane = nalgebra_3d::Plane::XY;
@@ -111,7 +109,7 @@ fn d2_to_3d_to_2d_1() {
     assert_eq!(ls2_1.points(), ls2_2.points());
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn simplify_1() {
     let linestring: nalgebra_2d::LineString2<f32> = vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]
@@ -142,7 +140,7 @@ fn simplify_1() {
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn simplify_2() {
     let line = vec![
@@ -159,7 +157,7 @@ fn simplify_2() {
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn triangle_area() {
     for x in -10..10 {
@@ -183,7 +181,7 @@ fn triangle_area() {
     }
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn voronoiparabolicarc_1() {
     /*
@@ -243,7 +241,7 @@ fn voronoiparabolicarc_1() {
     println!("result: {:?}", result);
 }
 
-#[cfg(feature = "impl-nalgebra")]
+#[cfg(feature = "nalgebra")]
 #[test]
 fn voronoiparabolicarc_2() {
     let d = |x1: f32, y1: f32, p: &nalgebra::Point2<f32>| {

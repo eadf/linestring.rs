@@ -1,14 +1,14 @@
 use approx::ulps_eq;
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 use linestring::mint_2d;
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 use linestring::mint_3d;
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 use num_traits::Float;
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 use std::fmt;
 
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 fn almost_equal<T>(x1: T, x2: T, y1: T, y2: T)
 where
     T: Float
@@ -22,7 +22,7 @@ where
     assert!(ulps_eq!(&y1, &y2));
 }
 
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 #[test]
 fn linestring2_1() {
     let points: Vec<[f32; 2]> = vec![[0., 0.], [1., 1.], [2., 2.], [3., 3.], [1., 10.]];
@@ -40,7 +40,7 @@ fn linestring2_1() {
     assert_eq!(linestring.as_lines().len(), points_len);
 }
 
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 #[test]
 fn linestring3_1() {
     let points: Vec<[f32; 3]> = vec![
@@ -64,7 +64,7 @@ fn linestring3_1() {
     assert_eq!(linestring.as_lines().len(), points_len);
 }
 
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 #[test]
 fn line2_1() {
     let line = mint_2d::Line2::<f64>::from([[10., 0.], [0., 11.]]);
@@ -72,7 +72,7 @@ fn line2_1() {
     assert_eq!(line.end, mint::Point2::from([0., 11.]));
 }
 
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 #[test]
 fn line3_1() {
     let line = mint_3d::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
@@ -80,7 +80,7 @@ fn line3_1() {
     assert_eq!(line.end, mint::Point3::from([0., 11., 9.]));
 }
 
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 #[test]
 fn intersection_1() {
     let l1 = mint_2d::Line2::from([200., 200., 300., 300.]);
@@ -89,7 +89,7 @@ fn intersection_1() {
     almost_equal(rv.x, 300.0, rv.y, 300.0);
 }
 
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 #[test]
 fn aabb2_1() {
     let aabb = mint_2d::Aabb2::from([200_f32, 200., 400., 400.]);
@@ -101,7 +101,7 @@ fn aabb2_1() {
     assert!(!aabb.contains_line_inclusive(&line));
 }
 
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 #[test]
 fn point_distance_1() {
     let point = mint::Point2::from([100_f32, 200.]);
@@ -121,7 +121,7 @@ fn point_distance_1() {
     assert!(ulps_eq!(&distance, &correct), "{}!={}", distance, correct);
 }
 
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 #[test]
 fn simplify_1() {
     let linestring: mint_2d::LineString2<f32> = vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]
@@ -152,7 +152,7 @@ fn simplify_1() {
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
 
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 #[test]
 fn simplify_2() {
     let line = vec![
@@ -169,7 +169,7 @@ fn simplify_2() {
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
 
-#[cfg(feature = "impl-mint")]
+#[cfg(feature = "mint")]
 #[test]
 fn triangle_area() {
     for x in -10..10 {

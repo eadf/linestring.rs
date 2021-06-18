@@ -44,7 +44,7 @@ licenses /why-not-lgpl.html>.
  */
 
 #[inline(always)]
-#[cfg(feature = "impl-vecmath")]
+#[cfg(feature = "vecmath")]
 /// vec_math seems to lack the affine-transform-of-3d-point (matrix4x4) function i need.
 /// In order to make vec_math work the same way as cgmath and nalgebra i had to do this little
 /// hack.

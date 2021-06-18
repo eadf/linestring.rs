@@ -901,7 +901,7 @@ where
         self.points.push(point);
     }
 
-    #[cfg(not(feature = "impl-mint"))]
+    #[cfg(not(feature = "mint"))]
     pub fn transform(&self, matrix3x3: &mint::ColumnMatrix3<T>) -> Self {
         Self {
             points: self
@@ -1340,7 +1340,7 @@ where
 
     /// Transform each individual component of this set using the transform matrix.
     /// Return the result in a new object.
-    #[cfg(not(feature = "impl-mint"))]
+    #[cfg(not(feature = "mint"))]
     pub fn transform(&self, matrix3x3: &mint::ColumnMatrix3<T>) -> Self {
         let internals = self.internals.as_ref().map(|internals| {
             internals
@@ -1578,7 +1578,7 @@ where
         None
     }
 
-    #[cfg(not(feature = "impl-mint"))]
+    #[cfg(not(feature = "mint"))]
     pub fn transform(&self, matrix3x3: &mint::ColumnMatrix3<T>) -> Self {
         if let Some(min_max) = self.min_max {
             Self {

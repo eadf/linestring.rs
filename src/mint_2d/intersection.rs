@@ -844,7 +844,29 @@ where
         })?;
 
         loop {
-            if let Some((key, event)) = site_events.pop_first() {
+            if let Some((key, event)) = {
+                #[cfg(feature = "map_first_last")]
+                {
+                    site_events.pop_first()
+                }
+                #[cfg(not(feature = "map_first_last"))]
+                {
+                    // emulate pop_first
+                    if let Some((first_key, _)) = site_events.iter().next() {
+                        let first_key = first_key.clone();
+                        let v = site_events.remove(&first_key).ok_or_else(|| {
+                            LinestringError::InternalError(format!(
+                                "Found a key to pop but could not remove the value. {}:{}",
+                                file!(),
+                                line!()
+                            ))
+                        })?;
+                        Some((first_key, v))
+                    } else {
+                        None
+                    }
+                }
+            } {
                 self.handle_event(
                     &key,
                     &event,

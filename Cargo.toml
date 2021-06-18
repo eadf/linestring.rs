@@ -1,6 +1,6 @@
 [package]
 name = "linestring"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["eadf"]
 edition = "2018"
 description = "2d and 3d polylines"
@@ -10,23 +10,18 @@ license = "AGPL-3.0"
 keywords = ["geometry", "intersection", "douglas-peucker", "visvalingam-whyatt", "convex-hull"]
 
 [features]
-impl-cgmath = ["cgmath"]
-impl-nalgebra = ["nalgebra"]
-impl-mint = ["mint"]
-impl-vecmath = ["vecmath"]
-impl-vec = []
-impl-rayon = ["rayon"]
+# Enables a plain old vector [] implementation-
+vector = []
 # used for debugging purposes
 console_trace = []
 # everything is enabled by default, or else rust doc wont find anything
-# i.e. disable all features except mint with this dependency:
-#  [dependencies]
-#  linestring = {version="^0.0.10",default-features=false,features=["impl-mint"]}
-default = ["impl-cgmath", "impl-nalgebra", "impl-mint", "impl-vecmath", "impl-vec", "impl-rayon"]
+# E.g. to disable all features except mint you use this line:
+#  linestring = {version="^0.4.1",default-features=false,features=["impl-mint"]}
+default = ["cgmath", "nalgebra", "mint", "vecmath", "vector", "rayon"]
 
 [dependencies]
 cgmath = { version = "0.18", optional=true }
-nalgebra = { version = ">=0.24,<0.27", optional=true }
+nalgebra = { version = "^0.27.1", optional=true }
 mint = { version = "0.5", optional = true }
 vecmath = { version = "1.0", optional = true }
 rayon = { version = "1.5", optional = true }
@@ -40,7 +35,10 @@ yabf = "0.1"
 [[example]]
 name = "fltk_gui"
 path = "example/fltk_gui.rs"
-required-features = ["impl-cgmath"]
+required-features = ["cgmath"]
+
+[build-dependencies]
+version_check = "0.9"
 
 [dev-dependencies]
 fltk = "1.0"
@@ -56,3 +54,9 @@ harness = false
 [[bench]]
 name = "simplify_bench"
 harness = false
+
+[profile.release]
+lto = true
+
+[badges]
+maintenance = { status = "actively-developed" }
