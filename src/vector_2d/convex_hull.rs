@@ -1,6 +1,6 @@
 use crate::vector_2d;
 use approx::ulps_eq;
-#[cfg(feature = "impl-rayon")]
+#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
@@ -326,7 +326,7 @@ where
     /// assert!(convex_hull::ConvexHull::contains(&a, &b));
     /// assert!(!convex_hull::ConvexHull::contains(&b, &a));
     ///```
-    #[cfg(not(feature = "impl-rayon"))]
+    #[cfg(not(feature = "rayon"))]
     pub fn contains(a: &vector_2d::LineString2<T>, b: &vector_2d::LineString2<T>) -> bool {
         if a.len() <= 1 {
             return false;
@@ -382,7 +382,7 @@ where
     /// assert!(convex_hull::ConvexHull::contains(&a, &b, f32::default_epsilon(), f32::default_max_ulps()));
     /// assert!(!convex_hull::ConvexHull::contains(&b, &a, f32::default_epsilon(), f32::default_max_ulps()));
     ///```
-    #[cfg(feature = "impl-rayon")]
+    #[cfg(feature = "rayon")]
     pub fn contains(
         a: &vector_2d::LineString2<T>,
         b: &vector_2d::LineString2<T>,
@@ -433,7 +433,7 @@ where
     /// assert!(!convex_hull::ConvexHull::contains_point_exclusive(&hull, &[10.0,9.99999].into()));
     ///
     ///```
-    #[cfg(feature = "impl-rayon")]
+    #[cfg(feature = "rayon")]
     pub fn contains_point_exclusive(a: &vector_2d::LineString2<T>, p: &[T; 2]) -> bool {
         if a.len() <= 1 {
             return false;
@@ -468,7 +468,7 @@ where
     /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[9.999,5.0].into()));
     /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[10.0,5.0].into()));
     ///```
-    #[cfg(feature = "impl-rayon")]
+    #[cfg(feature = "rayon")]
     pub fn contains_point_inclusive(a: &vector_2d::LineString2<T>, p: &[T; 2]) -> bool {
         if a.len() <= 1 {
             return false;

@@ -16,7 +16,7 @@ vector = []
 console_trace = []
 # everything is enabled by default, or else rust doc wont find anything
 # E.g. to disable all features except mint you use this line:
-#  linestring = {version="^0.4.1",default-features=false,features=["impl-mint"]}
+#  linestring = {version="0.5",default-features=false,features=["mint"]}
 default = ["cgmath", "nalgebra", "mint", "vecmath", "vector", "rayon"]
 
 [dependencies]

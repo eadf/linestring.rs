@@ -46,7 +46,7 @@ licenses /why-not-lgpl.html>.
 use super::vector_2d;
 use crate::LinestringError;
 use approx::ulps_eq;
-//#[cfg(feature = "impl-vecmath")]
+//#[cfg(feature = "vecmath")]
 //use vecmath::Matrix4;
 use itertools::Itertools;
 use std::collections;
@@ -234,7 +234,7 @@ where
     }
 
     /// Return a new line containing the matrix transformed points
-    #[cfg(feature = "impl-vecmath")]
+    #[cfg(feature = "vecmath")]
     pub fn transform(&self, matrix4x4: &vecmath::Matrix4<T>) -> Self {
         Self {
             start: crate::vecmath_3d::col_mat4_transform_pos3(matrix4x4, self.start),
@@ -499,7 +499,7 @@ where
     }
 
     /// Return a new LineString3 containing the matrix transformed points
-    #[cfg(feature = "impl-vecmath")]
+    #[cfg(feature = "vecmath")]
     pub fn transform(&self, matrix4x4: &vecmath::Matrix4<T>) -> Self {
         Self {
             points: self

@@ -47,11 +47,11 @@ use super::vector_3d;
 #[allow(unused_imports)]
 use crate::LinestringError;
 use approx::ulps_eq;
-//#[cfg(feature = "impl-vecmath")]
+//#[cfg(feature = "vecmath")]
 //use vecmath::Matrix4;
 use itertools::Itertools;
 #[allow(unused_imports)]
-#[cfg(feature = "impl-rayon")]
+#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 use std::collections;
 use std::fmt;
@@ -870,7 +870,7 @@ where
         self.points.push(point);
     }
 
-    #[cfg(feature = "impl-vecmath")]
+    #[cfg(feature = "vecmath")]
     pub fn transform(&self, matrix3x3: &vecmath::Matrix3<T>) -> Self {
         Self {
             points: self

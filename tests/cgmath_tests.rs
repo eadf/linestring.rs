@@ -1,15 +1,15 @@
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 use cgmath::ulps_eq;
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 use cgmath::AbsDiffEq;
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 use cgmath::UlpsEq;
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 use linestring::cgmath_2d;
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 use linestring::cgmath_3d;
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 fn almost_equal<T: cgmath::BaseFloat + Sync>(x1: T, x2: T, y1: T, y2: T) {
     assert!(ulps_eq!(&x1, &x2));
     assert!(ulps_eq!(&y1, &y2));
@@ -17,7 +17,7 @@ fn almost_equal<T: cgmath::BaseFloat + Sync>(x1: T, x2: T, y1: T, y2: T) {
 
 /// draws a line pivoting around (x,y) with 'angle' in degrees
 /// l1 & l2 are lengths
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 fn pivot(x: f64, y: f64, l1: f64, l2: f64, angle: f64) -> cgmath_2d::Line2<f64> {
     let l = cgmath_2d::Line2 {
         start: cgmath::Point2 {
@@ -46,7 +46,7 @@ fn pivot(x: f64, y: f64, l1: f64, l2: f64, angle: f64) -> cgmath_2d::Line2<f64> 
     }
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn linestring2_1() {
     let points: Vec<[f32; 2]> = vec![[0., 0.], [1., 1.], [2., 2.], [3., 3.], [1., 10.]];
@@ -64,7 +64,7 @@ fn linestring2_1() {
     assert_eq!(linestring.as_lines().len(), points_len);
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn linestring3_1() {
     let points = vec![
@@ -88,7 +88,7 @@ fn linestring3_1() {
     assert_eq!(linestring.as_lines().len(), points_len);
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn line2_1() {
     let line = cgmath_2d::Line2::<f64>::from([[10., 0.], [0., 11.]]);
@@ -96,7 +96,7 @@ fn line2_1() {
     assert_eq!(line.end, cgmath::Point2::from([0., 11.]));
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn line3_1() {
     let line = cgmath_3d::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
@@ -104,7 +104,7 @@ fn line3_1() {
     assert_eq!(line.end, cgmath::Point3::from([0., 11., 9.]));
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn intersection_1() {
     let l1 = cgmath_2d::Line2::from([200., 200., 300., 300.]);
@@ -113,7 +113,7 @@ fn intersection_1() {
     almost_equal(rv.x, 300.0, rv.y, 300.0);
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn intersection_2() {
     let l1 = cgmath_2d::Line2::from([200., 200., 300., 400.]);
@@ -122,7 +122,7 @@ fn intersection_2() {
     almost_equal(rv.x, 300.0, rv.y, 400.0);
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn intersection_3() {
     // line to point detection
@@ -132,7 +132,7 @@ fn intersection_3() {
     almost_equal(rv.x, 250.0, rv.y, 250.0);
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn intersection_4() {
     // line to point detection
@@ -142,7 +142,7 @@ fn intersection_4() {
     almost_equal(rv.x, 250.0, rv.y, 250.0);
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn intersection_5() {
     // line to point detection
@@ -162,7 +162,7 @@ fn intersection_5() {
     }
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn intersection_6() {
     let line1 = cgmath_2d::Line2::<f64>::new(
@@ -176,7 +176,7 @@ fn intersection_6() {
     let _rv = line1.intersection_point(&line2);
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn intersection_7() {
     // README.md example
@@ -201,7 +201,7 @@ fn intersection_7() {
     }
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn intersection_9() {
     // overlapping lines
@@ -229,7 +229,7 @@ fn intersection_9() {
     }
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn intersection_10() {
     // overlapping lines
@@ -255,7 +255,7 @@ fn intersection_10() {
     }
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn simplify_1() {
     let linestring: cgmath_2d::LineString2<f32> = vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]
@@ -287,7 +287,7 @@ fn simplify_1() {
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn simplify_2() {
     let line = vec![
@@ -304,7 +304,7 @@ fn simplify_2() {
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn simplify_3() {
     let line = vec![
@@ -321,7 +321,7 @@ fn simplify_3() {
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn a_test() -> Result<(), linestring::LinestringError> {
     let _l: Vec<[f32; 2]> = vec![
@@ -341,7 +341,7 @@ fn a_test() -> Result<(), linestring::LinestringError> {
     Ok(())
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn triangle_area() {
     for x in -10..10 {
@@ -383,7 +383,7 @@ fn triangle_area() {
     }
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn simplify_vw_1() {
     let line = vec![
@@ -400,7 +400,7 @@ fn simplify_vw_1() {
     assert_eq!(3, line.simplify_vw(4).points().len());
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn simplify_vw_2() {
     let line = vec![[0f32, 0.], [100., 0.], [100., 100.], [0., 100.], [0., 0.]];
@@ -412,7 +412,7 @@ fn simplify_vw_2() {
     assert_eq!(line.points().len() - 2, l.points().len());
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn simplify_vw_3() {
     let line = vec![
@@ -432,7 +432,7 @@ fn simplify_vw_3() {
     assert_eq!(line.points().len() - 5, l.points().len());
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn simplify_vw_4() {
     let mut line: Vec<[f32; 2]> = Vec::with_capacity(360);
@@ -449,7 +449,7 @@ fn simplify_vw_4() {
     assert_eq!(line.points().len() - 6, l.points().len());
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn simplify_vw_5() {
     let mut line: Vec<[f32; 3]> = Vec::with_capacity(360);
@@ -470,7 +470,7 @@ fn simplify_vw_5() {
     assert_eq!(line.points().len() - 6, l.points().len());
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn voronoi_parabolic_arc_1() {
     /*
@@ -530,7 +530,7 @@ fn voronoi_parabolic_arc_1() {
     println!("result: {:?}", result);
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn voronoi_parabolic_arc_2() {
     let d = |x1: f32, y1: f32, p: &cgmath::Point2<f32>| {
@@ -595,7 +595,7 @@ fn voronoi_parabolic_arc_2() {
 }
 
 //#[ignore]
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn transform_test_1() -> Result<(), linestring::LinestringError> {
     type T = f32;
@@ -631,7 +631,7 @@ fn transform_test_1() -> Result<(), linestring::LinestringError> {
     Ok(())
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn transform_test_2() -> Result<(), linestring::LinestringError> {
     type T = f32;
@@ -668,7 +668,7 @@ fn transform_test_2() -> Result<(), linestring::LinestringError> {
     Ok(())
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 //#[ignore]
 #[test]
 fn convex_hull_1() -> Result<(), linestring::LinestringError> {
@@ -692,7 +692,7 @@ fn convex_hull_1() -> Result<(), linestring::LinestringError> {
 extern crate rand;
 extern crate rand_chacha;
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn convex_hull_2() {
     use linestring::cgmath_2d::convex_hull;
@@ -715,7 +715,7 @@ fn convex_hull_2() {
     }
 }
 
-#[cfg(feature = "impl-cgmath")]
+#[cfg(feature = "cgmath")]
 #[test]
 fn convex_hull_3() {
     use linestring::cgmath_2d::convex_hull;

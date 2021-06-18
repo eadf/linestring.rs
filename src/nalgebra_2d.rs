@@ -50,7 +50,7 @@ use approx::{ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 
 use itertools::Itertools;
 #[allow(unused_imports)]
-#[cfg(feature = "impl-rayon")]
+#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 use std::collections;
 use std::fmt;
