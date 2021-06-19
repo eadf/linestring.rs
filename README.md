@@ -1,3 +1,5 @@
+![Rusty voronoi](img/linestring.png)
+
 [![Crates.io](https://meritbadge.herokuapp.com/linestring)](https://crates.io/crates/linestring)
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
@@ -72,3 +74,4 @@ cargo run --example fltk_gui --no-default-features --features cgmath,rayon
 - [ ] Stable overlapping co-linear line detection
 - [x] Better event handling in fltk_gui
 - [x] Migrate to ahash
+- [ ] Add subdivide
