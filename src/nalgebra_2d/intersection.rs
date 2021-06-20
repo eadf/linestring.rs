@@ -60,7 +60,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub pos: nalgebra::Point2<T>,
@@ -73,7 +72,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub fn new(x: T, y: T) -> Self {
@@ -90,7 +88,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -108,7 +105,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     #[inline(always)]
@@ -132,7 +128,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     /// It should be impossible for a !is_finite() number to be added to SiteEventKey
@@ -149,7 +144,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     #[inline(always)]
@@ -164,7 +158,6 @@ impl<T> Eq for SiteEventKey<T> where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast
 {
 }
@@ -180,7 +173,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     best_left: Option<T>,
@@ -195,7 +187,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     fn new() -> Self {
@@ -280,7 +271,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     best_left: Option<T>, // slope
@@ -297,7 +287,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     fn new() -> Self {
@@ -423,7 +412,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     drop: Option<Vec<usize>>,
@@ -440,7 +428,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub(crate) fn with_intersection(i: &[usize]) -> Self {
@@ -487,7 +474,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
@@ -525,7 +511,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     // sweep-line position
@@ -559,7 +544,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     fn default() -> Self {
@@ -584,7 +568,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub fn get_sweepline_pos(&self) -> &nalgebra::Point2<T> {

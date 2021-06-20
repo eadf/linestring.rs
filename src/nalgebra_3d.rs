@@ -64,7 +64,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     Line(Line3<T>),
@@ -97,7 +96,6 @@ impl Plane {
             + AbsDiffEq<Epsilon = T>
             + UlpsEq<Epsilon = T>
             + RelativeEq<Epsilon = T>
-            + UlpsEq<Epsilon = T>
             + num_traits::cast::NumCast,
     {
         Plane::get_plane_relaxed(
@@ -125,7 +123,6 @@ impl Plane {
             + AbsDiffEq<Epsilon = T>
             + UlpsEq<Epsilon = T>
             + RelativeEq<Epsilon = T>
-            + UlpsEq<Epsilon = T>
             + num_traits::cast::NumCast,
     {
         if let Some(low_bound) = aabb.get_low() {
@@ -164,7 +161,6 @@ impl Plane {
             + AbsDiffEq<Epsilon = T>
             + UlpsEq<Epsilon = T>
             + RelativeEq<Epsilon = T>
-            + UlpsEq<Epsilon = T>
             + num_traits::cast::NumCast,
     {
         match self {
@@ -186,7 +182,6 @@ impl Plane {
             + AbsDiffEq<Epsilon = T>
             + UlpsEq<Epsilon = T>
             + RelativeEq<Epsilon = T>
-            + UlpsEq<Epsilon = T>
             + num_traits::cast::NumCast,
     {
         match self {
@@ -206,7 +201,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub start: nalgebra::Point3<T>,
@@ -220,7 +214,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub fn new(start: nalgebra::Point3<T>, end: nalgebra::Point3<T>) -> Self {
@@ -264,7 +257,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     fn into(self) -> [T; 6] {
@@ -286,7 +278,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
     IT: Copy + Into<nalgebra::Point3<T>>,
 {
@@ -302,7 +293,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     fn from(l: [T; 6]) -> Line3<T> {
@@ -322,7 +312,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub(crate) points: Vec<nalgebra::Point3<T>>,
@@ -342,7 +331,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub set: Vec<LineString3<T>>,
@@ -359,7 +347,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     min_max: Option<(nalgebra::Point3<T>, nalgebra::Point3<T>)>,
@@ -377,7 +364,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     #[inline(always)]
@@ -392,7 +378,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     #[inline(always)]
@@ -408,7 +393,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     #[inline(always)]
@@ -423,7 +407,6 @@ impl<T> Eq for PriorityDistance<T> where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast
 {
 }
@@ -435,7 +418,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub fn default() -> Self {
@@ -838,7 +820,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
@@ -856,7 +837,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub fn default() -> Self {
@@ -927,7 +907,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
     IT: Copy + Into<nalgebra::Point3<T>>,
 {
@@ -945,7 +924,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     fn from(coordinate: [T; 6]) -> Aabb3<T> {
@@ -965,7 +943,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub fn default() -> Self {
@@ -1088,7 +1065,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     ulps_eq!(&a.x, &b.x) && ulps_eq!(&a.y, &b.y) && ulps_eq!(&a.z, &b.z)
@@ -1103,7 +1079,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     a - b
@@ -1118,7 +1093,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     let x = a.y * b.z - a.z * b.y;
@@ -1144,7 +1118,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     let a_sub_b = sub(a, b);
@@ -1168,7 +1141,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     if point_ulps_eq(a, b) {
@@ -1192,7 +1164,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     let v = sub(a, b);
@@ -1213,7 +1184,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast
         + fmt::Display,
 {

@@ -69,7 +69,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     Line(Line2<T>),
     Linestring(LineString2<T>),
@@ -85,7 +87,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     pub start: [T; 2],
     pub end: [T; 2],
@@ -98,7 +102,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     pub fn new(start: [T; 2], end: [T; 2]) -> Self {
         Self { start, end }
@@ -116,7 +122,9 @@ where
             + approx::AbsDiffEq
             + approx::UlpsEq
             + Sync
-            + approx::AbsDiffEq<Epsilon = T>,
+            + approx::AbsDiffEq<Epsilon = T>
+            + approx::UlpsEq<Epsilon = T>
+            + approx::RelativeEq<Epsilon = T>,
     {
         // AABB tests
         if self.end[0] > other.end[0]
@@ -296,7 +304,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     fn into(self) -> [T; 4] {
         [self.start[0], self.start[1], self.end[0], self.end[1]]
@@ -311,7 +321,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
     IT: Copy + Into<[T; 2]>,
 {
     fn from(coordinate: [IT; 2]) -> Line2<T> {
@@ -327,7 +339,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     fn from(coordinate: [T; 4]) -> Line2<T> {
         Line2::<T>::new(
@@ -354,7 +368,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     // input geometry of voronoi graph
     pub segment: Line2<T>,
@@ -372,7 +388,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     pub fn new(
         segment: Line2<T>,
@@ -619,7 +637,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     pub(crate) points: Vec<[T; 2]>,
 
@@ -635,7 +655,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     #[inline]
     fn default() -> Self {
@@ -653,7 +675,11 @@ struct PriorityDistance<T> {
 
 impl<T> PartialOrd for PriorityDistance<T>
 where
-    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+    T: PartialOrd
+        + PartialEq
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -662,7 +688,11 @@ where
 }
 impl<T> Ord for PriorityDistance<T>
 where
-    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+    T: PartialOrd
+        + PartialEq
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     #[inline(always)]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
@@ -672,14 +702,25 @@ where
 
 impl<T> PartialEq for PriorityDistance<T>
 where
-    T: PartialOrd + PartialEq + cgmath::UlpsEq,
+    T: PartialOrd
+        + PartialEq
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
         ulps_eq!(&self.key, &other.key)
     }
 }
-impl<T> Eq for PriorityDistance<T> where T: PartialOrd + PartialEq + cgmath::UlpsEq {}
+impl<T> Eq for PriorityDistance<T> where
+    T: PartialOrd
+        + PartialEq
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>
+{
+}
 
 impl<T> LineString2<T>
 where
@@ -688,7 +729,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
@@ -1147,7 +1190,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     /// creates a connected LineString2 from the outlines of the Aabb2
     fn from(other: Aabb2<T>) -> Self {
@@ -1178,7 +1223,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
     IC: Into<[T; 2]>,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
@@ -1202,7 +1249,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     set: Vec<LineString2<T>>,
     aabb: Aabb2<T>,
@@ -1217,7 +1266,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     #[inline]
     fn default() -> Self {
@@ -1237,7 +1288,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     /// steal the content of 'other' leaving it empty
     pub fn steal_from(other: &mut LineStringSet2<T>) -> Self {
@@ -1422,7 +1475,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     min_max: Option<([T; 2], [T; 2])>,
 }
@@ -1434,7 +1489,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
     IT: Copy + Into<[T; 2]>,
 {
     fn from(coordinate: [IT; 2]) -> Aabb2<T> {
@@ -1452,7 +1509,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     fn from(coordinate: [T; 4]) -> Aabb2<T> {
         let mut rv = Aabb2::default();
@@ -1469,7 +1528,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     #[inline]
     fn default() -> Self {
@@ -1484,7 +1545,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     pub fn new(point: &[T; 2]) -> Self {
         Self {
@@ -1611,7 +1674,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     // take care of end point equality
     if ulps_eq!(&line.start[0], &point[0]) && ulps_eq!(&line.start[1], &point[1]) {
@@ -1648,7 +1713,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     // Normal one point intersection
     Intersection([T; 2]),
@@ -1663,7 +1730,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     /// return a single, simple intersection point
     pub fn single(&self) -> [T; 2] {
@@ -1681,7 +1750,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -1699,7 +1770,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     [point[0] + scale * vector[0], point[1] + scale * vector[1]]
 }
@@ -1713,7 +1786,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     [a[0] / b, a[1] / b]
 }
@@ -1739,7 +1814,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     v[0] * w[1] - v[1] * w[0]
 }
@@ -1757,7 +1834,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     let a_sub_b = sub(a, b);
     let a_sub_p = sub(a, p);
@@ -1776,7 +1855,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     if point_ulps_eq(a, b) {
         // give the point-to-point answer if the segment is a point
@@ -1799,7 +1880,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     let v = sub(a, b);
     v[0] * v[0] + v[1] * v[1]
@@ -1814,7 +1897,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     a[0] * b[0] + a[1] * b[1]
 }
@@ -1827,7 +1912,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     ulps_eq!(&a[0], &b[0]) && ulps_eq!(&a[1], &b[1])
 }
@@ -1843,7 +1930,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     /// The offsets used to center the 'source' coordinate system. Typically the input geometry
     /// in this case.
@@ -1862,7 +1951,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     #[inline]
     fn default() -> Self {
@@ -1882,6 +1973,8 @@ where
         + approx::UlpsEq
         + Sync
         + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pub fn new(a_aabb: &Aabb2<T>, b_aabb: &Aabb2<T>) -> Result<Self, LinestringError> {

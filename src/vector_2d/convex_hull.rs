@@ -12,7 +12,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     pd: PhantomData<T>,
 }
@@ -24,7 +26,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     /// finds the point with lowest x
     fn find_lowest_x(linestring: &[[T; 2]]) -> (usize, [T; 2]) {
@@ -240,7 +244,11 @@ where
     pub fn graham_scan<'a, I>(input: I) -> vector_2d::LineString2<T>
     where
         I: IntoIterator<Item = &'a [T; 2]>,
-        T: 'a + Sync + approx::AbsDiffEq<Epsilon = T>,
+        T: 'a
+            + Sync
+            + approx::AbsDiffEq<Epsilon = T>
+            + approx::UlpsEq<Epsilon = T>
+            + approx::RelativeEq<Epsilon = T>,
     {
         let mut input_points = input.into_iter().copied().collect::<Vec<[T; 2]>>();
 

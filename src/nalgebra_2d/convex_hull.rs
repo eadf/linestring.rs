@@ -12,7 +12,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     pd: PhantomData<T>,
@@ -25,7 +24,6 @@ where
         + AbsDiffEq<Epsilon = T>
         + UlpsEq<Epsilon = T>
         + RelativeEq<Epsilon = T>
-        + UlpsEq<Epsilon = T>
         + num_traits::cast::NumCast,
 {
     /// finds the point with lowest x

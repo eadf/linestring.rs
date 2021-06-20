@@ -60,7 +60,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     pub pos: [T; 2],
 }
@@ -72,7 +74,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     pub fn new(x: T, y: T) -> Self {
         Self { pos: [x, y] }
@@ -86,7 +90,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("")
@@ -103,7 +109,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
@@ -126,7 +134,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     /// It should be impossible for a !is_finite() number to be added to SiteEventKey
     #[inline(always)]
@@ -142,7 +152,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
@@ -157,6 +169,8 @@ impl<T> Eq for SiteEventKey<T> where
         + approx::UlpsEq
         + Sync
         + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>
 {
 }
 
@@ -171,7 +185,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     best_left: Option<T>,
     slope: MinMaxSlope<T>,
@@ -185,7 +201,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     fn new() -> Self {
         Self {
@@ -269,7 +287,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     best_left: Option<T>, // slope
     candidates_left: Vec<usize>,
@@ -285,7 +305,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     fn new() -> Self {
         Self {
@@ -410,7 +432,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     drop: Option<Vec<usize>>,
     add: Option<Vec<usize>>,
@@ -426,7 +450,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     pub(crate) fn with_intersection(i: &[usize]) -> Self {
         Self {
@@ -469,7 +495,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
     let y1 = other.start[1];
@@ -506,7 +534,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     // sweep-line position
     sweepline_pos: [T; 2],
@@ -539,7 +569,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     fn default() -> Self {
         Self {
@@ -563,7 +595,9 @@ where
         + approx::AbsDiffEq
         + approx::UlpsEq
         + Sync
-        + approx::AbsDiffEq<Epsilon = T>,
+        + approx::AbsDiffEq<Epsilon = T>
+        + approx::UlpsEq<Epsilon = T>
+        + approx::RelativeEq<Epsilon = T>,
 {
     pub fn get_sweepline_pos(&self) -> &[T; 2] {
         &self.sweepline_pos

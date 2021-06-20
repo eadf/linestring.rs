@@ -26,7 +26,7 @@ mint = { version = "0.5", optional = true }
 vecmath = { version = "1.0", optional = true }
 rayon = { version = "1.5", optional = true }
 num-traits = "0.2"
-approx = "0.4"
+approx = "0.5"
 ahash = "0.7"
 thiserror = "1.0"
 itertools = "0.10"
