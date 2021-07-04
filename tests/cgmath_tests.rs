@@ -1,3 +1,4 @@
+#![deny(warnings)]
 #[cfg(feature = "cgmath")]
 use cgmath::ulps_eq;
 #[cfg(feature = "cgmath")]

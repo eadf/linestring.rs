@@ -10,7 +10,7 @@ license = "AGPL-3.0"
 keywords = ["geometry", "intersection", "douglas-peucker", "visvalingam-whyatt", "convex-hull"]
 
 [features]
-# Enables a plain old vector [] implementation-
+# Enables a plain old vector [] implementation
 vector = []
 # used for debugging purposes
 console_trace = []
@@ -20,13 +20,14 @@ console_trace = []
 default = ["cgmath", "nalgebra", "mint", "vecmath", "vector", "rayon"]
 
 [dependencies]
-cgmath = { version = "0.18", optional=true }
-nalgebra = { version = "^0.27.1", optional=true }
+cgmath = { version = "0.18", optional = true }
+nalgebra = { version = "^0.27.1", optional = true }
 mint = { version = "0.5", optional = true }
 vecmath = { version = "1.0", optional = true }
 rayon = { version = "1.5", optional = true }
-num-traits = "0.2"
+# we always use this approx, despite cgmath exporting it's own version
 approx = "0.5"
+num-traits = "0.2"
 ahash = "0.7"
 thiserror = "1.0"
 itertools = "0.10"

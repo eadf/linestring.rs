@@ -1,17 +1,20 @@
+#![deny(warnings)]
+#[cfg(any(feature = "vecmath", feature = "vector"))]
 use approx::ulps_eq;
-#[cfg(feature = "cgmath")]
-#[cfg(feature = "vecmath")]
+#[cfg(all(feature = "cgmath", feature = "vecmath"))]
 use cgmath::{SquareMatrix, Transform};
-#[cfg(feature = "vector")]
+#[allow(unused_imports)]
+#[cfg(any(feature = "vecmath", feature = "vector"))]
 use linestring::vector_2d;
-#[cfg(feature = "vector")]
+#[allow(unused_imports)]
+#[cfg(any(feature = "vecmath", feature = "vector"))]
 use linestring::vector_3d;
-#[cfg(feature = "vector")]
+#[cfg(any(feature = "vecmath", feature = "vector"))]
 use num_traits::Float;
-#[cfg(feature = "vector")]
+#[cfg(any(feature = "vecmath", feature = "vector"))]
 use std::fmt;
-
-#[cfg(feature = "vector")]
+#[allow(dead_code)]
+#[cfg(any(feature = "vecmath", feature = "vector"))]
 fn almost_equal<T>(x1: T, x2: T, y1: T, y2: T)
 where
     T: Float
@@ -196,8 +199,7 @@ fn triangle_area() {
     }
 }
 
-#[cfg(feature = "cgmath")]
-#[cfg(feature = "vecmath")]
+#[cfg(all(feature = "cgmath", feature = "vecmath"))]
 #[test]
 fn transform_1() {
     let m = [

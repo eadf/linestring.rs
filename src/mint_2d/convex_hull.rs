@@ -315,6 +315,8 @@ where
     /// # use linestring::mint_2d;
     /// # use linestring::mint_2d::convex_hull;
     /// # use rand::{Rng, SeedableRng};
+    /// # use approx::AbsDiffEq;
+    /// # use approx::UlpsEq;
     ///
     /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
     /// let mut points = Vec::<mint::Point2<f32>>::new();
@@ -335,11 +337,16 @@ where
     /// let b = mint_2d::LineString2::<f32>::default().with_points(points);
     /// let b = convex_hull::ConvexHull::graham_scan(b.points().iter());
     ///
-    /// assert!(convex_hull::ConvexHull::contains(&a, &b));
-    /// assert!(!convex_hull::ConvexHull::contains(&b, &a));
+    /// assert!(convex_hull::ConvexHull::contains(&a, &b, f32::default_epsilon(), f32::default_max_ulps()));
+    /// assert!(!convex_hull::ConvexHull::contains(&b, &a, f32::default_epsilon(), f32::default_max_ulps()));
     ///```
     #[cfg(not(feature = "rayon"))]
-    pub fn contains(a: &mint_2d::LineString2<T>, b: &mint_2d::LineString2<T>) -> bool {
+    pub fn contains(
+        a: &mint_2d::LineString2<T>,
+        b: &mint_2d::LineString2<T>,
+        epsilon: T::Epsilon,
+        max_ulps: u32,
+    ) -> bool {
         if a.len() <= 1 {
             return false;
         }
@@ -353,7 +360,9 @@ where
             for l in a.as_lines().iter().skip(step1).step_by(4) {
                 for step2 in 0..4 {
                     for p in b.points.iter().skip(step2).step_by(4) {
-                        if !Self::is_point_left_allow_collinear(&l.start, &l.end, p) {
+                        if !Self::is_point_left_allow_collinear_ulps(
+                            &l.start, &l.end, p, epsilon, max_ulps,
+                        ) {
                             //println!("The point {:?} is not left of {:?}", p, l);
                             return false;
                         }

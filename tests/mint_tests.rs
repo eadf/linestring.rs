@@ -1,3 +1,5 @@
+#![deny(warnings)]
+#[cfg(feature = "mint")]
 use approx::ulps_eq;
 #[cfg(feature = "mint")]
 use linestring::mint_2d;

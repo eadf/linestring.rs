@@ -1,3 +1,5 @@
+#![deny(warnings)]
+#[cfg(feature = "nalgebra")]
 use approx::ulps_eq;
 #[cfg(feature = "nalgebra")]
 use linestring::nalgebra_2d;

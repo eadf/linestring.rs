@@ -1,6 +1,6 @@
 ![Rusty voronoi](img/linestring.png)
 
-[![Crates.io](https://meritbadge.herokuapp.com/linestring)](https://crates.io/crates/linestring)
+[![crates.io](https://img.shields.io/crates/v/linestring.svg)](https://crates.io/crates/linestring)
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)
@@ -56,7 +56,7 @@ matrix transformations.
 
 ## Rust toolchains
 
-This crate uses `#![feature(map_first_last)]` if compiled by +nightly. This is functionality is inefficiently emulated when +stable is used.
+This crate uses `#![feature(map_first_last)]` if compiled by +nightly. This is functionality is only emulated when run on +stable.
 
 ## Demo GUI
 Run the line simplification example with :
@@ -69,9 +69,5 @@ cargo run --example fltk_gui --no-default-features --features cgmath,rayon
 - [ ] Benchmark and optimize (add smallvec to simplify rdp?)
 - [ ] optimize Ramer–Douglas-Peucker
 - [ ] optimize Visvalingam-Whyatt
-- [x] Add 2D Convex hull and containment test
-- [x] multi-threaded Convex hull containment test
 - [ ] Stable overlapping co-linear line detection
-- [x] Better event handling in fltk_gui
-- [x] Migrate to ahash
 - [ ] Add subdivide

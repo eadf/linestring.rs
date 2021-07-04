@@ -49,6 +49,7 @@ licenses /why-not-lgpl.html>.
 #![deny(unused_qualifications)]
 #![deny(unused_results)]
 #![deny(unused_imports)]
+#![deny(unused_variables)]
 #![cfg_attr(feature = "map_first_last", feature(map_first_last))]
 
 //! This library contains data structures and methods that deals with lines in 2D and 3D space.
