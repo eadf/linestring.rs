@@ -1,3 +1,6 @@
+#!/bin/sh
+
+# perform each test suite with a limited feature set, then once with every feature enabled
 cargo test --no-default-features --features cgmath && \
 cargo test --no-default-features --features cgmath,rayon && \
 cargo test --no-default-features --features vector && \

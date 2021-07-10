@@ -1840,9 +1840,18 @@ where
 {
     let a_sub_b = sub(a, b);
     let a_sub_p = sub(a, p);
-    let a_sub_p_cross_a_sub_b = cross_z(&a_sub_p, &a_sub_b);
-    (a_sub_p_cross_a_sub_b * a_sub_p_cross_a_sub_b)
-        / (a_sub_b[0] * a_sub_b[0] + a_sub_b[1] * a_sub_b[1])
+    let dot = (a_sub_b[0] * a_sub_p[0] + a_sub_b[1] * a_sub_p[1])
+        / (a_sub_b[0] * a_sub_b[0] + a_sub_b[1] * a_sub_b[1]);
+    if dot < T::zero() {
+        a_sub_p[0] * a_sub_p[0] + a_sub_p[1] * a_sub_p[1]
+    } else if dot > T::one() {
+        let b_sub_p = sub(b, p);
+        b_sub_p[0] * b_sub_p[0] + b_sub_p[1] * b_sub_p[1]
+    } else {
+        let a_sub_p_cross_a_sub_b = cross_z(&a_sub_p, &a_sub_b);
+        (a_sub_p_cross_a_sub_b * a_sub_p_cross_a_sub_b)
+            / (a_sub_b[0] * a_sub_b[0] + a_sub_b[1] * a_sub_b[1])
+    }
 }
 
 /// Same as distance_to_line_squared<T> but it can be called when a-b might be 0.
@@ -1863,11 +1872,7 @@ where
         // give the point-to-point answer if the segment is a point
         distance_to_point_squared(a, p)
     } else {
-        let a_sub_b = sub(a, b);
-        let a_sub_p = sub(a, p);
-        let a_sub_p_cross_a_sub_b = cross_z(&a_sub_p, &a_sub_b);
-        (a_sub_p_cross_a_sub_b * a_sub_p_cross_a_sub_b)
-            / (a_sub_b[0] * a_sub_b[0] + a_sub_b[1] * a_sub_b[1])
+        distance_to_line_squared(a, b, p)
     }
 }
 

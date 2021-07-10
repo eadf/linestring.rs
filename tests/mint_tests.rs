@@ -119,7 +119,7 @@ fn point_distance_1() {
 
     let point = mint::Point2::from([54_f32, 0.]);
     let distance = mint_2d::distance_to_line_squared(&line.start, &line.end, &point);
-    let correct = 100.0_f32 * 100.0;
+    let correct = (100.0_f32 - 54_f32) * (100.0_f32 - 54_f32) + (100_f32 * 100_f32);
     assert!(ulps_eq!(&distance, &correct), "{}!={}", distance, correct);
 }
 

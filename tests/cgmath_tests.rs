@@ -752,3 +752,18 @@ fn convex_hull_3() {
         f32::default_max_ulps()
     ));
 }
+
+#[cfg(feature = "cgmath")]
+#[test]
+fn distance_to_line_squared_01() {
+    let a = cgmath::Point2::<f32>::new(0.0, 0.0);
+    let b = cgmath::Point2::<f32>::new(1.0, 0.0);
+    let p = cgmath::Point2::<f32>::new(-2.0, 0.0);
+    assert_eq!(cgmath_2d::distance_to_line_squared(&a, &b, &p), 4.0);
+    let p = cgmath::Point2::<f32>::new(4.0, 0.0);
+    assert_eq!(cgmath_2d::distance_to_line_squared(&a, &b, &p), 9.0);
+    let p = cgmath::Point2::<f32>::new(0.5, 2.0);
+    assert_eq!(cgmath_2d::distance_to_line_squared(&a, &b, &p), 4.0);
+    let p = cgmath::Point2::<f32>::new(0.5, -2.0);
+    assert_eq!(cgmath_2d::distance_to_line_squared(&a, &b, &p), 4.0);
+}
