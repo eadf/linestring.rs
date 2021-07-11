@@ -4,7 +4,7 @@
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)
-[![dependency status](https://deps.rs/crate/linestring/0.6.0/status.svg)](https://deps.rs/crate/linestring/0.6.0)
+[![dependency status](https://deps.rs/crate/linestring/0.6.1/status.svg)](https://deps.rs/crate/linestring/0.6.1)
 
 # Line library for Rust
 
