@@ -42,7 +42,7 @@ required-features = ["cgmath"]
 version_check = "0.9"
 
 [dev-dependencies]
-fltk = "1.0"
+fltk = "1.1"
 cgmath = "0.18"
 rand = "0.8"
 rand_chacha = "0.3"
