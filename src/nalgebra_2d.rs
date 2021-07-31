@@ -1787,6 +1787,7 @@ where
 }
 
 #[inline(always)]
+#[allow(clippy::suspicious_operation_groupings)]
 /// The distance between the line a->b to the point p is the same as
 /// distance = |(a-p)×(a-b)|/|a-b|
 /// <https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation>
