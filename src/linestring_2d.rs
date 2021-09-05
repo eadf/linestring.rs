@@ -50,7 +50,6 @@ use cgmath::ulps_eq;
 use cgmath::Transform;
 use itertools::Itertools;
 #[allow(unused_imports)]
-#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 use std::collections;
 use std::fmt;

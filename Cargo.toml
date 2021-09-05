@@ -15,7 +15,7 @@ console_trace = []
 
 [dependencies]
 cgmath = { version = "0.18" }
-rayon = { version = "1.5", optional = true }
+rayon = { version = "1.5" }
 # we always use this approx, despite cgmath exporting it's own version
 approx = "0.5"
 num-traits = "0.2"

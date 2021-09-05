@@ -1,6 +1,5 @@
 use crate::linestring_2d;
 use cgmath::ulps_eq;
-#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
@@ -332,70 +331,6 @@ where
     /// assert!(convex_hull::ConvexHull::contains(&a, &b, f32::default_epsilon(), f32::default_max_ulps()));
     /// assert!(!convex_hull::ConvexHull::contains(&b, &a, f32::default_epsilon(), f32::default_max_ulps()));
     ///```
-    #[cfg(not(feature = "rayon"))]
-    pub fn contains(
-        a: &linestring_2d::LineString2<T>,
-        b: &linestring_2d::LineString2<T>,
-        epsilon: T::Epsilon,
-        max_ulps: u32,
-    ) -> bool {
-        if a.len() <= 1 {
-            return false;
-        }
-        if b.is_empty() {
-            // Is 'nothing' contained inside any finite convex hull or not?
-            return true;
-        }
-        // try to spread out the tests so that the loop will fail faster and not spend
-        // all the time looking at points and lines close together
-        for step1 in 0..4 {
-            for l in a.as_lines().iter().skip(step1).step_by(4) {
-                for step2 in 0..4 {
-                    for p in b.points.iter().skip(step2).step_by(4) {
-                        if !Self::is_point_left_allow_collinear_ulps(
-                            &l.start, &l.end, p, epsilon, max_ulps,
-                        ) {
-                            //println!("The point {:?} is not left of {:?}", p, l);
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        true
-    }
-
-    /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull (inclusive)
-    ///```
-    /// # use linestring::linestring_2d;
-    /// # use linestring::linestring_2d::convex_hull;
-    /// # use rand::{Rng, SeedableRng};
-    /// # use cgmath::AbsDiffEq;
-    /// # use cgmath::UlpsEq;
-    ///
-    /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
-    /// let mut points = Vec::<cgmath::Point2<f32>>::new();
-    /// for _i in 0..4023 {
-    ///    let p: [f32; 2] = [rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0)];
-    ///    points.push(p.into());
-    /// }
-    ///
-    /// let a = linestring_2d::LineString2::<f32>::default().with_points(points);
-    /// let a = convex_hull::ConvexHull::graham_scan(a.points().iter());
-    ///
-    /// let mut points = Vec::<cgmath::Point2<f32>>::new();
-    /// for _i in 0..1023 {
-    ///    let p: [f32; 2] = [rng.gen_range(1000.0..2000.0), rng.gen_range(1000.0..2000.0)];
-    ///    points.push(p.into());
-    /// }
-    ///
-    /// let b = linestring_2d::LineString2::<f32>::default().with_points(points);
-    /// let b = convex_hull::ConvexHull::graham_scan(b.points().iter());
-    ///
-    /// assert!(convex_hull::ConvexHull::contains(&a, &b, f32::default_epsilon(), f32::default_max_ulps()));
-    /// assert!(!convex_hull::ConvexHull::contains(&b, &a, f32::default_epsilon(), f32::default_max_ulps()));
-    ///```
-    #[cfg(feature = "rayon")]
     pub fn contains(
         a: &linestring_2d::LineString2<T>,
         b: &linestring_2d::LineString2<T>,
@@ -446,7 +381,6 @@ where
     /// assert!(!convex_hull::ConvexHull::contains_point_exclusive(&hull, &[10.0,9.99999].into()));
     ///
     ///```
-    #[cfg(feature = "rayon")]
     pub fn contains_point_exclusive(a: &linestring_2d::LineString2<T>, p: &cgmath::Point2<T>) -> bool {
         if a.len() <= 1 {
             return false;
@@ -481,7 +415,6 @@ where
     /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[9.999,5.0].into()));
     /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[10.0,5.0].into()));
     ///```
-    #[cfg(feature = "rayon")]
     pub fn contains_point_inclusive(a: &linestring_2d::LineString2<T>, p: &cgmath::Point2<T>) -> bool {
         if a.len() <= 1 {
             return false;
