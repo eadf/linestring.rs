@@ -1,5 +1,3 @@
-![Rusty voronoi](img/linestring.png)
-
 [![crates.io](https://img.shields.io/crates/v/linestring.svg)](https://crates.io/crates/linestring)
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
@@ -26,34 +24,10 @@ There are 2D implementations of:
 * Convex hull containment test (single threaded or multi-threaded with [ryon](https://crates.io/crates/rayon))
 * Simple affine transformation (pan, zoom)
 
-This is implemented for [cgmath](https://crates.io/crates/cgmath), 
-[nalgebra](https://crates.io/crates/nalgebra), [vecmath](https://crates.io/crates/vecmath) 
-and limited versions for [mint](https://crates.io/crates/mint) and plain vectors (no matrix transformations).
-\
-These implementations are feature gated, so you only have to include the 3d package you need in your code.
-More implementations could be added if required.
-
 If you want to use this library in your cgmath project you add this to your Cargo.toml:
 ```cargo
-linestring = {version="0.6",default-features=false,features=["cgmath", "rayon"]}
+linestring = {version="0.6",features=["rayon"]}
 ```
-Same thing for the other supported 2d/3d libraries: 
-```cargo
-linestring = {version="0.6",default-features=false,features=["nalgebra", "rayon"]}
-```
-
-```cargo
-linestring = {version="0.6",default-features=false,features=["mint", "rayon"]}
-```
-
-```cargo
-linestring = {version="0.6",default-features=false,features=["vecmath", "rayon"]}
-```
-```cargo
-linestring = {version="0.6",default-features=false,features=["vector", "rayon"]}
-```
-The difference between ```vecmath``` and ```vector``` is that the ```vecmath``` feature supports 
-matrix transformations.
 
 ## Rust toolchains
 
@@ -62,7 +36,7 @@ This crate uses `#![feature(map_first_last)]` if compiled by +nightly. This is f
 ## Demo GUI
 Run the line simplification example with :
 ```fish
-cargo run --example fltk_gui --no-default-features --features cgmath,rayon
+cargo run --example fltk_gui
 ```
 
 ## Todo
