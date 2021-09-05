@@ -10,7 +10,6 @@ use linestring::linestring_2d;
 
 use linestring::linestring_3d;
 
-
 fn almost_equal<T: cgmath::BaseFloat + Sync>(x1: T, x2: T, y1: T, y2: T) {
     assert!(ulps_eq!(&x1, &x2));
     assert!(ulps_eq!(&y1, &y2));
@@ -47,7 +46,6 @@ fn pivot(x: f64, y: f64, l1: f64, l2: f64, angle: f64) -> linestring_2d::Line2<f
     }
 }
 
-
 #[test]
 fn linestring2_1() {
     let points: Vec<[f32; 2]> = vec![[0., 0.], [1., 1.], [2., 2.], [3., 3.], [1., 10.]];
@@ -64,7 +62,6 @@ fn linestring2_1() {
     //println!("as_lines={:?}", linestring.as_lines());
     assert_eq!(linestring.as_lines().len(), points_len);
 }
-
 
 #[test]
 fn linestring3_1() {
@@ -89,7 +86,6 @@ fn linestring3_1() {
     assert_eq!(linestring.as_lines().len(), points_len);
 }
 
-
 #[test]
 fn line2_1() {
     let line = linestring_2d::Line2::<f64>::from([[10., 0.], [0., 11.]]);
@@ -97,14 +93,12 @@ fn line2_1() {
     assert_eq!(line.end, cgmath::Point2::from([0., 11.]));
 }
 
-
 #[test]
 fn line3_1() {
     let line = linestring_3d::Line3::<f64>::from([[10., 0., 9.], [0., 11., 9.]]);
     assert_eq!(line.start, cgmath::Point3::from([10., 0., 9.]));
     assert_eq!(line.end, cgmath::Point3::from([0., 11., 9.]));
 }
-
 
 #[test]
 fn intersection_1() {
@@ -114,7 +108,6 @@ fn intersection_1() {
     almost_equal(rv.x, 300.0, rv.y, 300.0);
 }
 
-
 #[test]
 fn intersection_2() {
     let l1 = linestring_2d::Line2::from([200., 200., 300., 400.]);
@@ -122,7 +115,6 @@ fn intersection_2() {
     let rv = l1.intersection_point(&l2).unwrap().single();
     almost_equal(rv.x, 300.0, rv.y, 400.0);
 }
-
 
 #[test]
 fn intersection_3() {
@@ -133,7 +125,6 @@ fn intersection_3() {
     almost_equal(rv.x, 250.0, rv.y, 250.0);
 }
 
-
 #[test]
 fn intersection_4() {
     // line to point detection
@@ -142,7 +133,6 @@ fn intersection_4() {
     let rv = l1.intersection_point(&l2).unwrap().single();
     almost_equal(rv.x, 250.0, rv.y, 250.0);
 }
-
 
 #[test]
 fn intersection_5() {
@@ -163,7 +153,6 @@ fn intersection_5() {
     }
 }
 
-
 #[test]
 fn intersection_6() {
     let line1 = linestring_2d::Line2::<f64>::new(
@@ -176,7 +165,6 @@ fn intersection_6() {
     );
     let _rv = line1.intersection_point(&line2);
 }
-
 
 #[test]
 fn intersection_7() {
@@ -201,7 +189,6 @@ fn intersection_7() {
         //println!("{:?}", _rv.single());
     }
 }
-
 
 #[test]
 fn intersection_9() {
@@ -230,7 +217,6 @@ fn intersection_9() {
     }
 }
 
-
 #[test]
 fn intersection_10() {
     // overlapping lines
@@ -256,12 +242,12 @@ fn intersection_10() {
     }
 }
 
-
 #[test]
 fn simplify_1() {
-    let linestring: linestring_2d::LineString2<f32> = vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]
-        .into_iter()
-        .collect();
+    let linestring: linestring_2d::LineString2<f32> =
+        vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]
+            .into_iter()
+            .collect();
     assert_eq!(1, linestring.simplify(10.0).as_lines().len());
     println!("{:?}", linestring.simplify(0.1));
     assert_eq!(2, linestring.simplify(0.1).as_lines().len());
@@ -288,7 +274,6 @@ fn simplify_1() {
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
 
-
 #[test]
 fn simplify_2() {
     let line = vec![
@@ -305,7 +290,6 @@ fn simplify_2() {
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
 
-
 #[test]
 fn simplify_3() {
     let line = vec![
@@ -321,7 +305,6 @@ fn simplify_3() {
     line.connected = false;
     assert_eq!(6, line.simplify(1.0).as_lines().len());
 }
-
 
 #[test]
 fn a_test() -> Result<(), linestring::LinestringError> {
@@ -341,7 +324,6 @@ fn a_test() -> Result<(), linestring::LinestringError> {
     assert!(result);
     Ok(())
 }
-
 
 #[test]
 fn triangle_area() {
@@ -384,7 +366,6 @@ fn triangle_area() {
     }
 }
 
-
 #[test]
 fn simplify_vw_1() {
     let line = vec![
@@ -401,7 +382,6 @@ fn simplify_vw_1() {
     assert_eq!(3, line.simplify_vw(4).points().len());
 }
 
-
 #[test]
 fn simplify_vw_2() {
     let line = vec![[0f32, 0.], [100., 0.], [100., 100.], [0., 100.], [0., 0.]];
@@ -412,7 +392,6 @@ fn simplify_vw_2() {
     println!("Result: {:?}", l);
     assert_eq!(line.points().len() - 2, l.points().len());
 }
-
 
 #[test]
 fn simplify_vw_3() {
@@ -433,7 +412,6 @@ fn simplify_vw_3() {
     assert_eq!(line.points().len() - 5, l.points().len());
 }
 
-
 #[test]
 fn simplify_vw_4() {
     let mut line: Vec<[f32; 2]> = Vec::with_capacity(360);
@@ -449,7 +427,6 @@ fn simplify_vw_4() {
     println!("Result: {:?}", l);
     assert_eq!(line.points().len() - 6, l.points().len());
 }
-
 
 #[test]
 fn simplify_vw_5() {
@@ -470,7 +447,6 @@ fn simplify_vw_5() {
     println!("Result: {:?}", l);
     assert_eq!(line.points().len() - 6, l.points().len());
 }
-
 
 #[test]
 fn voronoi_parabolic_arc_1() {
@@ -530,7 +506,6 @@ fn voronoi_parabolic_arc_1() {
     ));
     println!("result: {:?}", result);
 }
-
 
 #[test]
 fn voronoi_parabolic_arc_2() {
@@ -632,7 +607,6 @@ fn transform_test_1() -> Result<(), linestring::LinestringError> {
     Ok(())
 }
 
-
 #[test]
 fn transform_test_2() -> Result<(), linestring::LinestringError> {
     type T = f32;
@@ -669,7 +643,6 @@ fn transform_test_2() -> Result<(), linestring::LinestringError> {
     Ok(())
 }
 
-
 //#[ignore]
 #[test]
 fn convex_hull_1() -> Result<(), linestring::LinestringError> {
@@ -693,7 +666,6 @@ fn convex_hull_1() -> Result<(), linestring::LinestringError> {
 extern crate rand;
 extern crate rand_chacha;
 
-
 #[test]
 fn convex_hull_2() {
     use linestring::linestring_2d::convex_hull;
@@ -715,7 +687,6 @@ fn convex_hull_2() {
         ));
     }
 }
-
 
 #[test]
 fn convex_hull_3() {
@@ -752,7 +723,6 @@ fn convex_hull_3() {
         f32::default_max_ulps()
     ));
 }
-
 
 #[test]
 fn distance_to_line_squared_01() {

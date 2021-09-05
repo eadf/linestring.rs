@@ -2,10 +2,10 @@
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)
-[![dependency status](https://deps.rs/crate/linestring/0.6.3/status.svg)](https://deps.rs/crate/linestring/0.6.3)
+[![dependency status](https://deps.rs/crate/linestring/0.7.0/status.svg)](https://deps.rs/crate/linestring/0.7.0)
 ![license](https://img.shields.io/crates/l/linestring)
 
-# Line library for Rust
+# 2d and 3d polylines for cgmath
 
 This crate contains data structures and methods that deals with lines in 2D and 3D space.
 
@@ -26,7 +26,7 @@ There are 2D implementations of:
 
 If you want to use this library in your cgmath project you add this to your Cargo.toml:
 ```cargo
-linestring = {version="0.6",features=["rayon"]}
+linestring = {version="0.7"}
 ```
 
 ## Rust toolchains
