@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use linestring::cgmath_2d::LineString2;
+use linestring::linestring_2d::LineString2;
 
 #[cfg(test)]
 fn simplify_bench_rdp(c: &mut Criterion) {

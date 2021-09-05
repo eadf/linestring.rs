@@ -1,4 +1,4 @@
-use crate::cgmath_2d;
+use crate::linestring_2d;
 use cgmath::ulps_eq;
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
@@ -31,7 +31,7 @@ where
 
     /// Returns true if the point 'c' lies to the 'left' of the line a->b
     ///```
-    /// # use linestring::cgmath_2d::convex_hull;
+    /// # use linestring::linestring_2d::convex_hull;
     /// let a = cgmath::Point2 { x: 0.0, y: 0.0 };
     /// let b = cgmath::Point2 { x: 0.0, y: 10.0 };
     /// let c = cgmath::Point2 { x: -10.0, y: 5.0 };
@@ -52,7 +52,7 @@ where
     /// Returns true if the point 'c' lies to the 'left' of the line a->b
     /// Returns true even if the point lies on the line a-b
     ///```
-    /// # use linestring::cgmath_2d::convex_hull;
+    /// # use linestring::linestring_2d::convex_hull;
     /// let a = cgmath::Point2 { x: 0.0, y: 0.0 };
     /// let b = cgmath::Point2 { x: 0.0, y: 10.0 };
     /// assert!(convex_hull::ConvexHull::is_point_left_allow_collinear(&a, &b, &b));
@@ -76,7 +76,7 @@ where
     /// Returns true if the point 'c' lies to the 'left' of the line a->b
     /// Returns true even if the point lies on the line a-b
     ///```
-    /// # use linestring::cgmath_2d::convex_hull;
+    /// # use linestring::linestring_2d::convex_hull;
     /// # use cgmath::AbsDiffEq;
     /// # use cgmath::UlpsEq;
     /// let a = cgmath::Point2 { x: 0.0_f32, y: 0.0 };
@@ -111,7 +111,7 @@ where
     /// return the z coordinate as a scalar.
     /// The return value will be positive if the point c is 'left' of the vector a->b (ccr)
     ///```
-    /// # use linestring::cgmath_2d::convex_hull;
+    /// # use linestring::linestring_2d::convex_hull;
     /// let a = cgmath::Point2{x:0.0, y:0.0};
     /// let b = cgmath::Point2{x:0.0, y:10.0};
     /// let c = cgmath::Point2{x:-10.0, y:5.0};
@@ -128,8 +128,8 @@ where
     /// finds the convex hull using Gift wrapping algorithm
     /// <https://en.wikipedia.org/wiki/Gift_wrapping_algorithm>
     ///```
-    /// # use linestring::cgmath_2d;
-    /// # use linestring::cgmath_2d::convex_hull;
+    /// # use linestring::linestring_2d;
+    /// # use linestring::linestring_2d::convex_hull;
     /// # use rand::{Rng, SeedableRng};
     /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
     /// let mut points = Vec::<cgmath::Point2<f32>>::new();
@@ -138,7 +138,7 @@ where
     ///   points.push(p.into());
     /// }
     ///
-    /// let a = cgmath_2d::LineString2::<f32>::default().with_points(points);
+    /// let a = linestring_2d::LineString2::<f32>::default().with_points(points);
     /// let convex_hull = convex_hull::ConvexHull::gift_wrap(a.points().iter());
     /// let center = cgmath::Point2{x:2000_f32, y:2000.0};
     ///
@@ -151,7 +151,7 @@ where
     ///   }
     /// }
     ///```
-    pub fn gift_wrap<'a, I>(input: I) -> cgmath_2d::LineString2<T>
+    pub fn gift_wrap<'a, I>(input: I) -> linestring_2d::LineString2<T>
     where
         I: IntoIterator<Item = &'a cgmath::Point2<T>>,
         T: 'a,
@@ -163,14 +163,14 @@ where
 
         if input_points.len() <= 3 {
             //println!("shortcut points {:?} connected:{}", linestring.len(), linestring.connected);
-            let rv = cgmath_2d::LineString2::<T>::with_capacity(input_points.len())
+            let rv = linestring_2d::LineString2::<T>::with_capacity(input_points.len())
                 .with_connected(true)
                 .with_points(input_points);
             return rv;
         }
         let (starting_point, _) = Self::find_lowest_x(&input_points);
         let mut rv =
-            cgmath_2d::LineString2::<T>::with_capacity(input_points.len()).with_connected(true);
+            linestring_2d::LineString2::<T>::with_capacity(input_points.len()).with_connected(true);
 
         let mut already_on_hull = yabf::Yabf::with_capacity(input_points.len());
         let mut point_on_hull = starting_point;
@@ -215,8 +215,8 @@ where
     /// <https://en.wikipedia.org/wiki/Graham_scan>
     /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull
     ///```
-    /// # use linestring::cgmath_2d;
-    /// # use linestring::cgmath_2d::convex_hull;
+    /// # use linestring::linestring_2d;
+    /// # use linestring::linestring_2d::convex_hull;
     /// # use rand::{Rng, SeedableRng};
     /// let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
     /// let mut points = Vec::<cgmath::Point2<f32>>::new();
@@ -225,7 +225,7 @@ where
     ///   points.push(p.into());
     /// }
     ///
-    /// let a = cgmath_2d::LineString2::<f32>::default().with_points(points);
+    /// let a = linestring_2d::LineString2::<f32>::default().with_points(points);
     /// let convex_hull = convex_hull::ConvexHull::graham_scan(a.points().iter());
     /// let center = cgmath::Point2{x:2000_f32, y:2000.0};
     ///
@@ -238,7 +238,7 @@ where
     ///   }
     /// }
     ///```
-    pub fn graham_scan<'a, I>(input: I) -> cgmath_2d::LineString2<T>
+    pub fn graham_scan<'a, I>(input: I) -> linestring_2d::LineString2<T>
     where
         I: IntoIterator<Item = &'a cgmath::Point2<T>>,
         T: 'a + Sync,
@@ -250,7 +250,7 @@ where
 
         if input_points.len() <= 3 {
             //println!("shortcut points {:?} connected:{}", linestring.len(), linestring.connected);
-            let rv = cgmath_2d::LineString2::<T>::with_capacity(input_points.len())
+            let rv = linestring_2d::LineString2::<T>::with_capacity(input_points.len())
                 .with_connected(true)
                 .with_points(input_points);
             return rv;
@@ -280,7 +280,7 @@ where
         input_points.sort_unstable_by(comparator);
 
         let mut rv =
-            cgmath_2d::LineString2::<T>::with_capacity(input_points.len()).with_connected(true);
+            linestring_2d::LineString2::<T>::with_capacity(input_points.len()).with_connected(true);
         rv.points.push(starting_point);
 
         for p in input_points.iter() {
@@ -304,8 +304,8 @@ where
 
     /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull (inclusive)
     ///```
-    /// # use linestring::cgmath_2d;
-    /// # use linestring::cgmath_2d::convex_hull;
+    /// # use linestring::linestring_2d;
+    /// # use linestring::linestring_2d::convex_hull;
     /// # use rand::{Rng, SeedableRng};
     /// # use cgmath::AbsDiffEq;
     /// # use cgmath::UlpsEq;
@@ -317,7 +317,7 @@ where
     ///    points.push(p.into());
     /// }
     ///
-    /// let a = cgmath_2d::LineString2::<f32>::default().with_points(points);
+    /// let a = linestring_2d::LineString2::<f32>::default().with_points(points);
     /// let a = convex_hull::ConvexHull::graham_scan(a.points().iter());
     ///
     /// let mut points = Vec::<cgmath::Point2<f32>>::new();
@@ -326,7 +326,7 @@ where
     ///    points.push(p.into());
     /// }
     ///
-    /// let b = cgmath_2d::LineString2::<f32>::default().with_points(points);
+    /// let b = linestring_2d::LineString2::<f32>::default().with_points(points);
     /// let b = convex_hull::ConvexHull::graham_scan(b.points().iter());
     ///
     /// assert!(convex_hull::ConvexHull::contains(&a, &b, f32::default_epsilon(), f32::default_max_ulps()));
@@ -334,8 +334,8 @@ where
     ///```
     #[cfg(not(feature = "rayon"))]
     pub fn contains(
-        a: &cgmath_2d::LineString2<T>,
-        b: &cgmath_2d::LineString2<T>,
+        a: &linestring_2d::LineString2<T>,
+        b: &linestring_2d::LineString2<T>,
         epsilon: T::Epsilon,
         max_ulps: u32,
     ) -> bool {
@@ -367,8 +367,8 @@ where
 
     /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull (inclusive)
     ///```
-    /// # use linestring::cgmath_2d;
-    /// # use linestring::cgmath_2d::convex_hull;
+    /// # use linestring::linestring_2d;
+    /// # use linestring::linestring_2d::convex_hull;
     /// # use rand::{Rng, SeedableRng};
     /// # use cgmath::AbsDiffEq;
     /// # use cgmath::UlpsEq;
@@ -380,7 +380,7 @@ where
     ///    points.push(p.into());
     /// }
     ///
-    /// let a = cgmath_2d::LineString2::<f32>::default().with_points(points);
+    /// let a = linestring_2d::LineString2::<f32>::default().with_points(points);
     /// let a = convex_hull::ConvexHull::graham_scan(a.points().iter());
     ///
     /// let mut points = Vec::<cgmath::Point2<f32>>::new();
@@ -389,7 +389,7 @@ where
     ///    points.push(p.into());
     /// }
     ///
-    /// let b = cgmath_2d::LineString2::<f32>::default().with_points(points);
+    /// let b = linestring_2d::LineString2::<f32>::default().with_points(points);
     /// let b = convex_hull::ConvexHull::graham_scan(b.points().iter());
     ///
     /// assert!(convex_hull::ConvexHull::contains(&a, &b, f32::default_epsilon(), f32::default_max_ulps()));
@@ -397,8 +397,8 @@ where
     ///```
     #[cfg(feature = "rayon")]
     pub fn contains(
-        a: &cgmath_2d::LineString2<T>,
-        b: &cgmath_2d::LineString2<T>,
+        a: &linestring_2d::LineString2<T>,
+        b: &linestring_2d::LineString2<T>,
         epsilon: T::Epsilon,
         max_ulps: u32,
     ) -> bool {
@@ -429,10 +429,10 @@ where
 
     /// Returns true if the 'a' convex hull contains the 'b' point (exclusive)
     ///```
-    /// # use linestring::cgmath_2d;
-    /// # use linestring::cgmath_2d::convex_hull;
+    /// # use linestring::linestring_2d;
+    /// # use linestring::linestring_2d::convex_hull;
     ///
-    /// let mut hull = cgmath_2d::LineString2::with_capacity(4).with_connected(true);
+    /// let mut hull = linestring_2d::LineString2::with_capacity(4).with_connected(true);
     /// hull.push([0.0,0.0].into());
     /// hull.push([10.0,0.0].into());
     /// hull.push([10.0,10.0].into());
@@ -447,7 +447,7 @@ where
     ///
     ///```
     #[cfg(feature = "rayon")]
-    pub fn contains_point_exclusive(a: &cgmath_2d::LineString2<T>, p: &cgmath::Point2<T>) -> bool {
+    pub fn contains_point_exclusive(a: &linestring_2d::LineString2<T>, p: &cgmath::Point2<T>) -> bool {
         if a.len() <= 1 {
             return false;
         }
@@ -464,10 +464,10 @@ where
 
     /// Returns true if the 'a' convex hull contains the 'b' point (inclusive)
     ///```
-    /// # use linestring::cgmath_2d;
-    /// # use linestring::cgmath_2d::convex_hull;
+    /// # use linestring::linestring_2d;
+    /// # use linestring::linestring_2d::convex_hull;
     ///
-    /// let mut hull = cgmath_2d::LineString2::with_capacity(4).with_connected(true);
+    /// let mut hull = linestring_2d::LineString2::with_capacity(4).with_connected(true);
     /// hull.push([0.0,0.0].into());
     /// hull.push([10.0,0.0].into());
     /// hull.push([10.0,10.0].into());
@@ -482,7 +482,7 @@ where
     /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[10.0,5.0].into()));
     ///```
     #[cfg(feature = "rayon")]
-    pub fn contains_point_inclusive(a: &cgmath_2d::LineString2<T>, p: &cgmath::Point2<T>) -> bool {
+    pub fn contains_point_inclusive(a: &linestring_2d::LineString2<T>, p: &cgmath::Point2<T>) -> bool {
         if a.len() <= 1 {
             return false;
         }

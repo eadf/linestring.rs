@@ -104,5 +104,5 @@ pub enum LinestringError {
     IoError(#[from] std::io::Error),
 }
 
-pub mod cgmath_2d;
-pub mod cgmath_3d;
+pub mod linestring_2d;
+pub mod linestring_3d;

@@ -47,7 +47,7 @@ use fltk::app::MouseWheel;
 use fltk::valuator::HorNiceSlider;
 use fltk::{app, draw::*, frame::*, window::*};
 use fltk::{enums::*, prelude::*};
-use linestring::cgmath_2d::{Aabb2, LineString2, SimpleAffine};
+use linestring::linestring_2d::{Aabb2, LineString2, SimpleAffine};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -223,7 +223,7 @@ fn main() {
                     }
                     /*
                     set_draw_color(Color::Green);
-                    let hull = linestring::cgmath_2d::convex_hull::ConvexHull::<f32>::graham_scan(
+                    let hull = linestring::linestring_2d::convex_hull::ConvexHull::<f32>::graham_scan(
                         &simplified_line,
                     );
                     for a_line in hull.as_lines_iter() {
@@ -268,7 +268,7 @@ fn main() {
                     }
                     /*
                     set_draw_color(Color::Green);
-                    let hull = linestring::cgmath_2d::convex_hull::ConvexHull::<f32>::graham_scan(
+                    let hull = linestring::linestring_2d::convex_hull::ConvexHull::<f32>::graham_scan(
                         &simplified_line,
                     );
                     for a_line in hull.as_lines_iter() {
@@ -277,7 +277,7 @@ fn main() {
                             false,
                         );
                     }*/
-                    //let _ = linestring::cgmath_2d::convex_hull::GrahamScan::<f32>::scan(
+                    //let _ = linestring::linestring_2d::convex_hull::GrahamScan::<f32>::scan(
                     //   &simplified_line);
                 }
             }

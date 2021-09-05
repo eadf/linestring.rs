@@ -43,7 +43,7 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
  */
 
-use crate::{cgmath_2d, LinestringError};
+use crate::{linestring_2d, LinestringError};
 use ahash::AHashSet;
 use cgmath::ulps_eq;
 use core::fmt;
@@ -118,7 +118,7 @@ where
 {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
-        cgmath_2d::point_ulps_eq(&self.pos, &other.pos)
+        linestring_2d::point_ulps_eq(&self.pos, &other.pos)
     }
 }
 
@@ -241,7 +241,7 @@ where
     }
 
     /// sort candidates based on slope, keep only the ones with 'flattest' angle to the left and right
-    fn update_both(&mut self, candidate_index: usize, lines: &[cgmath_2d::Line2<T>]) {
+    fn update_both(&mut self, candidate_index: usize, lines: &[linestring_2d::Line2<T>]) {
         let line = lines[candidate_index];
         let candidate_slope = if ulps_eq!(&line.end.y, &line.start.y) {
             T::infinity()
@@ -398,7 +398,7 @@ where
 /// Second return value is the slope of the line
 fn sweepline_intersection<T>(
     sweepline: cgmath::Point2<T>,
-    other: &cgmath_2d::Line2<T>,
+    other: &linestring_2d::Line2<T>,
 ) -> Option<(T, T)>
 where
     T: cgmath::BaseFloat + Sync,
@@ -456,7 +456,7 @@ where
     connected_priority: Option<MinMaxSlope<T>>,
     // The input geometry. These lines are re-arranged so that Line.start.y <= Line.end.y
     // These are never changed while the algorithm is running.
-    lines: Vec<cgmath_2d::Line2<T>>,
+    lines: Vec<linestring_2d::Line2<T>>,
 }
 
 impl<T> Default for IntersectionData<T>
@@ -472,7 +472,7 @@ where
             stop_at_first_intersection: false,
             ignore_end_point_intersections: false,
             site_events: Some(BTreeMap::new()),
-            lines: Vec::<cgmath_2d::Line2<T>>::new(),
+            lines: Vec::<linestring_2d::Line2<T>>::new(),
             result: Some(BTreeMap::new()),
             active_lines: Some(AHashSet::default()),
             neighbour_priority: Some(MinMax::new()),
@@ -489,7 +489,7 @@ where
         &self.sweepline_pos
     }
 
-    pub fn get_lines(&self) -> &Vec<cgmath_2d::Line2<T>> {
+    pub fn get_lines(&self) -> &Vec<linestring_2d::Line2<T>> {
         &self.lines
     }
 
@@ -549,7 +549,7 @@ where
     /// Todo: this duplicates functionality of 'with_ref_lines()', try to consolidate..
     pub fn with_lines<I>(&mut self, input_iter: I) -> Result<&mut Self, LinestringError>
     where
-        I: Iterator<Item = cgmath_2d::Line2<T>>,
+        I: Iterator<Item = linestring_2d::Line2<T>>,
     {
         let mut site_events = self.site_events.take().ok_or_else(|| {
             LinestringError::InternalError("with_lines() could not take 'site_events'".to_string())
@@ -611,7 +611,7 @@ where
     pub fn with_ref_lines<'a, I>(&mut self, input_iter: I) -> Result<&mut Self, LinestringError>
     where
         T: 'a,
-        I: Iterator<Item = &'a cgmath_2d::Line2<T>>,
+        I: Iterator<Item = &'a linestring_2d::Line2<T>>,
     {
         let mut site_events = self.site_events.take().ok_or_else(|| {
             LinestringError::InternalError(
@@ -634,12 +634,12 @@ where
             // SiteEvent.pos.start < SiteEvent.pos.end (primary ordering: pos.y, secondary: pos.x)
             let aline =
                 if (SiteEventKey { pos: aline.start }).lt(&(SiteEventKey { pos: aline.end })) {
-                    cgmath_2d::Line2 {
+                    linestring_2d::Line2 {
                         start: aline.start,
                         end: aline.end,
                     }
                 } else {
-                    cgmath_2d::Line2 {
+                    linestring_2d::Line2 {
                         start: aline.end,
                         end: aline.start,
                     }
@@ -693,8 +693,8 @@ where
                 // only add this line as an intersection if the intersection lies
                 // at the interior of the line (no end point)
                 let i_line = self.lines[*new_intersection];
-                if cgmath_2d::point_ulps_eq(&position.pos, &i_line.start)
-                    || cgmath_2d::point_ulps_eq(&position.pos, &i_line.end)
+                if linestring_2d::point_ulps_eq(&position.pos, &i_line.start)
+                    || linestring_2d::point_ulps_eq(&position.pos, &i_line.end)
                 {
                     continue;
                 }
@@ -1028,7 +1028,7 @@ where
             for right_i in right.iter() {
                 let left_l = &self.lines[*left_i];
                 let right_l = &self.lines[*right_i];
-                if cgmath_2d::point_ulps_eq(&left_l.end, &right_l.end) {
+                if linestring_2d::point_ulps_eq(&left_l.end, &right_l.end) {
                     // if endpoints are equal they will already be in the event queue
                     continue;
                 }
@@ -1047,7 +1047,7 @@ where
                     if intersection_p.y >= self.sweepline_pos.y
                         && !(intersection_p.y == self.sweepline_pos.y
                             && intersection_p.x < self.sweepline_pos.x)
-                        && !cgmath_2d::point_ulps_eq(&intersection_p, &self.sweepline_pos)
+                        && !linestring_2d::point_ulps_eq(&intersection_p, &self.sweepline_pos)
                     {
                         #[cfg(feature = "console_trace")]
                         println!(

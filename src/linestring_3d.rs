@@ -43,7 +43,7 @@ License instead of this License. But first, please read <https://www.gnu.org/
 licenses /why-not-lgpl.html>.
 */
 
-use super::cgmath_2d;
+use super::linestring_2d;
 use crate::LinestringError;
 use cgmath::ulps_eq;
 use cgmath::Transform;
@@ -63,7 +63,7 @@ where
 {
     Line(Line3<T>),
     Linestring(LineString3<T>),
-    ParabolicArc(crate::cgmath_2d::VoronoiParabolicArc<T>),
+    ParabolicArc(crate::linestring_2d::VoronoiParabolicArc<T>),
 }
 
 /// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
@@ -380,8 +380,8 @@ where
     /// Copy this linestring3 into a linestring2, keeping the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_2d(&self, plane: Plane) -> cgmath_2d::LineString2<T> {
-        let mut rv: cgmath_2d::LineString2<T> = match plane {
+    pub fn copy_to_2d(&self, plane: Plane) -> linestring_2d::LineString2<T> {
+        let mut rv: linestring_2d::LineString2<T> = match plane {
             Plane::XY => self
                 .points
                 .iter()
@@ -792,8 +792,8 @@ where
     /// Copy this linestringset3 into a linestringset2, populating the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_2d(&self, plane: Plane) -> cgmath_2d::LineStringSet2<T> {
-        let mut rv = cgmath_2d::LineStringSet2::with_capacity(self.set.len());
+    pub fn copy_to_2d(&self, plane: Plane) -> linestring_2d::LineStringSet2<T> {
+        let mut rv = linestring_2d::LineStringSet2::with_capacity(self.set.len());
         for ls in self.set.iter() {
             rv.push(ls.copy_to_2d(plane));
         }
