@@ -21,7 +21,7 @@ There are 2D implementations of:
 * LineString2 convex hull calculation (gift wrapping & Graham scan)
 * Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box).
 * Self intersection tests for line strings, or groups of lines O( n log n + i log n).
-* Convex hull containment test (single threaded or multi-threaded with [ryon](https://crates.io/crates/rayon))
+* Convex hull containment test
 * Simple affine transformation (pan, zoom)
 
 If you want to use this library in your cgmath project you add this to your Cargo.toml:
