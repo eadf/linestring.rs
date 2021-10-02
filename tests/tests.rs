@@ -243,6 +243,14 @@ fn intersection_10() {
 }
 
 #[test]
+fn intersection_11() {
+    let l1 = linestring_2d::Line2::from([4.0, -9.0, -10.0, 2.0]);
+    let l2 = linestring_2d::Line2::from([-3.0, -3.0, -3.0, 3.0]);
+    assert!(l1.intersection_point(&l2).is_none());
+    assert!(l2.intersection_point(&l1).is_none());
+}
+
+#[test]
 fn simplify_1() {
     let linestring: linestring_2d::LineString2<f32> =
         vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]

@@ -7,7 +7,7 @@
 
 # 2d and 3d polylines for cgmath
 
-This crate contains data structures and methods that deals with lines in 2D and 3D space.
+This 💩 crate contains data structures and methods that deals with line segments in 2D and 3D space.
 
 There are 3D and 2D implementations of:
 * LineString, a sequence of points, aka Polyline.
