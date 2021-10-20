@@ -2,12 +2,12 @@
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)
-[![dependency status](https://deps.rs/crate/linestring/0.7.0/status.svg)](https://deps.rs/crate/linestring/0.7.0)
+[![dependency status](https://deps.rs/crate/linestring/0.7.1/status.svg)](https://deps.rs/crate/linestring/0.7.1)
 ![license](https://img.shields.io/crates/l/linestring)
 
-# 2d and 3d polylines for cgmath
+# Lackadaisical 2d and 3d polylines for cgmath
 
-This 💩 crate contains data structures and methods that deals with line segments in 2D and 3D space.
+Data structures and methods for polylines/segments in 2D and 3D space.
 
 There are 3D and 2D implementations of:
 * LineString, a sequence of points, aka Polyline.
