@@ -78,6 +78,7 @@ licenses /why-not-lgpl.html>.
 //!
 //! The library is implemented for a couple of independent 2d/3d packages:nalgebra,cgmath,vecmath,mint and plain vectors.
 //! Those implementations are feature gated so you only need to import the package you really use.
+use std::fmt::Debug;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -106,3 +107,36 @@ pub enum LinestringError {
 
 pub mod linestring_2d;
 pub mod linestring_3d;
+
+pub(crate) type VobU32 = vob::Vob<u32>;
+
+pub(crate) trait GrowingVob {
+    /// Will create a new Vob and fill it with `false`
+    fn fill(initial_size: usize) -> Self;
+    /// Conditionally grow to fit required size, set ´bit´ to ´state´ value
+    fn set_grow(&mut self, bit: usize, state: bool);
+    /// get() with default value `false`
+    fn get_f(&self, bit: usize) -> bool;
+}
+
+impl<T:num_traits::PrimInt+Debug> GrowingVob for vob::Vob<T> {
+    #[inline]
+    fn fill(initial_size: usize) -> Self {
+        let mut v = Self::new_with_storage_type(0);
+        v.resize(initial_size, false);
+        v
+    }
+
+    #[inline]
+    fn set_grow(&mut self, bit: usize, state: bool) {
+        if bit >= self.len() {
+            self.resize(bit + std::mem::size_of::<T>(), false);
+        }
+        let _ = self.set(bit, state);
+    }
+
+    #[inline]
+    fn get_f(&self, bit: usize) -> bool {
+        self.get(bit).unwrap_or(false)
+    }
+}

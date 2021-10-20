@@ -291,7 +291,7 @@ where
 }
 
 /// A simple 3d AABB
-/// If min_max is none the data has not been assigned yet.
+/// If min_max is none no data has not been assigned yet.
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Aabb3<T>
 where

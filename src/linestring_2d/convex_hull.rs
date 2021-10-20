@@ -1,4 +1,4 @@
-use crate::linestring_2d;
+use crate::{linestring_2d,GrowingVob};
 use cgmath::ulps_eq;
 use rayon::prelude::*;
 use std::cmp::Ordering;
@@ -171,7 +171,7 @@ where
         let mut rv =
             linestring_2d::LineString2::<T>::with_capacity(input_points.len()).with_connected(true);
 
-        let mut already_on_hull = yabf::Yabf::with_capacity(input_points.len());
+        let mut already_on_hull = crate::VobU32::fill(input_points.len());
         let mut point_on_hull = starting_point;
         let mut end_point: usize;
         let mut i = 0_usize;
@@ -182,13 +182,13 @@ where
             rv.points.push(input_points[point_on_hull]);
             if point_on_hull != starting_point {
                 // don't flag starting point or we won't know when to stop
-                already_on_hull.set_bit(point_on_hull, true);
+                let _ = already_on_hull.set(point_on_hull, true);
             }
             end_point = 0;
             for (j, sj) in input_points
                 .iter()
                 .enumerate()
-                .filter(|x| !already_on_hull.bit(x.0))
+                .filter(|x| !already_on_hull.get_f(x.0))
             {
                 if j == end_point {
                     continue;

@@ -1362,7 +1362,7 @@ where
 }
 
 /// A simple 2d AABB
-/// If min_max is none the data has not been assigned yet.
+/// If min_max is none no data has not been assigned yet.
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T>
 where

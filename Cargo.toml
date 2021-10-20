@@ -14,15 +14,15 @@ keywords = ["geometry", "intersection", "douglas-peucker", "visvalingam-whyatt",
 console_trace = []
 
 [dependencies]
-cgmath = { version = "0.18" }
-rayon = { version = "1.5" }
+cgmath = "0.18"
+rayon = "1.5"
 # we always use this approx, despite cgmath exporting it's own version
 approx = "0.5"
 num-traits = "0.2"
 ahash = "0.7"
 thiserror = "1.0"
 itertools = "0.10"
-yabf = "0.2"
+vob="3.0"
 
 [[example]]
 name = "fltk_gui"
