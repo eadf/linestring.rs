@@ -1,7 +1,6 @@
 [![crates.io](https://img.shields.io/crates/v/linestring.svg)](https://crates.io/crates/linestring)
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
-[![Workflow](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Clippy/badge.svg)
 [![dependency status](https://deps.rs/crate/linestring/0.7.1/status.svg)](https://deps.rs/crate/linestring/0.7.1)
 ![license](https://img.shields.io/crates/l/linestring)
 
@@ -26,7 +25,7 @@ There are 2D implementations of:
 
 If you want to use this library in your cgmath project you add this to your Cargo.toml:
 ```cargo
-linestring = {version="0.7"}
+linestring = {version="0.8"}
 ```
 
 ## Rust toolchains
