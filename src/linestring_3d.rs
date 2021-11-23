@@ -730,7 +730,7 @@ where
     }
 }
 
-impl<T, IC: Into<cgmath::Point3<T>>> std::iter::FromIterator<IC> for LineString3<T>
+impl<T, IC: Into<cgmath::Point3<T>>> FromIterator<IC> for LineString3<T>
 where
     T: cgmath::BaseFloat + Sync,
 {

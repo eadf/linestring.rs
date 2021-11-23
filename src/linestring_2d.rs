@@ -60,10 +60,7 @@ pub mod convex_hull;
 pub mod intersection;
 
 /// Placeholder for different 2d shapes
-pub enum Shape2d<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+pub enum Shape2d<T: cgmath::BaseFloat + Sync> {
     Line(Line2<T>),
     Linestring(LineString2<T>),
     ParabolicArc(VoronoiParabolicArc<T>),
@@ -71,18 +68,12 @@ where
 
 /// A 2d line
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
-pub struct Line2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+pub struct Line2<T: cgmath::BaseFloat + Sync> {
     pub start: cgmath::Point2<T>,
     pub end: cgmath::Point2<T>,
 }
 
-impl<T> Line2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> Line2<T> {
     pub fn new(start: cgmath::Point2<T>, end: cgmath::Point2<T>) -> Self {
         Self { start, end }
     }
@@ -274,10 +265,7 @@ where
 
 #[allow(clippy::from_over_into)]
 // Todo is this a subset of "impl<T> From<[T; 4]> for Line2<T>"?
-impl<T> Into<[T; 4]> for Line2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> Into<[T; 4]> for Line2<T> {
     fn into(self) -> [T; 4] {
         [self.start.x, self.start.y, self.end.x, self.end.y]
     }
@@ -295,10 +283,7 @@ where
 }
 
 // [T,T,T,T] -> Line2<T>
-impl<T> From<[T; 4]> for Line2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> From<[T; 4]> for Line2<T> {
     fn from(coordinate: [T; 4]) -> Line2<T> {
         Line2::<T>::new(
             [coordinate[0], coordinate[1]].into(),
@@ -317,10 +302,7 @@ where
 /// 'end_point'<->cell_point must be the same distance as 'start_point'<->segment &
 /// 'end_point'<->segment
 #[derive(Clone, Hash, fmt::Debug)]
-pub struct VoronoiParabolicArc<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+pub struct VoronoiParabolicArc<T: cgmath::BaseFloat + Sync> {
     // input geometry of voronoi graph
     pub segment: Line2<T>,
     pub cell_point: cgmath::Point2<T>,
@@ -330,10 +312,7 @@ where
     pub end_point: cgmath::Point2<T>,
 }
 
-impl<T> VoronoiParabolicArc<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> VoronoiParabolicArc<T> {
     pub fn new(
         segment: Line2<T>,
         cell_point: cgmath::Point2<T>,
@@ -1141,7 +1120,7 @@ where
     }
 }
 
-impl<T, IC> std::iter::FromIterator<IC> for LineString2<T>
+impl<T, IC> FromIterator<IC> for LineString2<T>
 where
     T: cgmath::BaseFloat + Sync,
     IC: Into<cgmath::Point2<T>>,
@@ -1185,10 +1164,7 @@ where
     }
 }
 
-impl<T> LineStringSet2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> LineStringSet2<T> {
     /// steal the content of 'other' leaving it empty
     pub fn steal_from(other: &mut LineStringSet2<T>) -> Self {
         //println!("stealing from other.aabb:{:?}", other.aabb);
@@ -1364,10 +1340,7 @@ where
 /// A simple 2d AABB
 /// If min_max is none no data has not been assigned yet.
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
-pub struct Aabb2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+pub struct Aabb2<T: cgmath::BaseFloat + Sync> {
     min_max: Option<(cgmath::Point2<T>, cgmath::Point2<T>)>,
 }
 
@@ -1384,10 +1357,7 @@ where
     }
 }
 
-impl<T> From<[T; 4]> for Aabb2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> From<[T; 4]> for Aabb2<T> {
     fn from(coordinate: [T; 4]) -> Aabb2<T> {
         let mut rv = Aabb2::default();
         rv.update_point(&cgmath::Point2 {
@@ -1402,20 +1372,14 @@ where
     }
 }
 
-impl<T> Default for Aabb2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> Default for Aabb2<T> {
     #[inline]
     fn default() -> Self {
         Self { min_max: None }
     }
 }
 
-impl<T> Aabb2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> Aabb2<T> {
     pub fn new(point: &cgmath::Point2<T>) -> Self {
         Self {
             min_max: Some((*point, *point)),
@@ -1536,13 +1500,10 @@ where
 
 /// Get any intersection point between line segment and point.
 /// Inspired by <https://stackoverflow.com/a/17590923>
-pub fn intersect_line_point<T>(
+pub fn intersect_line_point<T: cgmath::BaseFloat + Sync>(
     line: &Line2<T>,
     point: &cgmath::Point2<T>,
-) -> Option<Intersection<T>>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+) -> Option<Intersection<T>> {
     // take care of end point equality
     if ulps_eq!(&line.start.x, &point.x) && ulps_eq!(&line.start.y, &point.y) {
         return Some(Intersection::Intersection(*point));
@@ -1571,20 +1532,14 @@ where
 }
 
 #[allow(dead_code)]
-pub enum Intersection<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+pub enum Intersection<T: cgmath::BaseFloat + Sync> {
     // Normal one point intersection
     Intersection(cgmath::Point2<T>),
     // Collinear overlapping
     OverLap(Line2<T>),
 }
 
-impl<T> Intersection<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> Intersection<T> {
     /// return a single, simple intersection point
     pub fn single(&self) -> cgmath::Point2<T> {
         match self {
@@ -1594,10 +1549,7 @@ where
     }
 }
 
-impl<T> fmt::Debug for Intersection<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> fmt::Debug for Intersection<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OverLap(a) => a.fmt(f),
@@ -1607,14 +1559,11 @@ where
 }
 
 #[inline(always)]
-pub fn scale_to_coordinate<T>(
+pub fn scale_to_coordinate<T: cgmath::BaseFloat + Sync>(
     point: &cgmath::Point2<T>,
     vector: &cgmath::Vector2<T>,
     scale: T,
-) -> cgmath::Point2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+) -> cgmath::Point2<T> {
     cgmath::Point2 {
         x: point.x + scale * vector.x,
         y: point.y + scale * vector.y,
@@ -1623,10 +1572,7 @@ where
 
 #[inline(always)]
 /// Divides a 'vector' by 'b'. Obviously, don't feed this with 'b' == 0
-fn div<T>(a: &cgmath::Vector2<T>, b: T) -> cgmath::Vector2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+fn div<T: cgmath::BaseFloat + Sync>(a: &cgmath::Vector2<T>, b: T) -> cgmath::Vector2<T> {
     cgmath::Vector2 {
         x: a.x / b,
         y: a.y / b,
