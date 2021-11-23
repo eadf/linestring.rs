@@ -46,8 +46,7 @@ licenses /why-not-lgpl.html>.
 use super::linestring_3d;
 #[allow(unused_imports)]
 use crate::LinestringError;
-use cgmath::ulps_eq;
-use cgmath::Transform;
+use cgmath::{ulps_eq, InnerSpace, MetricSpace, Point2, Point3, Transform, Vector2};
 use itertools::Itertools;
 #[allow(unused_imports)]
 use rayon::prelude::*;
@@ -69,12 +68,12 @@ pub enum Shape2d<T: cgmath::BaseFloat + Sync> {
 /// A 2d line
 #[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Line2<T: cgmath::BaseFloat + Sync> {
-    pub start: cgmath::Point2<T>,
-    pub end: cgmath::Point2<T>,
+    pub start: Point2<T>,
+    pub end: Point2<T>,
 }
 
 impl<T: cgmath::BaseFloat + Sync> Line2<T> {
-    pub fn new(start: cgmath::Point2<T>, end: cgmath::Point2<T>) -> Self {
+    pub fn new(start: Point2<T>, end: Point2<T>) -> Self {
         Self { start, end }
     }
 
@@ -83,10 +82,7 @@ impl<T: cgmath::BaseFloat + Sync> Line2<T> {
     /// Most of this is from <https://stackoverflow.com/a/565282>
     #[allow(clippy::many_single_char_names)]
     #[allow(clippy::suspicious_operation_groupings)]
-    pub fn intersection_point(&self, other: &Self) -> Option<Intersection<T>>
-    where
-        T: cgmath::BaseFloat + Sync,
-    {
+    pub fn intersection_point(self, other: Self) -> Option<Intersection<T>> {
         // AABB tests
         if self.end.x > other.end.x
             && self.end.x > other.start.x
@@ -119,40 +115,40 @@ impl<T: cgmath::BaseFloat + Sync> Line2<T> {
 
         let p = self.start;
         let q = other.start;
-        let r = sub(&self.end, &p);
-        let s = sub(&other.end, &q);
+        let r = self.end - p;
+        let s = other.end - q;
 
-        let r_cross_s = cross_z(&r, &s);
-        let q_minus_p = sub(&q, &p);
-        let q_minus_p_cross_r = cross_z(&q_minus_p, &r);
+        let r_cross_s = cross_z(r, s);
+        let q_minus_p = q - p;
+        let q_minus_p_cross_r = cross_z(q_minus_p, r);
 
         // If r × s = 0 then the two lines are parallel
-        if ulps_eq!(&r_cross_s, &T::zero()) {
+        if ulps_eq!(r_cross_s, T::zero()) {
             // one (or both) of the lines may be a point
-            let self_is_a_point = point_ulps_eq(&self.start, &self.end);
-            let other_is_a_point = point_ulps_eq(&other.start, &other.end);
+            let self_is_a_point = point_ulps_eq(self.start, self.end);
+            let other_is_a_point = point_ulps_eq(other.start, other.end);
             if self_is_a_point || other_is_a_point {
-                if self_is_a_point && other_is_a_point && point_ulps_eq(&self.start, &other.start) {
+                if self_is_a_point && other_is_a_point && point_ulps_eq(self.start, other.start) {
                     return Some(Intersection::Intersection(self.start));
                 }
                 return if self_is_a_point {
-                    intersect_line_point(other, &self.start)
+                    intersect_line_point(other, self.start)
                 } else {
-                    intersect_line_point(self, &other.start)
+                    intersect_line_point(self, other.start)
                 };
             }
 
             // If r × s = 0 and (q − p) × r = 0, then the two lines are collinear.
             if ulps_eq!(&q_minus_p_cross_r, &T::zero()) {
-                let r_dot_r = dot(&r, &r);
-                let r_div_r_dot_r = div(&r, r_dot_r);
-                let s_dot_r = dot(&s, &r);
-                let t0 = dot(&q_minus_p, &r_div_r_dot_r);
+                let r_dot_r = r.dot(r);
+                let r_div_r_dot_r = r / r_dot_r;
+                let s_dot_r = s.dot(r);
+                let t0 = q_minus_p.dot(r_div_r_dot_r);
                 let t1 = t0 + s_dot_r / r_dot_r;
 
                 Some(Intersection::OverLap(Line2::new(
-                    scale_to_coordinate(&p, &r, t0),
-                    scale_to_coordinate(&p, &r, t1),
+                    scale_to_coordinate(p, r, t0),
+                    scale_to_coordinate(p, r, t1),
                 )))
             } else {
                 // If r × s = 0 and (q − p) × r ≠ 0,
@@ -161,13 +157,13 @@ impl<T: cgmath::BaseFloat + Sync> Line2<T> {
             }
         } else {
             // the lines are not parallel
-            let t = cross_z(&q_minus_p, &div(&s, r_cross_s));
-            let u = cross_z(&q_minus_p, &div(&r, r_cross_s));
+            let t = cross_z(q_minus_p, s / r_cross_s);
+            let u = cross_z(q_minus_p, r / r_cross_s);
 
             // If r × s ≠ 0 and 0 ≤ t ≤ 1 and 0 ≤ u ≤ 1,
             // the two line segments meet at the point p + t r = q + u s.
             if T::zero() <= t && t <= T::one() && T::zero() <= u && u <= T::one() {
-                Some(Intersection::Intersection(scale_to_coordinate(&p, &r, t)))
+                Some(Intersection::Intersection(scale_to_coordinate(p, r, t)))
             } else {
                 None
             }
@@ -178,15 +174,15 @@ impl<T: cgmath::BaseFloat + Sync> Line2<T> {
     /// This function will *not* report the middle-point as an intersection.
     /// Todo: how to handle start==middle||middle==end
     pub fn intersection_point3(
-        start: &cgmath::Point2<T>,
-        middle: &cgmath::Point2<T>,
-        end: &cgmath::Point2<T>,
+        start: Point2<T>,
+        middle: Point2<T>,
+        end: Point2<T>,
     ) -> Result<Option<Intersection<T>>, LinestringError> {
-        let middle_sub_start = cgmath::Vector2 {
+        let middle_sub_start = Vector2 {
             x: middle.x - start.x,
             y: middle.y - start.x,
         };
-        let middle_sub_end = cgmath::Vector2 {
+        let middle_sub_end = Vector2 {
             x: middle.x - end.x,
             y: middle.y - end.y,
         };
@@ -204,15 +200,9 @@ impl<T: cgmath::BaseFloat + Sync> Line2<T> {
                     + middle_sub_start.y * middle_sub_start.y)
                     < (middle_sub_end.x * middle_sub_end.x + middle_sub_end.y * middle_sub_end.y)
                 {
-                    return Ok(Some(Intersection::OverLap(Line2 {
-                        start: *start,
-                        end: *middle,
-                    })));
+                    return Ok(Some(Intersection::OverLap(Line2 { start, end: middle })));
                 } else {
-                    return Ok(Some(Intersection::OverLap(Line2 {
-                        start: *middle,
-                        end: *end,
-                    })));
+                    return Ok(Some(Intersection::OverLap(Line2 { start: middle, end })));
                 }
             }
         } else if start_is_vertical || end_is_vertical {
@@ -231,25 +221,15 @@ impl<T: cgmath::BaseFloat + Sync> Line2<T> {
         if (middle_sub_start.x * middle_sub_start.x + middle_sub_start.y * middle_sub_start.y)
             < (middle_sub_end.x * middle_sub_end.x + middle_sub_end.y * middle_sub_end.y)
         {
-            Ok(Some(Intersection::OverLap(Line2 {
-                start: *start,
-                end: *middle,
-            })))
+            Ok(Some(Intersection::OverLap(Line2 { start, end: middle })))
         } else {
-            Ok(Some(Intersection::OverLap(Line2 {
-                start: *middle,
-                end: *end,
-            })))
+            Ok(Some(Intersection::OverLap(Line2 { start: middle, end })))
         }
     }
 
     /// returns (area of a triangle)²*4
     /// <https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm#Algorithm>
-    pub fn triangle_area_squared_times_4(
-        p1: &cgmath::Point2<T>,
-        p2: &cgmath::Point2<T>,
-        p3: &cgmath::Point2<T>,
-    ) -> T {
+    pub fn triangle_area_squared_times_4(p1: Point2<T>, p2: Point2<T>, p3: Point2<T>) -> T {
         let area =
             p1.x * p2.y + p2.x * p3.y + p3.x * p1.y - p1.x * p3.y - p2.x * p1.y - p3.x * p2.y;
         area * area
@@ -259,7 +239,7 @@ impl<T: cgmath::BaseFloat + Sync> Line2<T> {
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_3d(&self, plane: linestring_3d::Plane) -> linestring_3d::Line3<T> {
-        linestring_3d::Line3::new(plane.point_to_3d(&self.start), plane.point_to_3d(&self.end))
+        linestring_3d::Line3::new(plane.point_to_3d(self.start), plane.point_to_3d(self.end))
     }
 }
 
@@ -275,7 +255,7 @@ impl<T: cgmath::BaseFloat + Sync> Into<[T; 4]> for Line2<T> {
 impl<T, IT> From<[IT; 2]> for Line2<T>
 where
     T: cgmath::BaseFloat + Sync,
-    IT: Copy + Into<cgmath::Point2<T>>,
+    IT: Copy + Into<Point2<T>>,
 {
     fn from(coordinate: [IT; 2]) -> Line2<T> {
         Line2::<T>::new(coordinate[0].into(), coordinate[1].into())
@@ -305,19 +285,19 @@ impl<T: cgmath::BaseFloat + Sync> From<[T; 4]> for Line2<T> {
 pub struct VoronoiParabolicArc<T: cgmath::BaseFloat + Sync> {
     // input geometry of voronoi graph
     pub segment: Line2<T>,
-    pub cell_point: cgmath::Point2<T>,
+    pub cell_point: Point2<T>,
 
     // vertex points in voronoi diagram. Aka edge start and end points. (Also called circle events)
-    pub start_point: cgmath::Point2<T>,
-    pub end_point: cgmath::Point2<T>,
+    pub start_point: Point2<T>,
+    pub end_point: Point2<T>,
 }
 
 impl<T: cgmath::BaseFloat + Sync> VoronoiParabolicArc<T> {
     pub fn new(
         segment: Line2<T>,
-        cell_point: cgmath::Point2<T>,
-        start_point: cgmath::Point2<T>,
-        end_point: cgmath::Point2<T>,
+        cell_point: Point2<T>,
+        start_point: Point2<T>,
+        end_point: Point2<T>,
     ) -> Self {
         Self {
             segment,
@@ -344,9 +324,9 @@ impl<T: cgmath::BaseFloat + Sync> VoronoiParabolicArc<T> {
         // Compute x-coordinates of the endpoints of the edge
         // in the transformed space.
         let projection_start =
-            sqr_segment_length * Self::get_point_projection(&self.start_point, &self.segment);
+            sqr_segment_length * Self::point_projection(self.start_point, self.segment);
         let projection_end =
-            sqr_segment_length * Self::get_point_projection(&self.end_point, &self.segment);
+            sqr_segment_length * Self::point_projection(self.end_point, self.segment);
 
         // Compute parabola parameters in the transformed space.
         // Parabola has next representation:
@@ -387,7 +367,7 @@ impl<T: cgmath::BaseFloat + Sync> VoronoiParabolicArc<T> {
                     + self.segment.start.x;
                 let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
                     + self.segment.start.y;
-                let p = cgmath::Point2 {
+                let p = Point2 {
                     x: inter_x,
                     y: inter_y,
                 };
@@ -408,15 +388,12 @@ impl<T: cgmath::BaseFloat + Sync> VoronoiParabolicArc<T> {
     /// Convert this parable abstraction into a single straight line
     pub fn discretise_3d_straight_line(&self) -> linestring_3d::LineString3<T> {
         let mut rv = linestring_3d::LineString3::default().with_connected(false);
-        let distance = -distance_to_line_squared_safe(
-            &self.segment.start,
-            &self.segment.end,
-            &self.start_point,
-        )
-        .sqrt();
+        let distance =
+            -distance_to_line_squared_safe(self.segment.start, self.segment.end, self.start_point)
+                .sqrt();
         rv.points
             .push([self.start_point.x, self.start_point.y, distance].into());
-        let distance = -distance_to_point_squared(&self.end_point, &self.cell_point).sqrt();
+        let distance = -self.end_point.distance(self.cell_point);
         rv.points
             .push([self.end_point.x, self.end_point.y, distance].into());
         rv
@@ -430,11 +407,11 @@ impl<T: cgmath::BaseFloat + Sync> VoronoiParabolicArc<T> {
     /// <https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm>
     pub fn discretise_3d(&self, max_dist: T) -> linestring_3d::LineString3<T> {
         let mut rv = linestring_3d::LineString3::default().with_connected(false);
-        let z_comp = -distance_to_point_squared(&self.start_point, &self.cell_point).sqrt();
+        let z_comp = -self.start_point.distance(self.cell_point);
         rv.points
             .push([self.start_point.x, self.start_point.y, z_comp].into());
 
-        let z_comp = -distance_to_point_squared(&self.end_point, &self.cell_point).sqrt();
+        let z_comp = -self.end_point.distance(self.cell_point);
         // todo, don't insert end_point and then pop it again a few lines later..
         rv.points
             .push([self.end_point.x, self.end_point.y, z_comp].into());
@@ -449,9 +426,9 @@ impl<T: cgmath::BaseFloat + Sync> VoronoiParabolicArc<T> {
         // Compute x-coordinates of the endpoints of the edge
         // in the transformed space.
         let projection_start =
-            sqr_segment_length * Self::get_point_projection_3d(&rv.points[0], &self.segment);
+            sqr_segment_length * Self::point_projection_3d(&rv.points[0], &self.segment);
         let projection_end =
-            sqr_segment_length * Self::get_point_projection_3d(&rv.points[1], &self.segment);
+            sqr_segment_length * Self::point_projection_3d(&rv.points[1], &self.segment);
 
         // Compute parabola parameters in the transformed space.
         // Parabola has next representation:
@@ -496,19 +473,8 @@ impl<T: cgmath::BaseFloat + Sync> VoronoiParabolicArc<T> {
                     + self.segment.start.x;
                 let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
                     + self.segment.start.y;
-                let z_comp = -distance_to_point_squared(
-                    &cgmath::Point2 {
-                        x: inter_x,
-                        y: inter_y,
-                    },
-                    &self.cell_point,
-                )
-                .sqrt();
-                rv.points.push(cgmath::Point3 {
-                    x: inter_x,
-                    y: inter_y,
-                    z: z_comp,
-                });
+                let z_comp = -Point2::new(inter_x, inter_y).distance(self.cell_point);
+                rv.points.push(Point3::new(inter_x, inter_y, z_comp));
                 cur_x = new_x;
                 cur_y = new_y;
             } else {
@@ -537,7 +503,7 @@ impl<T: cgmath::BaseFloat + Sync> VoronoiParabolicArc<T> {
     /// transformed one and vice versa. The assumption is made that projection of
     /// the point lies between the start-point and endpoint of the segment.
     #[inline(always)]
-    fn get_point_projection(point: &cgmath::Point2<T>, segment: &Line2<T>) -> T {
+    fn point_projection(point: Point2<T>, segment: Line2<T>) -> T {
         let segment_vec_x = segment.end.x - segment.start.x;
         let segment_vec_y = segment.end.y - segment.start.y;
         let point_vec_x = point.x - segment.start.x;
@@ -548,7 +514,7 @@ impl<T: cgmath::BaseFloat + Sync> VoronoiParabolicArc<T> {
     }
 
     // exactly the same as get_point_projection but with a Point3 (Z component will be ignored)
-    fn get_point_projection_3d(point: &cgmath::Point3<T>, segment: &Line2<T>) -> T {
+    fn point_projection_3d(point: &Point3<T>, segment: &Line2<T>) -> T {
         let segment_vec_x = segment.end.x - segment.start.x;
         let segment_vec_y = segment.end.y - segment.start.y;
         let point_vec_x = point.x - segment.start.x;
@@ -568,7 +534,7 @@ pub struct LineString2<T>
 where
     T: cgmath::BaseFloat + Sync,
 {
-    pub(crate) points: Vec<cgmath::Point2<T>>,
+    pub(crate) points: Vec<Point2<T>>,
 
     /// if connected is set the as_lines() method will add an extra line connecting
     /// the first and last point
@@ -582,7 +548,7 @@ where
     #[inline]
     fn default() -> Self {
         Self {
-            points: Vec::<cgmath::Point2<T>>::new(),
+            points: Vec::<Point2<T>>::new(),
             connected: false,
         }
     }
@@ -629,12 +595,12 @@ where
 {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            points: Vec::<cgmath::Point2<T>>::with_capacity(capacity),
+            points: Vec::<Point2<T>>::with_capacity(capacity),
             connected: false,
         }
     }
 
-    pub fn with_points(mut self, points: Vec<cgmath::Point2<T>>) -> Self {
+    pub fn with_points(mut self, points: Vec<Point2<T>>) -> Self {
         self.points = points;
         self
     }
@@ -649,7 +615,7 @@ where
     pub fn with_iter<'a, I>(iter: I) -> Self
     where
         T: 'a,
-        I: Iterator<Item = &'a cgmath::Point2<T>>,
+        I: Iterator<Item = &'a Point2<T>>,
     {
         Self {
             points: iter.into_iter().copied().collect(),
@@ -683,15 +649,13 @@ where
                         continue;
                     } else if l0.0 + 1 == l1.0 {
                         // consecutive line: l0.0.start <-> l0.0.end_point <-> l2.0.end_point
-                        if Line2::intersection_point3(&l0.1.start, &l0.1.end, &l1.1.end)?.is_some()
-                        {
+                        if Line2::intersection_point3(l0.1.start, l0.1.end, l1.1.end)?.is_some() {
                             return Ok(true);
                         }
-                    } else if let Some(point) = l0.1.intersection_point(&l1.1) {
+                    } else if let Some(point) = l0.1.intersection_point(l1.1) {
                         let point = point.single();
-                        if (point_ulps_eq(&point, &l0.1.start) || point_ulps_eq(&point, &l0.1.end))
-                            && (point_ulps_eq(&point, &l1.1.start)
-                                || point_ulps_eq(&point, &l1.1.end))
+                        if (point_ulps_eq(point, l0.1.start) || point_ulps_eq(point, l0.1.end))
+                            && (point_ulps_eq(point, l1.1.start) || point_ulps_eq(point, l1.1.end))
                         {
                             continue;
                         } else {
@@ -722,7 +686,7 @@ where
         }
     }
 
-    pub fn points(&self) -> &Vec<cgmath::Point2<T>> {
+    pub fn points(&self) -> &Vec<Point2<T>> {
         &self.points
     }
 
@@ -786,36 +750,24 @@ where
             linestring_3d::Plane::XY => self
                 .points
                 .iter()
-                .map(|p2d| cgmath::Point3 {
-                    x: p2d.x,
-                    y: p2d.y,
-                    z: T::zero(),
-                })
+                .map(|p2d| Point3::new(p2d.x, p2d.y, T::zero()))
                 .collect(),
             linestring_3d::Plane::XZ => self
                 .points
                 .iter()
-                .map(|p2d| cgmath::Point3 {
-                    x: p2d.x,
-                    y: T::zero(),
-                    z: p2d.y,
-                })
+                .map(|p2d| Point3::new(p2d.x, T::zero(), p2d.y))
                 .collect(),
             linestring_3d::Plane::YZ => self
                 .points
                 .iter()
-                .map(|p2d| cgmath::Point3 {
-                    x: T::zero(),
-                    y: p2d.x,
-                    z: p2d.y,
-                })
+                .map(|p2d| Point3::new(T::zero(), p2d.x, p2d.y))
                 .collect(),
         };
         rv.connected = self.connected;
         rv
     }
 
-    pub fn push(&mut self, point: cgmath::Point2<T>) {
+    pub fn push(&mut self, point: Point2<T>) {
         self.points.push(point);
     }
 
@@ -842,7 +794,7 @@ where
             // add the start-point to the end
             points.push(*points.first().unwrap());
 
-            let mut rv: Vec<cgmath::Point2<T>> = Vec::with_capacity(points.len());
+            let mut rv: Vec<Point2<T>> = Vec::with_capacity(points.len());
             // _simplify() always omits the the first point of the result, so we have to add that
             rv.push(*points.first().unwrap());
             rv.append(&mut Self::_simplify(
@@ -856,7 +808,7 @@ where
                 connected: true,
             }
         } else {
-            let mut rv: Vec<cgmath::Point2<T>> = Vec::with_capacity(self.points.len());
+            let mut rv: Vec<Point2<T>> = Vec::with_capacity(self.points.len());
             // _simplify() always omits the the first point of the result, so we have to add that
             rv.push(*self.points.first().unwrap());
             rv.append(&mut Self::_simplify(
@@ -872,20 +824,20 @@ where
 
     /// A naïve recursive implementation of Ramer–Douglas–Peucker algorithm
     /// It spawns a lot of Vec, but it seems to work
-    fn _simplify(distance_predicate_sq: T, slice: &[cgmath::Point2<T>]) -> Vec<cgmath::Point2<T>> {
+    fn _simplify(distance_predicate_sq: T, slice: &[Point2<T>]) -> Vec<Point2<T>> {
         //println!("input dist:{:?} slice{:?}", distance_predicate_sq, slice);
         if slice.len() <= 2 {
             return slice[1..].to_vec();
         }
         // unwrap is safe since we tested len()>2
-        let start_point = slice.first().unwrap();
-        let end_point = slice.last().unwrap();
+        let start_point = *slice.first().unwrap();
+        let end_point = *slice.last().unwrap();
 
         let mut max_dist_sq = (-T::one(), 0_usize);
         let mut found_something = false;
         // find the point with largest distance to start_point<->endpoint line
         for (i, point) in slice.iter().enumerate().take(slice.len() - 1).skip(1) {
-            let sq_d = distance_to_line_squared_safe(start_point, end_point, point);
+            let sq_d = distance_to_line_squared_safe(start_point, end_point, *point);
 
             //println!("sq_d:{:?}", sq_d);
             if sq_d > max_dist_sq.0 && sq_d > distance_predicate_sq {
@@ -899,7 +851,7 @@ where
             // no point was outside the distance limit, return a new list only containing the
             // end point (start point is implicit)
             //println!("return start-end");
-            return vec![*end_point];
+            return vec![end_point];
         }
 
         let mut rv = Self::_simplify(distance_predicate_sq, &slice[..max_dist_sq.1 + 1]);
@@ -938,7 +890,7 @@ where
                 let i = iter_i.next().unwrap();
                 let j = iter_j.next().unwrap();
                 // define the area between point i, j & k as search criteria
-                let area = Line2::triangle_area_squared_times_4(i.1, j.1, k.1);
+                let area = Line2::triangle_area_squared_times_4(*i.1, *j.1, *k.1);
                 let _ = search_tree.push(PriorityDistance {
                     key: area,
                     index: j.0,
@@ -953,9 +905,9 @@ where
             let j = self.points.len() - 1;
             let k = self.points.len();
             let area = Line2::triangle_area_squared_times_4(
-                &self.points[i],
-                &self.points[j],
-                &self.points[0],
+                self.points[i],
+                self.points[j],
+                self.points[0],
             );
             let _ = search_tree.push(PriorityDistance {
                 key: area,
@@ -991,9 +943,9 @@ where
                     if let Some(next_next) = next_next {
                         if let Some(prev_prev) = prev_prev {
                             let area = Line2::triangle_area_squared_times_4(
-                                &self.points[prev],
-                                &self.points[next % self_points_len],
-                                &self.points[next_next % self_points_len],
+                                self.points[prev],
+                                self.points[next % self_points_len],
+                                self.points[next_next % self_points_len],
                             );
                             let _ = search_tree.push(PriorityDistance {
                                 key: area,
@@ -1002,9 +954,9 @@ where
                             let _ = link_tree.insert(next, (prev, next_next, area));
 
                             let area = Line2::triangle_area_squared_times_4(
-                                &self.points[prev_prev],
-                                &self.points[prev],
-                                &self.points[next % self_points_len],
+                                self.points[prev_prev],
+                                self.points[prev],
+                                self.points[next % self_points_len],
                             );
                             let _ = search_tree.push(PriorityDistance {
                                 key: area,
@@ -1017,9 +969,9 @@ where
 
                     if let Some(prev_prev) = prev_prev {
                         let area = Line2::triangle_area_squared_times_4(
-                            &self.points[prev_prev],
-                            &self.points[prev],
-                            &self.points[next % self_points_len],
+                            self.points[prev_prev],
+                            self.points[prev],
+                            self.points[next % self_points_len],
                         );
                         let _ = search_tree.push(PriorityDistance {
                             key: area,
@@ -1031,9 +983,9 @@ where
 
                     if let Some(next_next) = next_next {
                         let area = Line2::triangle_area_squared_times_4(
-                            &self.points[prev],
-                            &self.points[next % self_points_len],
-                            &self.points[next_next % self_points_len],
+                            self.points[prev],
+                            self.points[next % self_points_len],
+                            self.points[next_next % self_points_len],
                         );
                         let _ = search_tree.push(PriorityDistance {
                             key: area,
@@ -1097,12 +1049,12 @@ where
         if let Some(min_max) = other.min_max {
             let points = vec![
                 min_max.0,
-                cgmath::Point2 {
+                Point2 {
                     x: min_max.1.x,
                     y: min_max.0.y,
                 },
                 min_max.1,
-                cgmath::Point2 {
+                Point2 {
                     x: min_max.0.x,
                     y: min_max.1.y,
                 },
@@ -1113,7 +1065,7 @@ where
             }
         } else {
             Self {
-                points: Vec::<cgmath::Point2<T>>::new(),
+                points: Vec::<Point2<T>>::new(),
                 connected: false,
             }
         }
@@ -1123,7 +1075,7 @@ where
 impl<T, IC> FromIterator<IC> for LineString2<T>
 where
     T: cgmath::BaseFloat + Sync,
-    IC: Into<cgmath::Point2<T>>,
+    IC: Into<Point2<T>>,
 {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString2 {
@@ -1172,7 +1124,7 @@ impl<T: cgmath::BaseFloat + Sync> LineStringSet2<T> {
         set.append(&mut other.set);
         Self {
             set,
-            aabb: other.aabb.clone(),
+            aabb: other.aabb,
             convex_hull: other.convex_hull.take(),
             internals: other.internals.take(),
         }
@@ -1204,7 +1156,7 @@ impl<T: cgmath::BaseFloat + Sync> LineStringSet2<T> {
             self.set.push(ls);
 
             for ls in self.set.last().unwrap().points.iter() {
-                self.aabb.update_point(ls);
+                self.aabb.update_point(*ls);
             }
         }
     }
@@ -1223,8 +1175,8 @@ impl<T: cgmath::BaseFloat + Sync> LineStringSet2<T> {
     }
 
     /// Returns the axis aligned bounding box of this set.
-    pub fn get_aabb(&self) -> &Aabb2<T> {
-        &self.aabb
+    pub fn get_aabb(&self) -> Aabb2<T> {
+        self.aabb
     }
 
     /// Transform each individual component of this set using the transform matrix.
@@ -1264,7 +1216,7 @@ impl<T: cgmath::BaseFloat + Sync> LineStringSet2<T> {
 
     /// drains the 'other' container of all shapes and put them into 'self'
     pub fn take_from(&mut self, mut other: Self) {
-        self.aabb.update_aabb(&other.aabb);
+        self.aabb.update_aabb(other.aabb);
         self.set.append(&mut other.set);
     }
 
@@ -1290,7 +1242,7 @@ impl<T: cgmath::BaseFloat + Sync> LineStringSet2<T> {
                 "'other' did not contain a valid 'aabb' field".to_string(),
             ));
         }
-        if !self.aabb.contains_aabb(&other.aabb) {
+        if !self.aabb.contains_aabb(other.aabb) {
             //println!("self.aabb {:?}", self.aabb);
             //println!("other.aabb {:?}", other.aabb);
             return Err(LinestringError::InvalidData(
@@ -1311,16 +1263,13 @@ impl<T: cgmath::BaseFloat + Sync> LineStringSet2<T> {
         self.internals
             .as_mut()
             .unwrap()
-            .push((other.aabb.clone(), other.convex_hull.take().unwrap()));
+            .push((other.aabb, other.convex_hull.take().unwrap()));
         Ok(())
     }
 
     /// Iterate an operation over each coordinate in the contained objects.
     /// Useful when you want to round the value of each contained coordinate.
-    pub fn operation<F>(&mut self, f: &F)
-    where
-        F: Fn(T) -> T,
-    {
+    pub fn operation<F: Fn(T) -> T>(&mut self, f: &F) {
         for s in self.set.iter_mut() {
             s.operation(f);
         }
@@ -1339,20 +1288,16 @@ impl<T: cgmath::BaseFloat + Sync> LineStringSet2<T> {
 
 /// A simple 2d AABB
 /// If min_max is none no data has not been assigned yet.
-#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
 pub struct Aabb2<T: cgmath::BaseFloat + Sync> {
-    min_max: Option<(cgmath::Point2<T>, cgmath::Point2<T>)>,
+    min_max: Option<(Point2<T>, Point2<T>)>,
 }
 
-impl<T, IT> From<[IT; 2]> for Aabb2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-    IT: Copy + Into<cgmath::Point2<T>>,
-{
+impl<T: cgmath::BaseFloat + Sync, IT: Copy + Into<Point2<T>>> From<[IT; 2]> for Aabb2<T> {
     fn from(coordinate: [IT; 2]) -> Aabb2<T> {
         let mut rv = Aabb2::<T>::default();
-        rv.update_point(&coordinate[0].into());
-        rv.update_point(&coordinate[1].into());
+        rv.update_point(coordinate[0].into());
+        rv.update_point(coordinate[1].into());
         rv
     }
 }
@@ -1360,11 +1305,11 @@ where
 impl<T: cgmath::BaseFloat + Sync> From<[T; 4]> for Aabb2<T> {
     fn from(coordinate: [T; 4]) -> Aabb2<T> {
         let mut rv = Aabb2::default();
-        rv.update_point(&cgmath::Point2 {
+        rv.update_point(Point2 {
             x: coordinate[0],
             y: coordinate[1],
         });
-        rv.update_point(&cgmath::Point2 {
+        rv.update_point(Point2 {
             x: coordinate[2],
             y: coordinate[3],
         });
@@ -1380,22 +1325,22 @@ impl<T: cgmath::BaseFloat + Sync> Default for Aabb2<T> {
 }
 
 impl<T: cgmath::BaseFloat + Sync> Aabb2<T> {
-    pub fn new(point: &cgmath::Point2<T>) -> Self {
+    pub fn new(point: Point2<T>) -> Self {
         Self {
-            min_max: Some((*point, *point)),
+            min_max: Some((point, point)),
         }
     }
 
-    pub fn update_aabb(&mut self, aabb: &Aabb2<T>) {
-        if let Some((min, max)) = &aabb.min_max {
+    pub fn update_aabb(&mut self, aabb: Aabb2<T>) {
+        if let Some((min, max)) = aabb.min_max {
             self.update_point(min);
             self.update_point(max);
         }
     }
 
-    pub fn update_point(&mut self, point: &cgmath::Point2<T>) {
+    pub fn update_point(&mut self, point: Point2<T>) {
         if self.min_max.is_none() {
-            self.min_max = Some((*point, *point));
+            self.min_max = Some((point, point));
             return;
         }
         let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
@@ -1415,14 +1360,14 @@ impl<T: cgmath::BaseFloat + Sync> Aabb2<T> {
         self.min_max = Some((aabb_min, aabb_max));
     }
 
-    pub fn get_high(&self) -> Option<cgmath::Point2<T>> {
+    pub fn get_high(&self) -> Option<Point2<T>> {
         if let Some((_, _high)) = self.min_max {
             return Some(_high);
         }
         None
     }
 
-    pub fn get_low(&self) -> Option<cgmath::Point2<T>> {
+    pub fn get_low(&self) -> Option<Point2<T>> {
         if let Some((_low, _)) = self.min_max {
             return Some(_low);
         }
@@ -1444,11 +1389,11 @@ impl<T: cgmath::BaseFloat + Sync> Aabb2<T> {
 
     /// returns true if this aabb entirely contains/engulfs 'other' (inclusive)
     #[inline(always)]
-    pub fn contains_aabb(&self, other: &Aabb2<T>) -> bool {
+    pub fn contains_aabb(&self, other: Aabb2<T>) -> bool {
         if let Some(self_aabb) = self.min_max {
             if let Some(other_aabb) = other.min_max {
-                return Self::contains_point_inclusive_(&self_aabb, &other_aabb.0)
-                    && Self::contains_point_inclusive_(&self_aabb, &other_aabb.1);
+                return Self::contains_point_inclusive_(self_aabb, other_aabb.0)
+                    && Self::contains_point_inclusive_(self_aabb, other_aabb.1);
             }
         }
         false
@@ -1458,27 +1403,24 @@ impl<T: cgmath::BaseFloat + Sync> Aabb2<T> {
     #[inline(always)]
     pub fn contains_line_inclusive(&self, line: &Line2<T>) -> bool {
         if let Some(self_aabb) = self.min_max {
-            return Self::contains_point_inclusive_(&self_aabb, &line.start)
-                && Self::contains_point_inclusive_(&self_aabb, &line.end);
+            return Self::contains_point_inclusive_(self_aabb, line.start)
+                && Self::contains_point_inclusive_(self_aabb, line.end);
         }
         false
     }
 
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
-    pub fn contains_point_inclusive(&self, point: &cgmath::Point2<T>) -> bool {
+    pub fn contains_point_inclusive(&self, point: Point2<T>) -> bool {
         if let Some(self_aabb) = self.min_max {
-            return Self::contains_point_inclusive_(&self_aabb, point);
+            return Self::contains_point_inclusive_(self_aabb, point);
         }
         false
     }
 
     /// returns true if aabb contains a point (inclusive)
     #[inline(always)]
-    fn contains_point_inclusive_(
-        aabb: &(cgmath::Point2<T>, cgmath::Point2<T>),
-        point: &cgmath::Point2<T>,
-    ) -> bool {
+    fn contains_point_inclusive_(aabb: (Point2<T>, Point2<T>), point: Point2<T>) -> bool {
         (aabb.0.x <= point.x || ulps_eq!(&aabb.0.x, &point.x))
             && (aabb.0.y <= point.y || ulps_eq!(&aabb.0.y, &point.y))
             && (aabb.1.x >= point.x || ulps_eq!(&aabb.1.x, &point.x))
@@ -1501,15 +1443,15 @@ impl<T: cgmath::BaseFloat + Sync> Aabb2<T> {
 /// Get any intersection point between line segment and point.
 /// Inspired by <https://stackoverflow.com/a/17590923>
 pub fn intersect_line_point<T: cgmath::BaseFloat + Sync>(
-    line: &Line2<T>,
-    point: &cgmath::Point2<T>,
+    line: Line2<T>,
+    point: Point2<T>,
 ) -> Option<Intersection<T>> {
     // take care of end point equality
-    if ulps_eq!(&line.start.x, &point.x) && ulps_eq!(&line.start.y, &point.y) {
-        return Some(Intersection::Intersection(*point));
+    if ulps_eq!(line.start.x, point.x) && ulps_eq!(line.start.y, point.y) {
+        return Some(Intersection::Intersection(point));
     }
-    if ulps_eq!(&line.end.x, &point.x) && ulps_eq!(&line.end.y, &point.y) {
-        return Some(Intersection::Intersection(*point));
+    if ulps_eq!(line.end.x, point.x) && ulps_eq!(line.end.y, point.y) {
+        return Some(Intersection::Intersection(point));
     }
 
     let x1 = line.start.x;
@@ -1526,7 +1468,7 @@ pub fn intersect_line_point<T: cgmath::BaseFloat + Sync>(
     #[cfg(feature = "console_trace")]
     println!("ab={:?}, ap={:?}, pb={:?}, ap+pb={:?}", ab, ap, pb, ap + pb);
     if ulps_eq!(&ab, &(ap + pb)) {
-        return Some(Intersection::Intersection(*point));
+        return Some(Intersection::Intersection(point));
     }
     None
 }
@@ -1534,14 +1476,14 @@ pub fn intersect_line_point<T: cgmath::BaseFloat + Sync>(
 #[allow(dead_code)]
 pub enum Intersection<T: cgmath::BaseFloat + Sync> {
     // Normal one point intersection
-    Intersection(cgmath::Point2<T>),
+    Intersection(Point2<T>),
     // Collinear overlapping
     OverLap(Line2<T>),
 }
 
 impl<T: cgmath::BaseFloat + Sync> Intersection<T> {
     /// return a single, simple intersection point
-    pub fn single(&self) -> cgmath::Point2<T> {
+    pub fn single(&self) -> Point2<T> {
         match self {
             Self::OverLap(a) => a.start,
             Self::Intersection(a) => *a,
@@ -1560,43 +1502,21 @@ impl<T: cgmath::BaseFloat + Sync> fmt::Debug for Intersection<T> {
 
 #[inline(always)]
 pub fn scale_to_coordinate<T: cgmath::BaseFloat + Sync>(
-    point: &cgmath::Point2<T>,
-    vector: &cgmath::Vector2<T>,
+    point: Point2<T>,
+    vector: Vector2<T>,
     scale: T,
-) -> cgmath::Point2<T> {
-    cgmath::Point2 {
+) -> Point2<T> {
+    Point2 {
         x: point.x + scale * vector.x,
         y: point.y + scale * vector.y,
     }
 }
 
 #[inline(always)]
-/// Divides a 'vector' by 'b'. Obviously, don't feed this with 'b' == 0
-fn div<T: cgmath::BaseFloat + Sync>(a: &cgmath::Vector2<T>, b: T) -> cgmath::Vector2<T> {
-    cgmath::Vector2 {
-        x: a.x / b,
-        y: a.y / b,
-    }
-}
-
-#[inline(always)]
-/// subtracts point b from point a resulting in a vector
-/// This is a compatibility workaround for 2d packages without any math
-fn sub<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> cgmath::Vector2<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
-    a - b
-}
-
-#[inline(always)]
 /// from <https://stackoverflow.com/a/565282> :
 ///  "Define the 2-dimensional vector cross product v × w to be vx wy − vy wx."
 /// This function returns the z component of v × w (if we pretend v and w are two dimensional)
-fn cross_z<T>(v: &cgmath::Vector2<T>, w: &cgmath::Vector2<T>) -> T
-where
-    T: cgmath::BaseFloat + Sync,
-{
+fn cross_z<T: cgmath::BaseFloat + Sync>(v: Vector2<T>, w: Vector2<T>) -> T {
     v.x * w.y - v.y * w.x
 }
 
@@ -1607,25 +1527,21 @@ where
 /// <https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation>
 /// Make sure to *not* call this function with a-b==0
 /// This function returns the distance²
-pub fn distance_to_line_squared<T>(
-    a: &cgmath::Point2<T>,
-    b: &cgmath::Point2<T>,
-    p: &cgmath::Point2<T>,
-) -> T
+pub fn distance_to_line_squared<T>(a: Point2<T>, b: Point2<T>, p: Point2<T>) -> T
 where
     T: cgmath::BaseFloat + Sync,
 {
-    let a_sub_b = sub(a, b);
-    let a_sub_p = sub(a, p);
+    let a_sub_b = a - b;
+    let a_sub_p = a - p;
     let dot = (a_sub_b.x * a_sub_p.x + a_sub_b.y * a_sub_p.y)
         / (a_sub_b.x * a_sub_b.x + a_sub_b.y * a_sub_b.y);
     if dot < T::zero() {
         a_sub_p.x * a_sub_p.x + a_sub_p.y * a_sub_p.y
     } else if dot > T::one() {
-        let b_sub_p = sub(b, p);
+        let b_sub_p = b - p;
         b_sub_p.x * b_sub_p.x + b_sub_p.y * b_sub_p.y
     } else {
-        let a_sub_p_cross_a_sub_b = cross_z(&a_sub_p, &a_sub_b);
+        let a_sub_p_cross_a_sub_b = cross_z(a_sub_p, a_sub_b);
         (a_sub_p_cross_a_sub_b * a_sub_p_cross_a_sub_b)
             / (a_sub_b.x * a_sub_b.x + a_sub_b.y * a_sub_b.y)
     }
@@ -1634,57 +1550,29 @@ where
 /// Same as distance_to_line_squared<T> but it can be called when a-b might be 0.
 /// It's a little slower because it does the a==b test
 #[inline(always)]
-pub fn distance_to_line_squared_safe<T>(
-    a: &cgmath::Point2<T>,
-    b: &cgmath::Point2<T>,
-    p: &cgmath::Point2<T>,
-) -> T
-where
-    T: cgmath::BaseFloat + Sync,
-{
+pub fn distance_to_line_squared_safe<T: cgmath::BaseFloat + Sync>(
+    a: Point2<T>,
+    b: Point2<T>,
+    p: Point2<T>,
+) -> T {
     if point_ulps_eq(a, b) {
         // give the point-to-point answer if the segment is a point
-        distance_to_point_squared(a, p)
+        a.distance2(p)
     } else {
         distance_to_line_squared(a, b, p)
     }
 }
 
 #[inline(always)]
-/// The distance² between the two points
-pub fn distance_to_point_squared<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> T
-where
-    T: cgmath::BaseFloat + Sync,
-{
-    let v = sub(a, b);
-    v.x * v.x + v.y * v.y
-}
-
-#[inline(always)]
-/// calculate the dot product of two vectors
-fn dot<T>(a: &cgmath::Vector2<T>, b: &cgmath::Vector2<T>) -> T
-where
-    T: cgmath::BaseFloat + Sync,
-{
-    a.x * b.x + a.y * b.y
-}
-
-#[inline(always)]
-pub fn point_ulps_eq<T>(a: &cgmath::Point2<T>, b: &cgmath::Point2<T>) -> bool
-where
-    T: cgmath::BaseFloat + Sync,
-{
-    ulps_eq!(&a.x, &b.x) && ulps_eq!(&a.y, &b.y)
+pub fn point_ulps_eq<T: cgmath::BaseFloat + Sync>(a: Point2<T>, b: Point2<T>) -> bool {
+    ulps_eq!(a.x, b.x) && ulps_eq!(a.y, b.y)
 }
 
 /// This is a simple but efficient affine transformation object.
 /// It can pan, zoom and flip points around center axis but not rotate.
 /// It does not handle vector transformation, only points.
 #[derive(PartialEq, Clone, fmt::Debug)]
-pub struct SimpleAffine<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+pub struct SimpleAffine<T: cgmath::BaseFloat + Sync> {
     /// The offsets used to center the 'source' coordinate system. Typically the input geometry
     /// in this case.
     pub a_offset: [T; 2],
@@ -1695,10 +1583,7 @@ where
     pub b_offset: [T; 2],
 }
 
-impl<T> Default for SimpleAffine<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> Default for SimpleAffine<T> {
     #[inline]
     fn default() -> Self {
         Self {
@@ -1709,10 +1594,7 @@ where
     }
 }
 
-impl<T> SimpleAffine<T>
-where
-    T: cgmath::BaseFloat + Sync + num_traits::cast::NumCast,
-{
+impl<T: cgmath::BaseFloat + Sync + num_traits::cast::NumCast> SimpleAffine<T> {
     pub fn new(a_aabb: &Aabb2<T>, b_aabb: &Aabb2<T>) -> Result<Self, LinestringError> {
         let min_dim = T::from(1.0).unwrap();
         let two = T::from(2.0).unwrap();
@@ -1760,6 +1642,7 @@ where
     /// transform from dest (b) coordinate system to source (a) coordinate system
     ///```
     /// # use linestring::linestring_2d;
+    /// # use cgmath::Point2;
     /// type T = f32;
     ///
     /// // source is (-100,-100)-(100,100)
@@ -1769,31 +1652,28 @@ where
     /// let transform = linestring_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
     ///
     /// assert_eq!(
-    ///   transform.transform_ab(&cgmath::Point2{x:-100., y:-100.}).unwrap(),
-    ///   cgmath::Point2{x:0., y:0.}
+    ///   transform.transform_ab(Point2{x:-100., y:-100.}).unwrap(),
+    ///   Point2{x:0., y:0.}
     ///  );
     ///  assert_eq!(
-    ///  transform.transform_ba(&cgmath::Point2{x:0., y:0.}).unwrap(),
-    ///    cgmath::Point2{x:-100., y:-100.}
+    ///  transform.transform_ba(Point2{x:0., y:0.}).unwrap(),
+    ///    Point2{x:-100., y:-100.}
     ///  );
     ///  assert_eq!(
-    ///    transform.transform_ab(&cgmath::Point2{x:100., y:100.}).unwrap(),
-    ///    cgmath::Point2{x:800., y:800.}
+    ///    transform.transform_ab(Point2{x:100., y:100.}).unwrap(),
+    ///    Point2{x:800., y:800.}
     ///  );
     ///  assert_eq!(
-    ///    transform.transform_ba(&cgmath::Point2{x:800., y:800.}).unwrap(),
-    ///    cgmath::Point2{x:100., y:100.}
+    ///    transform.transform_ba(Point2{x:800., y:800.}).unwrap(),
+    ///    Point2{x:100., y:100.}
     ///  );
     ///```
     #[inline(always)]
-    pub fn transform_ba(
-        &self,
-        point: &cgmath::Point2<T>,
-    ) -> Result<cgmath::Point2<T>, LinestringError> {
+    pub fn transform_ba(&self, point: Point2<T>) -> Result<Point2<T>, LinestringError> {
         let x = (point.x - self.b_offset[0]) / self.scale[0] - self.a_offset[0];
         let y = (point.y - self.b_offset[1]) / self.scale[1] - self.a_offset[1];
         if x.is_finite() && y.is_finite() {
-            Ok(cgmath::Point2 { x, y })
+            Ok(Point2 { x, y })
         } else {
             Err(LinestringError::TransformError(
                 "Transformation out of bounds".to_string(),
@@ -1804,6 +1684,7 @@ where
     /// Transform from source (a) coordinate system to dest (b) coordinate system
     ///```
     /// # use linestring::linestring_2d;
+    /// # use cgmath::Point2;
     /// type T = f32;
     /// // source is (0,0)-(1,1)
     /// let mut aabb_source = linestring_2d::Aabb2::<T>::from([0.,0.,1.,1.]);
@@ -1812,31 +1693,28 @@ where
     ///
     /// let transform = linestring_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
     /// assert_eq!(
-    ///   transform.transform_ab(&cgmath::Point2{x:0., y:0.}).unwrap(),
-    ///    cgmath::Point2{x:1., y:1.}
+    ///   transform.transform_ab(Point2{x:0., y:0.}).unwrap(),
+    ///    Point2{x:1., y:1.}
     ///  );
     /// assert_eq!(
-    /// transform.transform_ab(&cgmath::Point2{x:1., y:1.}).unwrap(),
-    ///   cgmath::Point2{x:2., y:2.}
+    /// transform.transform_ab(Point2{x:1., y:1.}).unwrap(),
+    ///   Point2{x:2., y:2.}
     /// );
     /// assert_eq!(
-    ///   transform.transform_ab(&cgmath::Point2{x:0., y:1.}).unwrap(),
-    ///   cgmath::Point2{x:1., y:2.}
+    ///   transform.transform_ab(Point2{x:0., y:1.}).unwrap(),
+    ///   Point2{x:1., y:2.}
     /// );
     /// assert_eq!(
-    ///   transform.transform_ab(&cgmath::Point2{x:1., y:0.}).unwrap(),
-    ///   cgmath::Point2{x:2., y:1.}
+    ///   transform.transform_ab(Point2{x:1., y:0.}).unwrap(),
+    ///   Point2{x:2., y:1.}
     /// );
     ///```
     #[inline(always)]
-    pub fn transform_ab(
-        &self,
-        point: &cgmath::Point2<T>,
-    ) -> Result<cgmath::Point2<T>, LinestringError> {
+    pub fn transform_ab(&self, point: Point2<T>) -> Result<Point2<T>, LinestringError> {
         let x = (point.x + self.a_offset[0]) * self.scale[0] + self.b_offset[0];
         let y = (point.y + self.a_offset[1]) * self.scale[1] + self.b_offset[1];
         if x.is_finite() && y.is_finite() {
-            Ok(cgmath::Point2 { x, y })
+            Ok(Point2 { x, y })
         } else {
             Err(LinestringError::TransformError(
                 "Transformation out of bounds".to_string(),

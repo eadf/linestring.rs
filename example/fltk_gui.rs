@@ -301,7 +301,7 @@ fn main() {
             };
             let reverse_middle = shared_data_bm
                 .affine
-                .transform_ba(&cgmath::Point2::from([event.0 as T, event.1 as T]));
+                .transform_ba(cgmath::Point2::from([event.0 as T, event.1 as T]));
             if reverse_middle.is_err() {
                 println!("{:?}", reverse_middle.err().unwrap());
                 return false;
@@ -312,7 +312,7 @@ fn main() {
                 shared_data_bm.affine.scale[0] *= scale_mod;
                 shared_data_bm.affine.scale[1] *= scale_mod;
             }
-            let new_middle = shared_data_bm.affine.transform_ab(&cgmath::Point2::from([
+            let new_middle = shared_data_bm.affine.transform_ab(cgmath::Point2::from([
                 reverse_middle[0] as T,
                 reverse_middle[1] as T,
             ]));

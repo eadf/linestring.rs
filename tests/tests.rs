@@ -1,6 +1,6 @@
 #![deny(warnings)]
 
-use cgmath::{ulps_eq, AbsDiffEq, UlpsEq};
+use cgmath::{ulps_eq, AbsDiffEq, Point2, UlpsEq};
 use linestring::linestring_2d;
 use linestring::linestring_3d;
 
@@ -13,11 +13,11 @@ fn almost_equal<T: cgmath::BaseFloat + Sync>(x1: T, x2: T, y1: T, y2: T) {
 /// l1 & l2 are lengths
 fn pivot(x: f64, y: f64, l1: f64, l2: f64, angle: f64) -> linestring_2d::Line2<f64> {
     let l = linestring_2d::Line2 {
-        start: cgmath::Point2 {
+        start: Point2 {
             x: x + angle.to_radians().cos() * l1,
             y: y + angle.to_radians().sin() * l1,
         },
-        end: cgmath::Point2 {
+        end: Point2 {
             x: x + (angle + 180.0).to_radians().cos() * l2,
             y: y + (angle + 180.0).to_radians().sin() * l2,
         },
@@ -28,11 +28,11 @@ fn pivot(x: f64, y: f64, l1: f64, l2: f64, angle: f64) -> linestring_2d::Line2<f
     let v2 = v * (l2 / (l1 + l2));
 
     linestring_2d::Line2 {
-        start: cgmath::Point2 {
+        start: Point2 {
             x: x + v1.x,
             y: y + v1.y,
         },
-        end: cgmath::Point2 {
+        end: Point2 {
             x: x + v2.x,
             y: y + v2.y,
         },
@@ -82,8 +82,8 @@ fn linestring3_1() {
 #[test]
 fn line2_1() {
     let line = linestring_2d::Line2::<f64>::from([[10., 0.], [0., 11.]]);
-    assert_eq!(line.start, cgmath::Point2::from([10., 0.]));
-    assert_eq!(line.end, cgmath::Point2::from([0., 11.]));
+    assert_eq!(line.start, Point2::from([10., 0.]));
+    assert_eq!(line.end, Point2::from([0., 11.]));
 }
 
 #[test]
@@ -97,7 +97,7 @@ fn line3_1() {
 fn intersection_1() {
     let l1 = linestring_2d::Line2::from([200., 200., 300., 300.]);
     let l2 = linestring_2d::Line2::from([400., 200., 300., 300.]);
-    let rv = l1.intersection_point(&l2).unwrap().single();
+    let rv = l1.intersection_point(l2).unwrap().single();
     almost_equal(rv.x, 300.0, rv.y, 300.0);
 }
 
@@ -105,7 +105,7 @@ fn intersection_1() {
 fn intersection_2() {
     let l1 = linestring_2d::Line2::from([200., 200., 300., 400.]);
     let l2 = linestring_2d::Line2::from([400., 200., 300., 400.]);
-    let rv = l1.intersection_point(&l2).unwrap().single();
+    let rv = l1.intersection_point(l2).unwrap().single();
     almost_equal(rv.x, 300.0, rv.y, 400.0);
 }
 
@@ -114,7 +114,7 @@ fn intersection_3() {
     // line to point detection
     let l1 = linestring_2d::Line2::from([200., 200., 300., 300.]);
     let l2 = linestring_2d::Line2::from([250., 250., 250., 250.]);
-    let rv = l1.intersection_point(&l2).unwrap().single();
+    let rv = l1.intersection_point(l2).unwrap().single();
     almost_equal(rv.x, 250.0, rv.y, 250.0);
 }
 
@@ -123,7 +123,7 @@ fn intersection_4() {
     // line to point detection
     let l1 = linestring_2d::Line2::from([300., 300., 200., 200.]);
     let l2 = linestring_2d::Line2::from([250., 250., 250., 250.]);
-    let rv = l1.intersection_point(&l2).unwrap().single();
+    let rv = l1.intersection_point(l2).unwrap().single();
     almost_equal(rv.x, 250.0, rv.y, 250.0);
 }
 
@@ -133,11 +133,11 @@ fn intersection_5() {
     for r in (0..360).step_by(5) {
         let line = pivot(100.0, 100.0, 50.0, 50.0, r as f64);
         let vector = line.end - line.start;
-        let point = linestring_2d::scale_to_coordinate(&line.start, &vector, 0.45);
+        let point = linestring_2d::scale_to_coordinate(line.start, vector, 0.45);
         //println!("line:{:?}", line);
         //println!("point:{:?}", point);
         let rv = line
-            .intersection_point(&linestring_2d::Line2::new(point, point))
+            .intersection_point(linestring_2d::Line2::new(point, point))
             .unwrap()
             .single();
         //println!("rv:{:?}", rv);
@@ -149,28 +149,28 @@ fn intersection_5() {
 #[test]
 fn intersection_6() {
     let line1 = linestring_2d::Line2::<f64>::new(
-        cgmath::Point2 { x: 100.0, y: 150.0 },
-        cgmath::Point2 { x: 150.0, y: 100.0 },
+        Point2 { x: 100.0, y: 150.0 },
+        Point2 { x: 150.0, y: 100.0 },
     );
     let line2 = linestring_2d::Line2::<f64>::new(
-        cgmath::Point2 { x: 150.0, y: 100.0 },
-        cgmath::Point2 { x: 160.0, y: 150.0 },
+        Point2 { x: 150.0, y: 100.0 },
+        Point2 { x: 160.0, y: 150.0 },
     );
-    let _rv = line1.intersection_point(&line2);
+    let _rv = line1.intersection_point(line2);
 }
 
 #[test]
 fn intersection_7() {
     // README.md example
     let line1 = linestring_2d::Line2::<f64>::new(
-        cgmath::Point2 { x: 100.0, y: 150.0 },
-        cgmath::Point2 { x: 150.0, y: 100.0 },
+        Point2 { x: 100.0, y: 150.0 },
+        Point2 { x: 150.0, y: 100.0 },
     );
     let line2 = linestring_2d::Line2::<f64>::new(
-        cgmath::Point2 { x: 100.0, y: 150.0 },
-        cgmath::Point2 { x: 150.0, y: 100.0 },
+        Point2 { x: 100.0, y: 150.0 },
+        Point2 { x: 150.0, y: 100.0 },
     );
-    let _rv = line1.intersection_point(&line2);
+    let _rv = line1.intersection_point(line2);
     match _rv {
         Some(linestring_2d::Intersection::Intersection(_a)) => panic!("expected an overlap"),
         Some(linestring_2d::Intersection::OverLap(_a)) => (), //println!("{:?}", _a),
@@ -195,7 +195,7 @@ fn intersection_9() {
             (line1.start.x - line1.end.x) / (line1.start.y - line1.end.y)
         );*/
 
-        let rv = line1.intersection_point(&line1);
+        let rv = line1.intersection_point(line1);
         match rv {
             Some(linestring_2d::Intersection::Intersection(_a)) => {
                 panic!("expected an overlap, got {:?}", _a)
@@ -220,7 +220,7 @@ fn intersection_10() {
             end: line1.start,
         };
 
-        let rv = line1.intersection_point(&line2);
+        let rv = line1.intersection_point(line2);
         match rv {
             Some(linestring_2d::Intersection::Intersection(_a)) => {
                 panic!("expected an overlap, got {:?}", _a)
@@ -239,8 +239,8 @@ fn intersection_10() {
 fn intersection_11() {
     let l1 = linestring_2d::Line2::from([4.0, -9.0, -10.0, 2.0]);
     let l2 = linestring_2d::Line2::from([-3.0, -3.0, -3.0, 3.0]);
-    assert!(l1.intersection_point(&l2).is_none());
-    assert!(l2.intersection_point(&l1).is_none());
+    assert!(l1.intersection_point(l2).is_none());
+    assert!(l2.intersection_point(l1).is_none());
 }
 
 #[test]
@@ -330,17 +330,17 @@ fn a_test() -> Result<(), linestring::LinestringError> {
 fn triangle_area() {
     for x in -10..10 {
         for y in -10..10 {
-            let p1 = cgmath::Point2 {
+            let p1 = Point2 {
                 x: x as f32,
                 y: 7.0,
             };
-            let p2 = cgmath::Point2 { x: 6_f32, y: 0.0 };
-            let p3 = cgmath::Point2 {
+            let p2 = Point2 { x: 6_f32, y: 0.0 };
+            let p3 = Point2 {
                 x: 0_f32,
                 y: y as f32,
             };
 
-            let area1 = linestring_2d::Line2::triangle_area_squared_times_4(&p1, &p2, &p3);
+            let area1 = linestring_2d::Line2::triangle_area_squared_times_4(p1, p2, p3);
             //println!("area1 = {}", area1);
 
             let p1 = cgmath::Point3 {
@@ -458,11 +458,11 @@ fn voronoi_parabolic_arc_1() {
     discretization:[[100.0, 200.0], [300.0, 200.0]]
     discretize: result:[[100.0, 200.0], [125.0, 178.125], [150.0, 162.5], [175.0, 153.125], [200.0, 150.0], [225.0, 153.125], [250.0, 162.5], [275.0, 178.125], [300.0, 200.0]]
     */
-    let cell_point: cgmath::Point2<f32> = [200.0, 200.0].into();
+    let cell_point: Point2<f32> = [200.0, 200.0].into();
     let segment: linestring_2d::Line2<f32> = [[100.0, 100.0], [300.0, 100.0]].into();
     let max_dist: f32 = 0.800000037997961;
-    let start_point: cgmath::Point2<f32> = [100.0, 200.0].into();
-    let end_point: cgmath::Point2<f32> = [300.0, 200.0].into();
+    let start_point: Point2<f32> = [100.0, 200.0].into();
+    let end_point: Point2<f32> = [300.0, 200.0].into();
 
     let vpa =
         linestring_2d::VoronoiParabolicArc::<f32>::new(segment, cell_point, start_point, end_point);
@@ -470,47 +470,47 @@ fn voronoi_parabolic_arc_1() {
     println!("result: {:?}", result);
 
     assert!(linestring_2d::point_ulps_eq(
-        &result.points()[0],
-        &[100.0, 200.0].into()
+        result.points()[0],
+        [100.0, 200.0].into()
     ));
     assert!(linestring_2d::point_ulps_eq(
-        &result.points()[1],
-        &[125.0, 178.125].into()
+        result.points()[1],
+        [125.0, 178.125].into()
     ));
     assert!(linestring_2d::point_ulps_eq(
-        &result.points()[2],
-        &[150.0, 162.5].into()
+        result.points()[2],
+        [150.0, 162.5].into()
     ));
     assert!(linestring_2d::point_ulps_eq(
-        &result.points()[3],
-        &[175.0, 153.125].into()
+        result.points()[3],
+        [175.0, 153.125].into()
     ));
     assert!(linestring_2d::point_ulps_eq(
-        &result.points()[4],
-        &[200.0, 150.0].into()
+        result.points()[4],
+        [200.0, 150.0].into()
     ));
     assert!(linestring_2d::point_ulps_eq(
-        &result.points()[5],
-        &[225.0, 153.125].into()
+        result.points()[5],
+        [225.0, 153.125].into()
     ));
     assert!(linestring_2d::point_ulps_eq(
-        &result.points()[6],
-        &[250.0, 162.5].into()
+        result.points()[6],
+        [250.0, 162.5].into()
     ));
     assert!(linestring_2d::point_ulps_eq(
-        &result.points()[7],
-        &[275.0, 178.125].into()
+        result.points()[7],
+        [275.0, 178.125].into()
     ));
     assert!(linestring_2d::point_ulps_eq(
-        &result.points()[8],
-        &[300.0, 200.0].into()
+        result.points()[8],
+        [300.0, 200.0].into()
     ));
     println!("result: {:?}", result);
 }
 
 #[test]
 fn voronoi_parabolic_arc_2() {
-    let d = |x1: f32, y1: f32, p: &cgmath::Point2<f32>| {
+    let d = |x1: f32, y1: f32, p: &Point2<f32>| {
         let x = p.x - x1;
         let y = p.y - y1;
         -(x * x + y * y).sqrt()
@@ -523,50 +523,50 @@ fn voronoi_parabolic_arc_2() {
     discretization:[[100.0, 200.0], [300.0, 200.0]]
     discretize: result:[[100.0, 200.0], [125.0, 178.125], [150.0, 162.5], [175.0, 153.125], [200.0, 150.0], [225.0, 153.125], [250.0, 162.5], [275.0, 178.125], [300.0, 200.0]]
     */
-    let cell_point: cgmath::Point2<f32> = [200.0, 200.0].into();
+    let cell_point: Point2<f32> = [200.0, 200.0].into();
     let segment: linestring_2d::Line2<f32> = [[100.0, 100.0], [300.0, 100.0]].into();
     let max_dist: f32 = 0.800000037997961;
-    let start_point: cgmath::Point2<f32> = [100.0, 200.0].into();
-    let end_point: cgmath::Point2<f32> = [300.0, 200.0].into();
+    let start_point: Point2<f32> = [100.0, 200.0].into();
+    let end_point: Point2<f32> = [300.0, 200.0].into();
 
     let vpa =
         linestring_2d::VoronoiParabolicArc::<f32>::new(segment, cell_point, start_point, end_point);
     let result = vpa.discretise_3d(max_dist);
     assert!(linestring_3d::point_ulps_eq(
-        &result.points()[0],
-        &[100.0, 200.0, d(100.0, 200.0, &cell_point)].into()
+        result.points()[0],
+        [100.0, 200.0, d(100.0, 200.0, &cell_point)].into()
     ));
     assert!(linestring_3d::point_ulps_eq(
-        &result.points()[1],
-        &[125.0, 178.125, d(125.0, 178.125, &cell_point)].into()
+        result.points()[1],
+        [125.0, 178.125, d(125.0, 178.125, &cell_point)].into()
     ));
     assert!(linestring_3d::point_ulps_eq(
-        &result.points()[2],
-        &[150.0, 162.5, d(150.0, 162.5, &cell_point)].into()
+        result.points()[2],
+        [150.0, 162.5, d(150.0, 162.5, &cell_point)].into()
     ));
     assert!(linestring_3d::point_ulps_eq(
-        &result.points()[3],
-        &[175.0, 153.125, d(175.0, 153.125, &cell_point)].into()
+        result.points()[3],
+        [175.0, 153.125, d(175.0, 153.125, &cell_point)].into()
     ));
     assert!(linestring_3d::point_ulps_eq(
-        &result.points()[4],
-        &[200.0, 150.0, d(200.0, 150.0, &cell_point)].into()
+        result.points()[4],
+        [200.0, 150.0, d(200.0, 150.0, &cell_point)].into()
     ));
     assert!(linestring_3d::point_ulps_eq(
-        &result.points()[5],
-        &[225.0, 153.125, d(225.0, 153.125, &cell_point)].into()
+        result.points()[5],
+        [225.0, 153.125, d(225.0, 153.125, &cell_point)].into()
     ));
     assert!(linestring_3d::point_ulps_eq(
-        &result.points()[6],
-        &[250.0, 162.5, d(250.0, 162.5, &cell_point)].into()
+        result.points()[6],
+        [250.0, 162.5, d(250.0, 162.5, &cell_point)].into()
     ));
     assert!(linestring_3d::point_ulps_eq(
-        &result.points()[7],
-        &[275.0, 178.125, d(275.0, 178.125, &cell_point)].into()
+        result.points()[7],
+        [275.0, 178.125, d(275.0, 178.125, &cell_point)].into()
     ));
     assert!(linestring_3d::point_ulps_eq(
-        &result.points()[8],
-        &[300.0, 200.0, d(300.0, 200.0, &cell_point)].into()
+        result.points()[8],
+        [300.0, 200.0, d(300.0, 200.0, &cell_point)].into()
     ));
     println!("result: {:?}", result);
 }
@@ -580,29 +580,29 @@ fn transform_test_1() -> Result<(), linestring::LinestringError> {
     let mut aabb_dest = linestring_2d::Aabb2::<T>::default();
 
     // source is (0,0)-(1,1)
-    aabb_source.update_point(&cgmath::Point2::<T>::new(0., 0.));
-    aabb_source.update_point(&cgmath::Point2::<T>::new(1., 1.));
+    aabb_source.update_point(Point2::<T>::new(0., 0.));
+    aabb_source.update_point(Point2::<T>::new(1., 1.));
 
     // dest is (1,1)-(2,2)
-    aabb_dest.update_point(&cgmath::Point2::<T>::new(1., 1.));
-    aabb_dest.update_point(&cgmath::Point2::<T>::new(2., 2.));
+    aabb_dest.update_point(Point2::<T>::new(1., 1.));
+    aabb_dest.update_point(Point2::<T>::new(2., 2.));
 
     let transform = linestring_2d::SimpleAffine::new(&aabb_source, &aabb_dest)?;
     assert_eq!(
-        transform.transform_ab(&cgmath::Point2::<T>::new(0., 0.))?,
-        cgmath::Point2::<T>::new(1., 1.)
+        transform.transform_ab(Point2::<T>::new(0., 0.))?,
+        Point2::<T>::new(1., 1.)
     );
     assert_eq!(
-        transform.transform_ab(&cgmath::Point2::<T>::new(1., 1.))?,
-        cgmath::Point2::<T>::new(2., 2.)
+        transform.transform_ab(Point2::<T>::new(1., 1.))?,
+        Point2::<T>::new(2., 2.)
     );
     assert_eq!(
-        transform.transform_ab(&cgmath::Point2::<T>::new(0., 1.))?,
-        cgmath::Point2::<T>::new(1., 2.)
+        transform.transform_ab(Point2::<T>::new(0., 1.))?,
+        Point2::<T>::new(1., 2.)
     );
     assert_eq!(
-        transform.transform_ab(&cgmath::Point2::<T>::new(1., 0.))?,
-        cgmath::Point2::<T>::new(2., 1.)
+        transform.transform_ab(Point2::<T>::new(1., 0.))?,
+        Point2::<T>::new(2., 1.)
     );
 
     Ok(())
@@ -615,31 +615,31 @@ fn transform_test_2() -> Result<(), linestring::LinestringError> {
     let mut aabb_dest = linestring_2d::Aabb2::<f32>::default();
 
     // source is (-100,-100)-(100,100)
-    aabb_source.update_point(&cgmath::Point2::<T>::new(-100., -100.));
-    aabb_source.update_point(&cgmath::Point2::<T>::new(100., 100.));
+    aabb_source.update_point(Point2::<T>::new(-100., -100.));
+    aabb_source.update_point(Point2::<T>::new(100., 100.));
 
     // dest is (0,0)-(800,800.)
-    aabb_dest.update_point(&cgmath::Point2::<T>::new(0., 0.));
-    aabb_dest.update_point(&cgmath::Point2::<T>::new(800., 800.));
+    aabb_dest.update_point(Point2::<T>::new(0., 0.));
+    aabb_dest.update_point(Point2::<T>::new(800., 800.));
 
     let transform = linestring_2d::SimpleAffine::new(&aabb_source, &aabb_dest)?;
     //println!("Affine:{:?}", transform);
 
     assert_eq!(
-        transform.transform_ab(&cgmath::Point2::<T>::new(-100., -100.))?,
-        cgmath::Point2::<T>::new(0., 0.)
+        transform.transform_ab(Point2::<T>::new(-100., -100.))?,
+        Point2::<T>::new(0., 0.)
     );
     assert_eq!(
-        transform.transform_ba(&cgmath::Point2::<T>::new(0., 0.))?,
-        cgmath::Point2::<T>::new(-100., -100.)
+        transform.transform_ba(Point2::<T>::new(0., 0.))?,
+        Point2::<T>::new(-100., -100.)
     );
     assert_eq!(
-        transform.transform_ab(&cgmath::Point2::<T>::new(100., 100.))?,
-        cgmath::Point2::<T>::new(800., 800.)
+        transform.transform_ab(Point2::<T>::new(100., 100.))?,
+        Point2::<T>::new(800., 800.)
     );
     assert_eq!(
-        transform.transform_ba(&cgmath::Point2::<T>::new(800., 800.))?,
-        cgmath::Point2::<T>::new(100., 100.)
+        transform.transform_ba(Point2::<T>::new(800., 800.))?,
+        Point2::<T>::new(100., 100.)
     );
     Ok(())
 }
@@ -647,7 +647,7 @@ fn transform_test_2() -> Result<(), linestring::LinestringError> {
 //#[ignore]
 #[test]
 fn convex_hull_1() -> Result<(), linestring::LinestringError> {
-    let lines: Vec<cgmath::Point2<f32>> = vec![
+    let lines: Vec<Point2<f32>> = vec![
         [0f32, 0.].into(),
         [100., 0.].into(),
         [100., 100.].into(),
@@ -672,7 +672,7 @@ fn convex_hull_2() {
     use linestring::linestring_2d::convex_hull;
     use rand::{Rng, SeedableRng};
     let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
-    let mut points = Vec::<cgmath::Point2<f32>>::new();
+    let mut points = Vec::<Point2<f32>>::new();
     for _i in 0..1023 {
         let p: [f32; 2] = [rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0)];
         points.push(p.into());
@@ -680,11 +680,11 @@ fn convex_hull_2() {
 
     let a = linestring_2d::LineString2::<f32>::default().with_points(points);
     let a = convex_hull::ConvexHull::graham_scan(a.points().iter());
-    let center = cgmath::Point2::<f32>::new(2000.0, 2000.0);
+    let center = Point2::<f32>::new(2000.0, 2000.0);
 
     for l in a.as_lines().iter() {
         assert!(convex_hull::ConvexHull::is_point_left(
-            &l.start, &l.end, &center
+            l.start, l.end, center
         ));
     }
 }
@@ -694,7 +694,7 @@ fn convex_hull_3() {
     use linestring::linestring_2d::convex_hull;
     use rand::{Rng, SeedableRng};
     let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(38);
-    let mut points = Vec::<cgmath::Point2<f32>>::new();
+    let mut points = Vec::<Point2<f32>>::new();
     for _i in 0..1023 {
         let p: [f32; 2] = [rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0)];
         points.push(p.into());
@@ -703,7 +703,7 @@ fn convex_hull_3() {
     let a = linestring_2d::LineString2::<f32>::default().with_points(points);
     let a = convex_hull::ConvexHull::graham_scan(a.points().into_iter());
 
-    let mut points = Vec::<cgmath::Point2<f32>>::new();
+    let mut points = Vec::<Point2<f32>>::new();
     for _i in 0..1023 {
         let p: [f32; 2] = [rng.gen_range(100.0..3000.0), rng.gen_range(100.0..3000.0)];
         points.push(p.into());
@@ -727,16 +727,16 @@ fn convex_hull_3() {
 
 #[test]
 fn distance_to_line_squared_01() {
-    let a = cgmath::Point2::<f32>::new(0.0, 0.0);
-    let b = cgmath::Point2::<f32>::new(1.0, 0.0);
-    let p = cgmath::Point2::<f32>::new(-2.0, 0.0);
-    assert_eq!(linestring_2d::distance_to_line_squared(&a, &b, &p), 4.0);
-    let p = cgmath::Point2::<f32>::new(4.0, 0.0);
-    assert_eq!(linestring_2d::distance_to_line_squared(&a, &b, &p), 9.0);
-    let p = cgmath::Point2::<f32>::new(0.5, 2.0);
-    assert_eq!(linestring_2d::distance_to_line_squared(&a, &b, &p), 4.0);
-    let p = cgmath::Point2::<f32>::new(0.5, -2.0);
-    assert_eq!(linestring_2d::distance_to_line_squared(&a, &b, &p), 4.0);
+    let a = Point2::<f32>::new(0.0, 0.0);
+    let b = Point2::<f32>::new(1.0, 0.0);
+    let p = Point2::<f32>::new(-2.0, 0.0);
+    assert_eq!(linestring_2d::distance_to_line_squared(a, b, p), 4.0);
+    let p = Point2::<f32>::new(4.0, 0.0);
+    assert_eq!(linestring_2d::distance_to_line_squared(a, b, p), 9.0);
+    let p = Point2::<f32>::new(0.5, 2.0);
+    assert_eq!(linestring_2d::distance_to_line_squared(a, b, p), 4.0);
+    let p = Point2::<f32>::new(0.5, -2.0);
+    assert_eq!(linestring_2d::distance_to_line_squared(a, b, p), 4.0);
 }
 
 #[test]
@@ -744,10 +744,10 @@ fn distance_to_line_squared_01() {
 fn plane_conversion_xy() {
     use linestring_3d::Plane;
     let p = cgmath::Point3::<f32>::new(1.0, 2.0, 3.0);
-    let p_2d = Plane::XY.point_to_2d(&p);
+    let p_2d = Plane::XY.point_to_2d(p);
     assert_eq!(p_2d.x, p.x);
     assert_eq!(p_2d.y, p.y);
-    let p_3d = Plane::XY.point_to_3d(&p_2d);
+    let p_3d = Plane::XY.point_to_3d(p_2d);
     assert_eq!(p.x, p_3d.x);
     assert_eq!(p.y, p_3d.y);
     assert_eq!(p_3d.z, 0.0);
@@ -758,10 +758,10 @@ fn plane_conversion_xy() {
 fn plane_conversion_xz() {
     use linestring_3d::Plane;
     let p = cgmath::Point3::<f32>::new(1.0, 2.0, 3.0);
-    let p_2d = Plane::XZ.point_to_2d(&p);
+    let p_2d = Plane::XZ.point_to_2d(p);
     assert_eq!(p_2d.x, p.x);
     assert_eq!(p_2d.y, p.z);
-    let p_3d = Plane::XZ.point_to_3d(&p_2d);
+    let p_3d = Plane::XZ.point_to_3d(p_2d);
     assert_eq!(p.x, p_3d.x);
     assert_eq!(p.z, p_3d.z);
     assert_eq!(p_3d.y, 0.0);
@@ -772,10 +772,10 @@ fn plane_conversion_xz() {
 fn plane_conversion_yz() {
     use linestring_3d::Plane;
     let p = cgmath::Point3::<f32>::new(1.0, 2.0, 3.0);
-    let p_2d = Plane::YZ.point_to_2d(&p);
+    let p_2d = Plane::YZ.point_to_2d(p);
     assert_eq!(p_2d.x, p.y);
     assert_eq!(p_2d.y, p.z);
-    let p_3d = Plane::YZ.point_to_3d(&p_2d);
+    let p_3d = Plane::YZ.point_to_3d(p_2d);
     assert_eq!(p.y, p_3d.y);
     assert_eq!(p.z, p_3d.z);
     assert_eq!(p_3d.x, 0.0);

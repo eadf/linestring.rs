@@ -45,3 +45,4 @@ cargo run --example fltk_gui
 - [ ] optimize Visvalingam-Whyatt
 - [ ] Stable overlapping co-linear line detection
 - [ ] Add subdivide
+- [x] Use Point-by-value instead of `&Point`

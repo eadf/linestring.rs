@@ -45,7 +45,7 @@ licenses /why-not-lgpl.html>.
 
 use crate::{linestring_2d, LinestringError};
 use ahash::AHashSet;
-use cgmath::ulps_eq;
+use cgmath::{ulps_eq, BaseFloat, Point2};
 use core::fmt;
 use std::cmp;
 use std::collections::BTreeMap;
@@ -53,28 +53,19 @@ use std::convert::identity;
 use std::marker::PhantomData;
 
 #[derive(Clone, Copy)]
-pub struct SiteEventKey<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
-    pub pos: cgmath::Point2<T>,
+pub struct SiteEventKey<T: BaseFloat + Sync> {
+    pub pos: Point2<T>,
 }
 
-impl<T> SiteEventKey<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: BaseFloat + Sync> SiteEventKey<T> {
     pub fn new(x: T, y: T) -> Self {
         Self {
-            pos: cgmath::Point2 { x, y },
+            pos: Point2 { x, y },
         }
     }
 }
 
-impl<T> std::fmt::Debug for SiteEventKey<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: BaseFloat + Sync> std::fmt::Debug for SiteEventKey<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("")
             .field(&self.pos.x)
@@ -83,10 +74,7 @@ where
     }
 }
 
-impl<T> PartialOrd for SiteEventKey<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: BaseFloat + Sync> PartialOrd for SiteEventKey<T> {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         if ulps_eq!(&self.pos.y, &other.pos.y) {
@@ -101,10 +89,7 @@ where
     }
 }
 
-impl<T> Ord for SiteEventKey<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: BaseFloat + Sync> Ord for SiteEventKey<T> {
     /// It should be impossible for a !is_finite() number to be added to SiteEventKey
     #[inline(always)]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
@@ -112,35 +97,26 @@ where
     }
 }
 
-impl<T> PartialEq for SiteEventKey<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: BaseFloat + Sync> PartialEq for SiteEventKey<T> {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
-        linestring_2d::point_ulps_eq(&self.pos, &other.pos)
+        linestring_2d::point_ulps_eq(self.pos, other.pos)
     }
 }
 
-impl<T> Eq for SiteEventKey<T> where T: cgmath::BaseFloat + Sync {}
+impl<T> Eq for SiteEventKey<T> where T: BaseFloat + Sync {}
 
 /// A container struct that keeps track of the lines around a pivot point.
 /// It only stores the lines with highest x value left of pivot point, and lines with lowest x
 /// value right of the point. Secondarily it prioritizes according to slope of the line, lines
 /// leaning towards pivot point have priority.
-struct MinMax<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+struct MinMax<T: BaseFloat + Sync> {
     best_left: Option<T>,
     slope: MinMaxSlope<T>,
     best_right: Option<T>,
 }
 
-impl<T> MinMax<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: BaseFloat + Sync> MinMax<T> {
     fn new() -> Self {
         Self {
             best_left: None,
@@ -216,10 +192,7 @@ where
     }
 }
 
-struct MinMaxSlope<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+struct MinMaxSlope<T: BaseFloat + Sync> {
     best_left: Option<T>, // slope
     candidates_left: Vec<usize>,
 
@@ -227,10 +200,7 @@ where
     candidates_right: Vec<usize>,
 }
 
-impl<T> MinMaxSlope<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: BaseFloat + Sync> MinMaxSlope<T> {
     fn new() -> Self {
         Self {
             best_left: None,
@@ -347,21 +317,15 @@ where
 /// The 'add' list contains the line segments that starts in the event point.
 /// The 'intersection' list contains the line segments that intersects at the event point.
 ///
-pub struct SiteEvent<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+pub struct SiteEvent<T: BaseFloat + Sync> {
     drop: Option<Vec<usize>>,
     add: Option<Vec<usize>>,
     intersection: Option<Vec<usize>>,
     #[doc(hidden)]
-    pd: PhantomData<T>,
+    pd: PhantomData<fn(T) -> T>,
 }
 
-impl<T> SiteEvent<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: BaseFloat + Sync> SiteEvent<T> {
     pub(crate) fn with_intersection(i: &[usize]) -> Self {
         Self {
             drop: None,
@@ -396,13 +360,10 @@ where
 
 /// Returns *one* point of intersection between the `sweepline` and `other`
 /// Second return value is the slope of the line
-fn sweepline_intersection<T>(
-    sweepline: cgmath::Point2<T>,
+fn sweepline_intersection<T: BaseFloat + Sync>(
+    sweepline: Point2<T>,
     other: &linestring_2d::Line2<T>,
-) -> Option<(T, T)>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+) -> Option<(T, T)> {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
     let y1 = other.start.y;
     let y2 = other.end.y;
@@ -411,11 +372,7 @@ where
     if ulps_eq!(&y1, &y2) {
         // horizontal line: return to the point right of sweepline.x, if any
         // Any point to the left are supposedly already handled.
-        if sweepline.x < x2 {
-            return Some((x2, T::zero()));
-        } else {
-            return None;
-        }
+        return (sweepline.x < x2).then(|| (x2, T::zero()));
     }
 
     if ulps_eq!(&x1, &x2) {
@@ -429,14 +386,11 @@ where
 }
 
 /// Contains the data the sweep-line intersection algorithm needs to operate.
-/// Most of these containers are stored inside an Option. This makes it possible
+/// Some of these containers are stored inside an Option. This makes it possible
 /// to take() them and make the borrow-checker happy.
-pub struct IntersectionData<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+pub struct IntersectionData<T: BaseFloat + Sync> {
     // sweep-line position
-    sweepline_pos: cgmath::Point2<T>,
+    sweepline_pos: Point2<T>,
     // Stop when first intersection is found
     stop_at_first_intersection: bool,
     // Allow start&end points to intersect
@@ -446,26 +400,15 @@ where
     pub ignore_end_point_intersections: bool,
     // The unhandled events
     site_events: Option<BTreeMap<SiteEventKey<T>, SiteEvent<T>>>,
-    // The lines we are considering at any given point in time
-    active_lines: Option<AHashSet<usize>>,
-    // A list of intersection points and the line segments involved in each intersection
-    result: Option<BTreeMap<SiteEventKey<T>, Vec<usize>>>,
-    // The 'best' lines surrounding the event point but not directly connected to the point.
-    neighbour_priority: Option<MinMax<T>>,
-    // The 'best' lines directly connected to the event point.
-    connected_priority: Option<MinMaxSlope<T>>,
     // The input geometry. These lines are re-arranged so that Line.start.y <= Line.end.y
     // These are never changed while the algorithm is running.
     lines: Vec<linestring_2d::Line2<T>>,
 }
 
-impl<T> Default for IntersectionData<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: BaseFloat + Sync> Default for IntersectionData<T> {
     fn default() -> Self {
         Self {
-            sweepline_pos: cgmath::Point2 {
+            sweepline_pos: Point2 {
                 x: -T::max_value(),
                 y: -T::max_value(),
             },
@@ -473,19 +416,12 @@ where
             ignore_end_point_intersections: false,
             site_events: Some(BTreeMap::new()),
             lines: Vec::<linestring_2d::Line2<T>>::new(),
-            result: Some(BTreeMap::new()),
-            active_lines: Some(AHashSet::default()),
-            neighbour_priority: Some(MinMax::new()),
-            connected_priority: Some(MinMaxSlope::new()),
         }
     }
 }
 
-impl<T> IntersectionData<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
-    pub fn get_sweepline_pos(&self) -> &cgmath::Point2<T> {
+impl<T: BaseFloat + Sync> IntersectionData<T> {
+    pub fn get_sweepline_pos(&self) -> &Point2<T> {
         &self.sweepline_pos
     }
 
@@ -493,52 +429,15 @@ where
         &self.lines
     }
 
-    /// This removes the results from the AlgorithmData structure
-    #[allow(clippy::type_complexity)]
-    pub fn take_results<'a>(
-        &mut self,
-    ) -> Result<
-        Box<dyn ExactSizeIterator<Item = (cgmath::Point2<T>, Vec<usize>)> + 'a>,
-        LinestringError,
-    >
-    where
-        T: 'a,
-    {
-        if let Some(rv) = self.result.take() {
-            Ok(Box::new(rv.into_iter().map(|x| (x.0.pos, x.1))))
-        } else {
-            Err(LinestringError::InternalError(
-                "Results already taken?? This should not happen".to_string(),
-            ))
-        }
-    }
-
-    pub fn get_site_events(&self) -> &Option<BTreeMap<SiteEventKey<T>, SiteEvent<T>>> {
-        &self.site_events
-    }
-
-    /// Returns an iterator to the active lines, while hiding the internal implementation
-    /// of self.active_lines
-    pub fn get_active_lines<'a>(&'a self) -> Box<dyn Iterator<Item = &usize> + 'a> {
-        if let Some(ref active_lines) = self.active_lines {
-            Box::new(active_lines.iter())
-        } else {
-            Box::new(None.iter())
-        }
-    }
-
-    pub fn with_stop_at_first_intersection(
-        &mut self,
-        value: bool,
-    ) -> Result<&mut Self, LinestringError> {
+    pub fn with_stop_at_first_intersection(mut self, value: bool) -> Result<Self, LinestringError> {
         self.stop_at_first_intersection = value;
         Ok(self)
     }
 
     pub fn with_ignore_end_point_intersections(
-        &mut self,
+        mut self,
         value: bool,
-    ) -> Result<&mut Self, LinestringError> {
+    ) -> Result<Self, LinestringError> {
         self.ignore_end_point_intersections = value;
         Ok(self)
     }
@@ -546,10 +445,9 @@ where
     /// Add data to the input lines.
     /// Sort the end point according to the order of SiteEventKey.
     /// Populate the event queue
-    /// Todo: this duplicates functionality of 'with_ref_lines()', try to consolidate..
-    pub fn with_lines<I>(&mut self, input_iter: I) -> Result<&mut Self, LinestringError>
+    pub fn with_lines<IT>(mut self, input_iter: IT) -> Result<Self, LinestringError>
     where
-        I: Iterator<Item = linestring_2d::Line2<T>>,
+        IT: Iterator<Item = linestring_2d::Line2<T>>,
     {
         let mut site_events = self.site_events.take().ok_or_else(|| {
             LinestringError::InternalError("with_lines() could not take 'site_events'".to_string())
@@ -597,86 +495,13 @@ where
                 let _ = site_events.insert(key_end, event);
             }
         }
-
         self.site_events = Some(site_events);
         #[cfg(feature = "console_trace")]
         self.debug();
         Ok(self)
     }
 
-    /// Add data to the input lines.
-    /// Sort the end point according to the order of SiteEventKey.
-    /// Populate the event queue
-    /// TODO: is this worth keeping? AlgorithmData always keeps copies of the input geometry anyways
-    pub fn with_ref_lines<'a, I>(&mut self, input_iter: I) -> Result<&mut Self, LinestringError>
-    where
-        T: 'a,
-        I: Iterator<Item = &'a linestring_2d::Line2<T>>,
-    {
-        let mut site_events = self.site_events.take().ok_or_else(|| {
-            LinestringError::InternalError(
-                "with_ref_lines() could not take 'site_events'".to_string(),
-            )
-        })?;
-
-        for (index, aline) in input_iter.enumerate() {
-            if !(aline.start.x.is_finite()
-                && aline.start.y.is_finite()
-                && aline.end.x.is_finite()
-                && aline.end.y.is_finite())
-            {
-                return Err(LinestringError::InvalidData(
-                    "Input data contains NaN and/or Inf".to_string(),
-                ));
-            }
-
-            // Re-arrange so that:
-            // SiteEvent.pos.start < SiteEvent.pos.end (primary ordering: pos.y, secondary: pos.x)
-            let aline =
-                if (SiteEventKey { pos: aline.start }).lt(&(SiteEventKey { pos: aline.end })) {
-                    linestring_2d::Line2 {
-                        start: aline.start,
-                        end: aline.end,
-                    }
-                } else {
-                    linestring_2d::Line2 {
-                        start: aline.end,
-                        end: aline.start,
-                    }
-                };
-
-            self.lines.push(aline);
-
-            let key_start = SiteEventKey { pos: aline.start };
-            let key_end = SiteEventKey { pos: aline.end };
-
-            // start points goes into the site_event::add list
-            if let Some(mut event) = site_events.get_mut(&key_start) {
-                let mut lower = event.add.take().map_or(Vec::<usize>::new(), identity);
-                lower.push(index);
-                event.add = Some(lower);
-            } else {
-                let event = SiteEvent::<T>::with_add(&[index]);
-                let _ = site_events.insert(key_start, event);
-            }
-
-            // end points goes into the site_event::drop list
-            if let Some(mut event) = site_events.get_mut(&key_end) {
-                let mut upper = event.drop.take().map_or(Vec::<usize>::new(), identity);
-                upper.push(index);
-                event.drop = Some(upper);
-            } else {
-                let event = SiteEvent::<T>::with_drop(&[index]);
-                let _ = site_events.insert(key_end, event);
-            }
-        }
-
-        self.site_events = Some(site_events);
-        #[cfg(feature = "console_trace")]
-        self.debug();
-        Ok(self)
-    }
-
+    #[inline]
     ///
     /// Add a new intersection event to the event queue
     ///
@@ -693,8 +518,8 @@ where
                 // only add this line as an intersection if the intersection lies
                 // at the interior of the line (no end point)
                 let i_line = self.lines[*new_intersection];
-                if linestring_2d::point_ulps_eq(&position.pos, &i_line.start)
-                    || linestring_2d::point_ulps_eq(&position.pos, &i_line.end)
+                if linestring_2d::point_ulps_eq(position.pos, i_line.start)
+                    || linestring_2d::point_ulps_eq(position.pos, i_line.end)
                 {
                     continue;
                 }
@@ -723,37 +548,22 @@ where
     #[allow(unused_assignments)]
     #[allow(clippy::type_complexity)]
     /// Handles input events, returns an iterator containing the results when done.
-    pub fn compute<'a>(
-        &mut self,
-    ) -> Result<
-        Box<dyn ExactSizeIterator<Item = (cgmath::Point2<T>, Vec<usize>)> + 'a>,
-        LinestringError,
-    >
-    where
-        T: 'a,
-    {
+    pub fn compute(
+        mut self,
+    ) -> Result<impl ExactSizeIterator<Item = (Point2<T>, Vec<usize>)>, LinestringError> {
         // make the borrow checker happy by breaking the link between self and all the
         // containers and their iterators.
-        let mut active_lines = self.active_lines.take().ok_or_else(|| {
-            LinestringError::InternalError("compute() could not take 'active_lines'".to_string())
-        })?;
+        let mut active_lines = AHashSet::<usize>::default();
         let mut site_events = self.site_events.take().ok_or_else(|| {
             LinestringError::InternalError("compute() could not take 'site_events'".to_string())
         })?;
-        let mut result = self
-            .result
-            .take()
-            .ok_or_else(|| LinestringError::InternalError("Could not take 'result'".to_string()))?;
-        let mut neighbour_priority = self.neighbour_priority.take().ok_or_else(|| {
-            LinestringError::InternalError(
-                "compute() could not take 'neighbour_priority'".to_string(),
-            )
-        })?;
-        let mut connected_priority = self.connected_priority.take().ok_or_else(|| {
-            LinestringError::InternalError(
-                "compute() could not take 'connected_priority'".to_string(),
-            )
-        })?;
+        // A list of intersection points and the line segments involved in each intersection
+        let mut result: BTreeMap<SiteEventKey<T>, Vec<usize>> = BTreeMap::default();
+        // The 'best' lines surrounding the event point but not directly connected to the point.
+        let mut neighbour_priority = MinMax::<T>::new();
+
+        // The 'best' lines directly connected to the event point.
+        let mut connected_priority = MinMaxSlope::<T>::new();
 
         loop {
             if let Some((key, event)) = {
@@ -792,22 +602,12 @@ where
                     break;
                 }
             } else {
-                self.sweepline_pos = cgmath::Point2 {
-                    x: T::max_value(),
-                    y: T::max_value(),
-                };
-
+                self.sweepline_pos = Point2::new(T::max_value(), T::max_value());
                 break;
             }
         }
-
-        // put the borrowed containers back
-        self.site_events = Some(site_events);
-        self.active_lines = Some(active_lines);
-        self.result = Some(result);
-        self.neighbour_priority = Some(neighbour_priority);
-        self.connected_priority = Some(connected_priority);
-        self.take_results()
+        // no need to put the borrowed containers back
+        Ok(result.into_iter().map(|x| (x.0.pos, x.1)))
     }
 
     #[inline(always)]
@@ -829,32 +629,29 @@ where
         let intersections_found = event.intersection.iter().flatten().count();
 
         #[cfg(feature = "console_trace")]
-        println!("*************************************");
-        #[cfg(feature = "console_trace")]
-        print!(
-            "handle_event() sweepline=({:?},{:?})",
-            self.sweepline_pos.x, self.sweepline_pos.y,
-        );
-        #[cfg(feature = "console_trace")]
-        print!(
-            ", drop={:?}",
-            event.drop.iter().flatten().collect::<Vec<&usize>>()
-        );
-        #[cfg(feature = "console_trace")]
-        print!(
-            ", add={:?}",
-            event.add.iter().flatten().collect::<Vec<&usize>>()
-        );
-        #[cfg(feature = "console_trace")]
-        print!(
-            ", intersection={:?}",
-            event.intersection.iter().flatten().collect::<Vec<&usize>>()
-        );
-        #[cfg(feature = "console_trace")]
-        println!(
-            ", active:{:?}",
-            active_lines.iter().collect::<Vec<&usize>>()
-        );
+        {
+            println!("*************************************");
+            print!(
+                "handle_event() sweepline=({:?},{:?})",
+                self.sweepline_pos.x, self.sweepline_pos.y,
+            );
+            print!(
+                ", drop={:?}",
+                event.drop.iter().flatten().collect::<Vec<&usize>>()
+            );
+            print!(
+                ", add={:?}",
+                event.add.iter().flatten().collect::<Vec<&usize>>()
+            );
+            print!(
+                ", intersection={:?}",
+                event.intersection.iter().flatten().collect::<Vec<&usize>>()
+            );
+            println!(
+                ", active:{:?}",
+                active_lines.iter().collect::<Vec<&usize>>()
+            );
+        }
 
         // Handle points converging at this point:
         // If sum of number of items in 'add' + 'drop' > 1 they must intersect at this point
@@ -865,20 +662,20 @@ where
                 if removed_active_lines > 0 {
                     self.report_intersections_to_result(
                         result,
-                        &self.sweepline_pos.clone(),
+                        self.sweepline_pos,
                         event.drop.iter().flatten(),
                     );
                 }
                 if added_active_lines > 0 {
                     self.report_intersections_to_result(
                         result,
-                        &self.sweepline_pos.clone(),
+                        self.sweepline_pos,
                         event.add.iter().flatten(),
                     );
                 }
                 self.report_intersections_to_result(
                     result,
-                    &self.sweepline_pos.clone(),
+                    self.sweepline_pos,
                     event.intersection.iter().flatten(),
                 );
             }
@@ -887,21 +684,21 @@ where
             if removed_active_lines > 0 {
                 self.report_intersections_to_result(
                     result,
-                    &self.sweepline_pos.clone(),
+                    self.sweepline_pos,
                     event.drop.iter().flatten(),
                 );
             }
             if added_active_lines > 0 {
                 self.report_intersections_to_result(
                     result,
-                    &self.sweepline_pos.clone(),
+                    self.sweepline_pos,
                     event.add.iter().flatten(),
                 );
             }
             if intersections_found > 0 {
                 self.report_intersections_to_result(
                     result,
-                    &self.sweepline_pos.clone(),
+                    self.sweepline_pos,
                     event.intersection.iter().flatten(),
                 );
             }
@@ -946,15 +743,16 @@ where
 
         if intersections_found + added_active_lines == 0 {
             #[cfg(feature = "console_trace")]
-            println!(
-                "neighbours left: {:?}",
-                neighbour_priority.slope.candidates_left
-            );
-            #[cfg(feature = "console_trace")]
-            println!(
-                "neighbours right: {:?}",
-                neighbour_priority.slope.candidates_right
-            );
+            {
+                println!(
+                    "neighbours left: {:?}",
+                    neighbour_priority.slope.candidates_left
+                );
+                println!(
+                    "neighbours right: {:?}",
+                    neighbour_priority.slope.candidates_right
+                );
+            }
             // this event didn't spawn off new events, check neighbours
             if !neighbour_priority.slope.candidates_left.is_empty()
                 && !neighbour_priority.slope.candidates_right.is_empty()
@@ -974,15 +772,16 @@ where
                 connected_priority.update_both(*l, &self.lines);
             }
             #[cfg(feature = "console_trace")]
-            println!(
-                "left connected_priority candidates {:?}",
-                connected_priority.candidates_left
-            );
-            #[cfg(feature = "console_trace")]
-            println!(
-                "right connected_priority candidates {:?}",
-                connected_priority.candidates_right
-            );
+            {
+                println!(
+                    "left connected_priority candidates {:?}",
+                    connected_priority.candidates_left
+                );
+                println!(
+                    "right connected_priority candidates {:?}",
+                    connected_priority.candidates_right
+                );
+            }
 
             if !neighbour_priority.slope.candidates_left.is_empty() {
                 #[cfg(feature = "console_trace")]
@@ -1011,10 +810,11 @@ where
                 )?;
             }
         }
-        #[cfg(any(test, example))]
-        println!("Post active lines: {:?}", active_lines);
         #[cfg(feature = "console_trace")]
-        println!();
+        {
+            println!("Post active lines: {:?}", active_lines);
+            println!();
+        }
         Ok(())
     }
 
@@ -1026,9 +826,9 @@ where
     ) -> Result<(), LinestringError> {
         for left_i in left.iter() {
             for right_i in right.iter() {
-                let left_l = &self.lines[*left_i];
-                let right_l = &self.lines[*right_i];
-                if linestring_2d::point_ulps_eq(&left_l.end, &right_l.end) {
+                let left_l = self.lines[*left_i];
+                let right_l = self.lines[*right_i];
+                if linestring_2d::point_ulps_eq(left_l.end, right_l.end) {
                     // if endpoints are equal they will already be in the event queue
                     continue;
                 }
@@ -1047,7 +847,7 @@ where
                     if intersection_p.y >= self.sweepline_pos.y
                         && !(intersection_p.y == self.sweepline_pos.y
                             && intersection_p.x < self.sweepline_pos.x)
-                        && !linestring_2d::point_ulps_eq(&intersection_p, &self.sweepline_pos)
+                        && !linestring_2d::point_ulps_eq(intersection_p, self.sweepline_pos)
                     {
                         #[cfg(feature = "console_trace")]
                         println!(
@@ -1072,15 +872,13 @@ where
         Ok(())
     }
 
-    fn report_intersections_to_result<'a, I>(
+    fn report_intersections_to_result<'a, I: Iterator<Item = &'a usize>>(
         &mut self,
         result: &mut BTreeMap<SiteEventKey<T>, Vec<usize>>,
-        pos: &cgmath::Point2<T>,
+        pos: Point2<T>,
         intersecting_lines: I,
-    ) where
-        I: Iterator<Item = &'a usize>,
-    {
-        let key = SiteEventKey { pos: *pos };
+    ) {
+        let key = SiteEventKey { pos };
 
         let value = if let Some(value) = result.get_mut(&key) {
             value

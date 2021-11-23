@@ -5,7 +5,7 @@
 **/.proj
 .project
 /.idea/
-
+flamegraph.svg
 /target/
 
 # Remove Cargo.lock from gitignore if creating an executable, leave it for libraries
