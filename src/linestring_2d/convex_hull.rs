@@ -1,4 +1,4 @@
-use crate::{linestring_2d,GrowingVob};
+use crate::{linestring_2d, GrowingVob};
 use cgmath::ulps_eq;
 use rayon::prelude::*;
 use std::cmp::Ordering;
@@ -381,7 +381,10 @@ where
     /// assert!(!convex_hull::ConvexHull::contains_point_exclusive(&hull, &[10.0,9.99999].into()));
     ///
     ///```
-    pub fn contains_point_exclusive(a: &linestring_2d::LineString2<T>, p: &cgmath::Point2<T>) -> bool {
+    pub fn contains_point_exclusive(
+        a: &linestring_2d::LineString2<T>,
+        p: &cgmath::Point2<T>,
+    ) -> bool {
         if a.len() <= 1 {
             return false;
         }
@@ -415,7 +418,10 @@ where
     /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[9.999,5.0].into()));
     /// assert!(convex_hull::ConvexHull::contains_point_inclusive(&hull, &[10.0,5.0].into()));
     ///```
-    pub fn contains_point_inclusive(a: &linestring_2d::LineString2<T>, p: &cgmath::Point2<T>) -> bool {
+    pub fn contains_point_inclusive(
+        a: &linestring_2d::LineString2<T>,
+        p: &cgmath::Point2<T>,
+    ) -> bool {
         if a.len() <= 1 {
             return false;
         }

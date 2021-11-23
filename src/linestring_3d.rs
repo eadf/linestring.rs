@@ -72,7 +72,7 @@ where
 pub enum Plane {
     XY,
     XZ,
-    ZY,
+    YZ,
 }
 
 impl Plane {
@@ -114,7 +114,7 @@ impl Plane {
                 let dz = T::zero().ulps_eq(&(dz / max_delta), epsilon, max_ulps);
 
                 if dx && !dy && !dz {
-                    return Some(Plane::ZY);
+                    return Some(Plane::YZ);
                 }
                 if dy && !dx && !dz {
                     return Some(Plane::XZ);
@@ -128,7 +128,10 @@ impl Plane {
     }
 
     /// Copy this Point2 into a Point3, populating the axes defined by 'plane'
-    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// An axis will always remain in x,y,z order.
+    /// `Plane::XY`: `Point2(XY)` -> `Point3(XY0)`
+    /// `Plane::XZ`: `Point2(XY)` -> `Point2(X0Y)`
+    /// `Plane::YZ`: `Point2(XY)` -> `Point2(0XY)`
     /// That way the operation is reversible (with regards to axis positions).
     #[inline(always)]
     pub fn point_to_3d<T>(&self, point: &cgmath::Point2<T>) -> cgmath::Point3<T>
@@ -146,20 +149,23 @@ impl Plane {
                 y: T::zero(),
                 z: point.y,
             },
-            Plane::ZY => cgmath::Point3 {
+            Plane::YZ => cgmath::Point3 {
                 x: T::zero(),
-                y: point.y,
-                z: point.x,
+                y: point.x,
+                z: point.y,
             },
         }
     }
 
     /// Copy this Point2 into a Point3, populating the axes defined by 'plane'
-    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// An axis will always remain in x,y,z order.
+    /// `Plane::XY`: `Point3(XYZ)` -> `Point2(XY)`
+    /// `Plane::XZ`: `Point3(XYZ)` -> `Point2(XZ)`
+    /// `Plane::YZ`: `Point3(XYZ)` -> `Point2(YZ)`
     /// That way the operation is reversible (with regards to axis positions).
     #[allow(dead_code)]
     #[inline(always)]
-    fn point_to_2d<T>(&self, point: &cgmath::Point3<T>) -> cgmath::Point2<T>
+    pub fn point_to_2d<T>(&self, point: &cgmath::Point3<T>) -> cgmath::Point2<T>
     where
         T: cgmath::BaseFloat + Sync + cgmath::AbsDiffEq<Epsilon = T>,
     {
@@ -172,9 +178,9 @@ impl Plane {
                 x: point.x,
                 y: point.z,
             },
-            Plane::ZY => cgmath::Point2 {
-                x: point.z,
-                y: point.y,
+            Plane::YZ => cgmath::Point2 {
+                x: point.y,
+                y: point.z,
             },
         }
     }
@@ -392,7 +398,7 @@ where
                 .iter()
                 .map(|p3d| cgmath::Point2 { x: p3d.x, y: p3d.z })
                 .collect(),
-            Plane::ZY => self
+            Plane::YZ => self
                 .points
                 .iter()
                 .map(|p3d| cgmath::Point2 { x: p3d.z, y: p3d.y })
@@ -742,10 +748,7 @@ where
     }
 }
 
-impl<T> LineStringSet3<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> LineStringSet3<T> {
     pub fn default() -> Self {
         Self {
             set: Vec::<LineString3<T>>::new(),
@@ -819,10 +822,7 @@ where
     }
 }
 
-impl<T> From<[T; 6]> for Aabb3<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> From<[T; 6]> for Aabb3<T> {
     fn from(coordinate: [T; 6]) -> Aabb3<T> {
         Aabb3 {
             min_max: Some((
@@ -841,10 +841,7 @@ where
     }
 }
 
-impl<T> Aabb3<T>
-where
-    T: cgmath::BaseFloat + Sync,
-{
+impl<T: cgmath::BaseFloat + Sync> Aabb3<T> {
     pub fn default() -> Self {
         Self { min_max: None }
     }

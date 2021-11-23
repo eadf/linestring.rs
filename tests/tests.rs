@@ -1,13 +1,7 @@
 #![deny(warnings)]
 
-use cgmath::ulps_eq;
-
-use cgmath::AbsDiffEq;
-
-use cgmath::UlpsEq;
-
+use cgmath::{ulps_eq, AbsDiffEq, UlpsEq};
 use linestring::linestring_2d;
-
 use linestring::linestring_3d;
 
 fn almost_equal<T: cgmath::BaseFloat + Sync>(x1: T, x2: T, y1: T, y2: T) {
@@ -17,7 +11,6 @@ fn almost_equal<T: cgmath::BaseFloat + Sync>(x1: T, x2: T, y1: T, y2: T) {
 
 /// draws a line pivoting around (x,y) with 'angle' in degrees
 /// l1 & l2 are lengths
-
 fn pivot(x: f64, y: f64, l1: f64, l2: f64, angle: f64) -> linestring_2d::Line2<f64> {
     let l = linestring_2d::Line2 {
         start: cgmath::Point2 {
@@ -744,4 +737,46 @@ fn distance_to_line_squared_01() {
     assert_eq!(linestring_2d::distance_to_line_squared(&a, &b, &p), 4.0);
     let p = cgmath::Point2::<f32>::new(0.5, -2.0);
     assert_eq!(linestring_2d::distance_to_line_squared(&a, &b, &p), 4.0);
+}
+
+#[test]
+/// check that the coordinates are preserved over a `Plane::XY` conversion
+fn plane_conversion_xy() {
+    use linestring_3d::Plane;
+    let p = cgmath::Point3::<f32>::new(1.0, 2.0, 3.0);
+    let p_2d = Plane::XY.point_to_2d(&p);
+    assert_eq!(p_2d.x, p.x);
+    assert_eq!(p_2d.y, p.y);
+    let p_3d = Plane::XY.point_to_3d(&p_2d);
+    assert_eq!(p.x, p_3d.x);
+    assert_eq!(p.y, p_3d.y);
+    assert_eq!(p_3d.z, 0.0);
+}
+
+#[test]
+/// check that the coordinates are preserved over a `Plane::XZ` conversion
+fn plane_conversion_xz() {
+    use linestring_3d::Plane;
+    let p = cgmath::Point3::<f32>::new(1.0, 2.0, 3.0);
+    let p_2d = Plane::XZ.point_to_2d(&p);
+    assert_eq!(p_2d.x, p.x);
+    assert_eq!(p_2d.y, p.z);
+    let p_3d = Plane::XZ.point_to_3d(&p_2d);
+    assert_eq!(p.x, p_3d.x);
+    assert_eq!(p.z, p_3d.z);
+    assert_eq!(p_3d.y, 0.0);
+}
+
+#[test]
+/// check that the coordinates are preserved over a `Plane::YZ` conversion
+fn plane_conversion_yz() {
+    use linestring_3d::Plane;
+    let p = cgmath::Point3::<f32>::new(1.0, 2.0, 3.0);
+    let p_2d = Plane::YZ.point_to_2d(&p);
+    assert_eq!(p_2d.x, p.y);
+    assert_eq!(p_2d.y, p.z);
+    let p_3d = Plane::YZ.point_to_3d(&p_2d);
+    assert_eq!(p.y, p_3d.y);
+    assert_eq!(p.z, p_3d.z);
+    assert_eq!(p_3d.x, 0.0);
 }

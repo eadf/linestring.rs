@@ -801,13 +801,13 @@ where
                     z: p2d.y,
                 })
                 .collect(),
-            linestring_3d::Plane::ZY => self
+            linestring_3d::Plane::YZ => self
                 .points
                 .iter()
                 .map(|p2d| cgmath::Point3 {
                     x: T::zero(),
-                    y: p2d.y,
-                    z: p2d.x,
+                    y: p2d.x,
+                    z: p2d.y,
                 })
                 .collect(),
         };
