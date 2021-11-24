@@ -1506,10 +1506,7 @@ pub fn scale_to_coordinate<T: cgmath::BaseFloat + Sync>(
     vector: Vector2<T>,
     scale: T,
 ) -> Point2<T> {
-    Point2::new (
-        point.x + scale * vector.x,
-        point.y + scale * vector.y,
-    )
+    Point2::new(point.x + scale * vector.x, point.y + scale * vector.y)
 }
 
 #[inline(always)]
