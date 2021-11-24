@@ -45,7 +45,7 @@ licenses /why-not-lgpl.html>.
 
 use super::linestring_2d;
 use crate::LinestringError;
-use cgmath::{ulps_eq, Point2, Point3, Transform, MetricSpace};
+use cgmath::{ulps_eq, MetricSpace, Point2, Point3, Transform};
 use itertools::Itertools;
 use std::collections;
 use std::fmt;
@@ -932,34 +932,32 @@ where
 /// Make sure to *not* call this function with a-b==0
 /// This function returns the distance²
 pub fn distance_to_line_squared<T: cgmath::BaseFloat + Sync>(
-    a: Point3<T>,
-    b: Point3<T>,
+    l0: Point3<T>,
+    l1: Point3<T>,
     p: Point3<T>,
 ) -> T {
-    let a_sub_b = a - b;
-    let a_sub_p = a - p;
-    let a_sub_p_cross_a_sub_b_squared = cross_abs_squared(a_sub_p, a_sub_b);
-    a_sub_p_cross_a_sub_b_squared
-        / (a_sub_b.x * a_sub_b.x + a_sub_b.y * a_sub_b.y + a_sub_b.z * a_sub_b.z)
+    let l0_sub_l1 = l0 - l1;
+    let l0_sub_p = l0 - p;
+    cross_abs_squared(l0_sub_p, l0_sub_l1)
+        / (l0_sub_l1.x * l0_sub_l1.x + l0_sub_l1.y * l0_sub_l1.y + l0_sub_l1.z * l0_sub_l1.z)
 }
 
 /// Same as distance_to_line_squared<T> but it can be called when a-b might be 0.
 /// It's a little slower because it does the a==b test
 #[inline(always)]
 pub fn distance_to_line_squared_safe<T: cgmath::BaseFloat + Sync>(
-    a: Point3<T>,
-    b: Point3<T>,
+    l0: Point3<T>,
+    l1: Point3<T>,
     p: Point3<T>,
 ) -> T {
-    if point_ulps_eq(a, b) {
+    if point_ulps_eq(l0, l1) {
         // give the point-to-point answer if the segment is a point
-        a.distance2(p)
+        l0.distance2(p)
     } else {
-        let a_sub_b = a - b;
-        let a_sub_p = a - p;
-        let a_sub_p_cross_a_sub_b_squared = cross_abs_squared(a_sub_p, a_sub_b);
-        a_sub_p_cross_a_sub_b_squared
-            / (a_sub_b.x * a_sub_b.x + a_sub_b.y * a_sub_b.y + a_sub_b.z * a_sub_b.z)
+        let l0_sub_l1 = l0 - l1;
+        let l0_sub_p = l0 - p;
+        cross_abs_squared(l0_sub_p, l0_sub_l1)
+            / (l0_sub_l1.x * l0_sub_l1.x + l0_sub_l1.y * l0_sub_l1.y + l0_sub_l1.z * l0_sub_l1.z)
     }
 }
 

@@ -1454,16 +1454,16 @@ pub fn intersect_line_point<T: cgmath::BaseFloat + Sync>(
         return Some(Intersection::Intersection(point));
     }
 
-    let x1 = line.start.x;
-    let x2 = line.end.x;
-    let y1 = line.start.y;
-    let y2 = line.end.y;
-    let x = point.x;
-    let y = point.y;
+    let l0x = line.start.x;
+    let l1x = line.end.x;
+    let l0y = line.start.y;
+    let l1y = line.end.y;
+    let px = point.x;
+    let py = point.y;
 
-    let ab = ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)).sqrt();
-    let ap = ((x - x1) * (x - x1) + (y - y1) * (y - y1)).sqrt();
-    let pb = ((x2 - x) * (x2 - x) + (y2 - y) * (y2 - y)).sqrt();
+    let ab = ((l1x - l0x) * (l1x - l0x) + (l1y - l0y) * (l1y - l0y)).sqrt();
+    let ap = ((px - l0x) * (px - l0x) + (py - l0y) * (py - l0y)).sqrt();
+    let pb = ((l1x - px) * (l1x - px) + (l1y - py) * (l1y - py)).sqrt();
 
     #[cfg(feature = "console_trace")]
     println!("ab={:?}, ap={:?}, pb={:?}, ap+pb={:?}", ab, ap, pb, ap + pb);
@@ -1506,10 +1506,10 @@ pub fn scale_to_coordinate<T: cgmath::BaseFloat + Sync>(
     vector: Vector2<T>,
     scale: T,
 ) -> Point2<T> {
-    Point2 {
-        x: point.x + scale * vector.x,
-        y: point.y + scale * vector.y,
-    }
+    Point2::new (
+        point.x + scale * vector.x,
+        point.y + scale * vector.y,
+    )
 }
 
 #[inline(always)]
@@ -1527,23 +1527,23 @@ fn cross_z<T: cgmath::BaseFloat + Sync>(v: Vector2<T>, w: Vector2<T>) -> T {
 /// <https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation>
 /// Make sure to *not* call this function with a-b==0
 /// This function returns the distance²
-pub fn distance_to_line_squared<T>(a: Point2<T>, b: Point2<T>, p: Point2<T>) -> T
+pub fn distance_to_line_squared<T>(l0: Point2<T>, l1: Point2<T>, p: Point2<T>) -> T
 where
     T: cgmath::BaseFloat + Sync,
 {
-    let a_sub_b = a - b;
-    let a_sub_p = a - p;
-    let dot = (a_sub_b.x * a_sub_p.x + a_sub_b.y * a_sub_p.y)
-        / (a_sub_b.x * a_sub_b.x + a_sub_b.y * a_sub_b.y);
+    let l0_sub_l1 = l0 - l1;
+    let l0_sub_p = l0 - p;
+    let dot = (l0_sub_l1.x * l0_sub_p.x + l0_sub_l1.y * l0_sub_p.y)
+        / (l0_sub_l1.x * l0_sub_l1.x + l0_sub_l1.y * l0_sub_l1.y);
     if dot < T::zero() {
-        a_sub_p.x * a_sub_p.x + a_sub_p.y * a_sub_p.y
+        l0_sub_p.x * l0_sub_p.x + l0_sub_p.y * l0_sub_p.y
     } else if dot > T::one() {
-        let b_sub_p = b - p;
+        let b_sub_p = l1 - p;
         b_sub_p.x * b_sub_p.x + b_sub_p.y * b_sub_p.y
     } else {
-        let a_sub_p_cross_a_sub_b = cross_z(a_sub_p, a_sub_b);
+        let a_sub_p_cross_a_sub_b = cross_z(l0_sub_p, l0_sub_l1);
         (a_sub_p_cross_a_sub_b * a_sub_p_cross_a_sub_b)
-            / (a_sub_b.x * a_sub_b.x + a_sub_b.y * a_sub_b.y)
+            / (l0_sub_l1.x * l0_sub_l1.x + l0_sub_l1.y * l0_sub_l1.y)
     }
 }
 
@@ -1551,15 +1551,15 @@ where
 /// It's a little slower because it does the a==b test
 #[inline(always)]
 pub fn distance_to_line_squared_safe<T: cgmath::BaseFloat + Sync>(
-    a: Point2<T>,
-    b: Point2<T>,
+    l0: Point2<T>,
+    l1: Point2<T>,
     p: Point2<T>,
 ) -> T {
-    if point_ulps_eq(a, b) {
+    if point_ulps_eq(l0, l1) {
         // give the point-to-point answer if the segment is a point
-        a.distance2(p)
+        l0.distance2(p)
     } else {
-        distance_to_line_squared(a, b, p)
+        distance_to_line_squared(l0, l1, p)
     }
 }
 
