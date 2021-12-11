@@ -1646,7 +1646,7 @@ impl<T: cgmath::BaseFloat + Sync + num_traits::cast::NumCast> SimpleAffine<T> {
     /// let mut aabb_source = linestring_2d::Aabb2::<T>::from([-100.,-100.,100.,100.]);
     /// // dest is (0,0)-(800,800.)
     /// let mut aabb_dest = linestring_2d::Aabb2::<T>::from([0.,0.,800.,800.]);
-    /// let transform = linestring_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
+    /// let transform = linestring_2d::SimpleAffine::new(&aabb_source, &aabb_dest)?;
     ///
     /// assert_eq!(
     ///   transform.transform_ab(Point2{x:-100., y:-100.}).unwrap(),
@@ -1664,6 +1664,7 @@ impl<T: cgmath::BaseFloat + Sync + num_traits::cast::NumCast> SimpleAffine<T> {
     ///    transform.transform_ba(Point2{x:800., y:800.}).unwrap(),
     ///    Point2{x:100., y:100.}
     ///  );
+    /// # Ok::<(),linestring::LinestringError>(())
     ///```
     #[inline(always)]
     pub fn transform_ba(&self, point: Point2<T>) -> Result<Point2<T>, LinestringError> {
@@ -1688,23 +1689,24 @@ impl<T: cgmath::BaseFloat + Sync + num_traits::cast::NumCast> SimpleAffine<T> {
     /// // dest is (1,1)-(2,2)
     /// let mut aabb_dest = linestring_2d::Aabb2::<T>::from([1.,1.,2.,2.]);
     ///
-    /// let transform = linestring_2d::SimpleAffine::new(&aabb_source, &aabb_dest).unwrap();
+    /// let transform = linestring_2d::SimpleAffine::new(&aabb_source, &aabb_dest)?;
     /// assert_eq!(
-    ///   transform.transform_ab(Point2{x:0., y:0.}).unwrap(),
+    ///   transform.transform_ab(Point2{x:0., y:0.})?,
     ///    Point2{x:1., y:1.}
     ///  );
     /// assert_eq!(
-    /// transform.transform_ab(Point2{x:1., y:1.}).unwrap(),
+    /// transform.transform_ab(Point2{x:1., y:1.})?,
     ///   Point2{x:2., y:2.}
     /// );
     /// assert_eq!(
-    ///   transform.transform_ab(Point2{x:0., y:1.}).unwrap(),
+    ///   transform.transform_ab(Point2{x:0., y:1.})?,
     ///   Point2{x:1., y:2.}
     /// );
     /// assert_eq!(
-    ///   transform.transform_ab(Point2{x:1., y:0.}).unwrap(),
+    ///   transform.transform_ab(Point2{x:1., y:0.})?,
     ///   Point2{x:2., y:1.}
     /// );
+    /// # Ok::<(),linestring::LinestringError>(())
     ///```
     #[inline(always)]
     pub fn transform_ab(&self, point: Point2<T>) -> Result<Point2<T>, LinestringError> {
