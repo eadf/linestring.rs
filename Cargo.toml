@@ -15,10 +15,10 @@ glam = ["vector-traits/glam"] # this is only needed for the gui, tests and bench
 cgmath = ["vector-traits/cgmath"] # this is only needed for some tests
 
 [dependencies]
-vector-traits = { version = "0.1.0", features = ["approx"] }
-rayon = "1.7.0"
+vector-traits = { version = "0.1", features = ["approx"] }
+rayon = "1.8.0"
 ahash = "0.8.3"
-thiserror = "1.0"
+thiserror = "1.0.50"
 itertools = "0.11.0"
 vob="3.0.3"
 
@@ -27,8 +27,8 @@ name = "fltk_gui"
 path = "example/fltk_gui.rs"
 
 [dev-dependencies]
-fltk = "1.4.9"
-rand = "0.8"
+fltk = "1.4.15"
+rand = "0.8.5"
 criterion = "0.5.1"
 
 [[bench]]
