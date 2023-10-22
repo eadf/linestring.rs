@@ -3,6 +3,7 @@
 **/.settings
 **/.cproject
 **/.proj
+*.profraw
 .project
 /.idea/
 flamegraph.svg

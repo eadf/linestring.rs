@@ -1,48 +1,58 @@
 [![crates.io](https://img.shields.io/crates/v/linestring.svg)](https://crates.io/crates/linestring)
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
-[![dependency status](https://deps.rs/crate/linestring/0.8.0/status.svg)](https://deps.rs/crate/linestring/0.8.0)
+[![dependency status](https://deps.rs/crate/linestring/0.9.0/status.svg)](https://deps.rs/crate/linestring/0.9.0)
 ![license](https://img.shields.io/crates/l/linestring)
 
-# Lackadaisical 2d and 3d polylines for cgmath
+# Linestring: 2D poly-lines for generic vectors.
 
-Data structures and methods for polylines/segments in 2D and 3D space.
+`linestring` is a Rust crate providing data structures and methods for working with poly-lines and segments in 2D space.
+Utilizing the `vector-traits` crate, it abstracts over different vector implementations allowing for seamless
+transitions between vector libraries like `glam` and `cgmath` (for now).
 
-There are 3D and 2D implementations of:
-* LineString, a sequence of points, aka Polyline.
-* Line, a finite two-point struct (no rays).
-* [Ramer–Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm) and
-* [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm) line simplification algorithms.
-* Sampling of [boostvoronoi](https://github.com/eadf/boostvoronoi.rs) parabolic arc curves.
-* Rudimentary functionality to save to .obj file
+## Features
 
-There are 2D implementations of:
-* LineString2 convex hull calculation (gift wrapping & Graham scan)
-* Aabb [axis aligned bounding box](https://en.wikipedia.org/wiki/Minimum_bounding_box).
-* Self intersection tests for line strings, or groups of lines O( n log n + i log n).
-* Convex hull containment test
-* Simple affine transformation (pan, zoom)
+- **Generic Vector Support:** Seamlessly switch between different vector implementations.
+- **Core Data Structures:** LineString, Line, and axis-aligned bounding box (Aabb).
+- **Line Simplification Algorithms:** [Ramer–Douglas–Peucker](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm) and [Visvalingam-Whyatt](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm).
+- **Curve Sampling:** Sampling of [boostvoronoi](https://github.com/eadf/boostvoronoi.rs) parabolic arc curves.
+- **Convex Hull Calculation:** Gift wrapping & Graham scan algorithms.
+- **Intersection Tests:** Self-intersection tests for line strings, or groups of lines with O( n log n + i log n) complexity.
+- **Containment Test:** Convex hull containment test.
+- **Affine Transformations:** Simple affine transformations including pan and zoom.
 
-If you want to use this library in your cgmath project you add this to your Cargo.toml:
-```cargo
-linestring = {version="0.8"}
+## Usage
+
+Include the following dependencies in your `Cargo.toml` file, picking the vector implementation you need:
+```toml
+vector-traits = {version="0.1", features= ["glam","cgmath","approx"]} # pick cgmath or glam, whatever you need
+linestring = {version="0.9"}
 ```
-
-## Rust toolchains
-
-This crate uses `#![feature(map_first_last)]` if compiled by +nightly. This is functionality is only emulated when run on +stable.
 
 ## Demo GUI
 Run the line simplification example with :
-```fish
+```shell
 cargo run --example fltk_gui
 ```
 
 ## Todo
 - [ ] Improve on error handling
-- [ ] Benchmark and optimize (add smallvec to simplify rdp?)
-- [ ] optimize Ramer–Douglas-Peucker
-- [ ] optimize Visvalingam-Whyatt
+- [x] optimize Ramer–Douglas-Peucker
+- [x] optimize Visvalingam-Whyatt
 - [ ] Stable overlapping co-linear line detection
-- [ ] Add subdivide
 - [x] Use Point-by-value instead of `&Point`
+
+### Minimum Supported Rust Version (MSRV)
+
+The minimum supported version of Rust for `linestring` is `1.66`.
+
+## License
+
+Licensed under either of
+
+* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE)
+  or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license ([LICENSE-MIT](LICENSE-MIT)
+  or http://opensource.org/licenses/MIT)
+
+at your option.

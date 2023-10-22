@@ -1,122 +1,133 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// Copyright (c) 2021,2023 lacklustr@protonmail.com https://github.com/eadf
+
+// This file is part of the linestring crate.
+
 /*
-Line and line segment library for 2d and 3d.
+Copyright (c) 2021,2023 lacklustr@protonmail.com https://github.com/eadf
 
-Copyright (C) 2021 eadf https://github.com/eadf
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation, either version 3 of the License, or (at your option) any later
-version.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-This program is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
-You should have received a copy of the GNU General Public License along with
-this program. If not, see <https://www.gnu.org/licenses/>.
+or
 
-Also add information on how to contact you by electronic and paper mail.
+Copyright 2021,2023 lacklustr@protonmail.com https://github.com/eadf
 
-If the program does terminal interaction, make it output a short notice like
-this when it starts in an interactive mode:
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-Linestring Copyright (C) 2021 eadf
+    http://www.apache.org/licenses/LICENSE-2.0
 
-This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
-
-This is free software, and you are welcome to redistribute it under certain
-conditions; type `show c' for details.
-
-The hypothetical commands `show w' and `show c' should show the appropriate
-parts of the General Public License. Of course, your program's commands might
-be different; for a GUI interface, you would use an "about box".
-
-You should also get your employer (if you work as a programmer) or school,
-if any, to sign a "copyright disclaimer" for the program, if necessary. For
-more information on this, and how to apply and follow the GNU GPL, see <https://www.gnu.org/licenses/>.
-
-The GNU General Public License does not permit incorporating your program
-into proprietary programs. If your program is a subroutine library, you may
-consider it more useful to permit linking proprietary applications with the
-library. If this is what you want to do, use the GNU Lesser General Public
-License instead of this License. But first, please read <https://www.gnu.org/
-licenses /why-not-lgpl.html>.
- */
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 use crate::{linestring_2d, LinestringError};
 use ahash::AHashSet;
-use cgmath::{ulps_eq, BaseFloat, Point2};
-use core::fmt;
-use std::cmp;
-use std::collections::BTreeMap;
-use std::convert::identity;
-use std::marker::PhantomData;
+use std::{cmp::Ordering, collections::BTreeMap, convert::identity, fmt, fmt::Debug};
+use vector_traits::{
+    approx::*, num_traits::real::Real, GenericScalar, GenericVector2, SimpleApprox,
+};
 
 #[derive(Clone, Copy)]
-pub struct SiteEventKey<T: BaseFloat + Sync> {
-    pub pos: Point2<T>,
+pub struct SiteEventKey<T: GenericVector2> {
+    pub pos: T,
 }
 
-impl<T: BaseFloat + Sync> SiteEventKey<T> {
-    pub fn new(x: T, y: T) -> Self {
+impl<T: GenericVector2> SiteEventKey<T> {
+    pub fn new(x: T::Scalar, y: T::Scalar) -> Self {
         Self {
-            pos: Point2 { x, y },
+            pos: T::new_2d(x, y),
         }
     }
 }
 
-impl<T: BaseFloat + Sync> std::fmt::Debug for SiteEventKey<T> {
+impl<T: GenericVector2> Debug for SiteEventKey<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("")
-            .field(&self.pos.x)
-            .field(&self.pos.y)
+            .field(&self.pos.x())
+            .field(&self.pos.y())
             .finish()
     }
 }
 
-impl<T: BaseFloat + Sync> PartialOrd for SiteEventKey<T> {
-    #[inline(always)]
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        if ulps_eq!(&self.pos.y, &other.pos.y) {
-            if ulps_eq!(&self.pos.x, &other.pos.x) {
-                Some(cmp::Ordering::Equal)
-            } else {
-                self.pos.x.partial_cmp(&other.pos.x)
-            }
-        } else {
-            self.pos.y.partial_cmp(&other.pos.y)
-        }
-    }
-}
-
-impl<T: BaseFloat + Sync> Ord for SiteEventKey<T> {
+impl<T: GenericVector2> Ord for SiteEventKey<T>
+where
+    T: SimpleApprox,
+    T::Scalar: UlpsEq,
+{
     /// It should be impossible for a !is_finite() number to be added to SiteEventKey
     #[inline(always)]
-    fn cmp(&self, other: &Self) -> cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap()
     }
 }
 
-impl<T: BaseFloat + Sync> PartialEq for SiteEventKey<T> {
+#[allow(clippy::non_canonical_partial_ord_impl)]
+impl<T: GenericVector2> PartialOrd for SiteEventKey<T>
+where
+    T: SimpleApprox,
+    T::Scalar: UlpsEq,
+{
     #[inline(always)]
-    fn eq(&self, other: &Self) -> bool {
-        linestring_2d::point_ulps_eq(self.pos, other.pos)
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if ulps_eq!(&self.pos.y(), &other.pos.y()) {
+            if ulps_eq!(&self.pos.x(), &other.pos.x()) {
+                Some(Ordering::Equal)
+            } else {
+                self.pos.x().partial_cmp(&other.pos.x())
+            }
+        } else {
+            self.pos.y().partial_cmp(&other.pos.y())
+        }
     }
 }
 
-impl<T> Eq for SiteEventKey<T> where T: BaseFloat + Sync {}
+impl<T: GenericVector2> Eq for SiteEventKey<T> where T: SimpleApprox {}
+
+impl<T: GenericVector2> PartialEq for SiteEventKey<T>
+where
+    T: SimpleApprox,
+{
+    #[inline(always)]
+    fn eq(&self, other: &Self) -> bool {
+        self.pos.is_ulps_eq(other.pos)
+    }
+}
 
 /// A container struct that keeps track of the lines around a pivot point.
 /// It only stores the lines with highest x value left of pivot point, and lines with lowest x
 /// value right of the point. Secondarily it prioritizes according to slope of the line, lines
 /// leaning towards pivot point have priority.
-struct MinMax<T: BaseFloat + Sync> {
-    best_left: Option<T>,
+struct MinMax<T: GenericVector2> {
+    best_left: Option<T::Scalar>,
     slope: MinMaxSlope<T>,
-    best_right: Option<T>,
+    best_right: Option<T::Scalar>,
 }
 
-impl<T: BaseFloat + Sync> MinMax<T> {
+impl<T: GenericVector2> MinMax<T>
+where
+    T::Scalar: UlpsEq,
+{
     fn new() -> Self {
         Self {
             best_left: None,
@@ -126,7 +137,13 @@ impl<T: BaseFloat + Sync> MinMax<T> {
     }
 
     /// keep track of the candidates closest (on both sides) to pivot_x
-    fn update(&mut self, pivot_x: T, candidate_x: T, candidate_slope: T, candidate_index: usize) {
+    fn update(
+        &mut self,
+        pivot_x: T::Scalar,
+        candidate_x: T::Scalar,
+        candidate_slope: T::Scalar,
+        candidate_index: usize,
+    ) {
         if candidate_x < pivot_x {
             /*println!(
                 "Left:looking at {} candidate_x:{} candidate_slope:{}",
@@ -192,15 +209,18 @@ impl<T: BaseFloat + Sync> MinMax<T> {
     }
 }
 
-struct MinMaxSlope<T: BaseFloat + Sync> {
-    best_left: Option<T>, // slope
+struct MinMaxSlope<T: GenericVector2> {
+    best_left: Option<T::Scalar>, // slope
     candidates_left: Vec<usize>,
 
-    best_right: Option<T>, // slope
+    best_right: Option<T::Scalar>, // slope
     candidates_right: Vec<usize>,
 }
 
-impl<T: BaseFloat + Sync> MinMaxSlope<T> {
+impl<T: GenericVector2> MinMaxSlope<T>
+where
+    T::Scalar: UlpsEq,
+{
     fn new() -> Self {
         Self {
             best_left: None,
@@ -213,10 +233,10 @@ impl<T: BaseFloat + Sync> MinMaxSlope<T> {
     /// sort candidates based on slope, keep only the ones with 'flattest' angle to the left and right
     fn update_both(&mut self, candidate_index: usize, lines: &[linestring_2d::Line2<T>]) {
         let line = lines[candidate_index];
-        let candidate_slope = if ulps_eq!(&line.end.y, &line.start.y) {
-            T::infinity()
+        let candidate_slope = if ulps_eq!(&line.end.y(), &line.start.y()) {
+            T::Scalar::INFINITY
         } else {
-            (line.end.x - line.start.x) / (line.end.y - line.start.y)
+            (line.end.x() - line.start.x()) / (line.end.y() - line.start.y())
         };
 
         self.update_left(false, candidate_slope, candidate_index);
@@ -224,7 +244,7 @@ impl<T: BaseFloat + Sync> MinMaxSlope<T> {
     }
 
     /// sort candidates based on slope, keep only the best to the left -> lowest abs(negative slope value)
-    fn update_left(&mut self, clear: bool, candidate_slope: T, candidate_index: usize) {
+    fn update_left(&mut self, clear: bool, candidate_slope: T::Scalar, candidate_index: usize) {
         if clear {
             self.candidates_left.clear();
             self.best_left = None;
@@ -262,7 +282,7 @@ impl<T: BaseFloat + Sync> MinMaxSlope<T> {
     }
 
     /// sort candidates based on slope, keep only the best to the left -> lowest positive slope value
-    fn update_right(&mut self, clear: bool, candidate_slope: T, candidate_index: usize) {
+    fn update_right(&mut self, clear: bool, candidate_slope: T::Scalar, candidate_index: usize) {
         /*println!(
             "Right:looking at {} candidate_slope:{}",
             candidate_index, candidate_slope
@@ -317,21 +337,18 @@ impl<T: BaseFloat + Sync> MinMaxSlope<T> {
 /// The 'add' list contains the line segments that starts in the event point.
 /// The 'intersection' list contains the line segments that intersects at the event point.
 ///
-pub struct SiteEvent<T: BaseFloat + Sync> {
+pub struct SiteEvent {
     drop: Option<Vec<usize>>,
     add: Option<Vec<usize>>,
     intersection: Option<Vec<usize>>,
-    #[doc(hidden)]
-    pd: PhantomData<fn(T) -> T>,
 }
 
-impl<T: BaseFloat + Sync> SiteEvent<T> {
+impl SiteEvent {
     pub(crate) fn with_intersection(i: &[usize]) -> Self {
         Self {
             drop: None,
             add: None,
             intersection: Some(i.to_vec()),
-            pd: PhantomData,
         }
     }
 
@@ -340,7 +357,6 @@ impl<T: BaseFloat + Sync> SiteEvent<T> {
             drop: Some(l.to_vec()),
             add: None,
             intersection: None,
-            pd: PhantomData,
         }
     }
 
@@ -349,7 +365,6 @@ impl<T: BaseFloat + Sync> SiteEvent<T> {
             drop: None,
             add: Some(l.to_vec()),
             intersection: None,
-            pd: PhantomData,
         }
     }
 
@@ -360,37 +375,40 @@ impl<T: BaseFloat + Sync> SiteEvent<T> {
 
 /// Returns *one* point of intersection between the `sweepline` and `other`
 /// Second return value is the slope of the line
-fn sweepline_intersection<T: BaseFloat + Sync>(
-    sweepline: Point2<T>,
+fn sweepline_intersection<T: GenericVector2>(
+    sweepline: T,
     other: &linestring_2d::Line2<T>,
-) -> Option<(T, T)> {
+) -> Option<(T::Scalar, T::Scalar)>
+where
+    T::Scalar: UlpsEq,
+{
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
-    let y1 = other.start.y;
-    let y2 = other.end.y;
-    let x1 = other.start.x;
-    let x2 = other.end.x;
+    let y1 = other.start.y();
+    let y2 = other.end.y();
+    let x1 = other.start.x();
+    let x2 = other.end.x();
     if ulps_eq!(&y1, &y2) {
         // horizontal line: return to the point right of sweepline.x, if any
         // Any point to the left are supposedly already handled.
-        return (sweepline.x < x2).then(|| (x2, T::zero()));
+        return (sweepline.x() < x2).then_some((x2, T::Scalar::ZERO));
     }
 
     if ulps_eq!(&x1, &x2) {
-        return Some((x1, T::infinity()));
+        return Some((x1, T::Scalar::INFINITY));
     }
 
-    let slope: T = (y2 - y1) / (x2 - x1);
+    let slope = (y2 - y1) / (x2 - x1);
 
     let d = y1 - slope * x1;
-    Some(((sweepline.y - d) / slope, slope))
+    Some(((sweepline.y() - d) / slope, slope))
 }
 
 /// Contains the data the sweep-line intersection algorithm needs to operate.
 /// Some of these containers are stored inside an Option. This makes it possible
 /// to take() them and make the borrow-checker happy.
-pub struct IntersectionData<T: BaseFloat + Sync> {
+pub struct IntersectionData<T: GenericVector2> {
     // sweep-line position
-    sweepline_pos: Point2<T>,
+    sweepline_pos: T,
     // Stop when first intersection is found
     stop_at_first_intersection: bool,
     // Allow start&end points to intersect
@@ -399,19 +417,16 @@ pub struct IntersectionData<T: BaseFloat + Sync> {
     // counted as an intersection.
     pub ignore_end_point_intersections: bool,
     // The unhandled events
-    site_events: Option<BTreeMap<SiteEventKey<T>, SiteEvent<T>>>,
+    site_events: Option<BTreeMap<SiteEventKey<T>, SiteEvent>>,
     // The input geometry. These lines are re-arranged so that Line.start.y <= Line.end.y
     // These are never changed while the algorithm is running.
     lines: Vec<linestring_2d::Line2<T>>,
 }
 
-impl<T: BaseFloat + Sync> Default for IntersectionData<T> {
+impl<T: GenericVector2> Default for IntersectionData<T> {
     fn default() -> Self {
         Self {
-            sweepline_pos: Point2 {
-                x: -T::max_value(),
-                y: -T::max_value(),
-            },
+            sweepline_pos: T::new_2d(-T::Scalar::max_value(), -T::Scalar::max_value()),
             stop_at_first_intersection: false,
             ignore_end_point_intersections: false,
             site_events: Some(BTreeMap::new()),
@@ -420,8 +435,12 @@ impl<T: BaseFloat + Sync> Default for IntersectionData<T> {
     }
 }
 
-impl<T: BaseFloat + Sync> IntersectionData<T> {
-    pub fn get_sweepline_pos(&self) -> &Point2<T> {
+impl<T: GenericVector2> IntersectionData<T>
+where
+    T: SimpleApprox,
+    T::Scalar: UlpsEq,
+{
+    pub fn get_sweepline_pos(&self) -> &T {
         &self.sweepline_pos
     }
 
@@ -454,10 +473,10 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
         })?;
 
         for (index, mut aline) in input_iter.enumerate() {
-            if !(aline.start.x.is_finite()
-                && aline.start.y.is_finite()
-                && aline.end.x.is_finite()
-                && aline.end.y.is_finite())
+            if !(aline.start.x().is_finite()
+                && aline.start.y().is_finite()
+                && aline.end.x().is_finite()
+                && aline.end.y().is_finite())
             {
                 return Err(LinestringError::InvalidData(
                     "Some of the points are infinite".to_string(),
@@ -476,22 +495,22 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
             let key_end = SiteEventKey { pos: aline.end };
 
             // start points goes into the site_event::add list
-            if let Some(mut event) = site_events.get_mut(&key_start) {
+            if let Some(event) = site_events.get_mut(&key_start) {
                 let mut lower = event.add.take().map_or(Vec::<usize>::new(), identity);
                 lower.push(index);
                 event.add = Some(lower);
             } else {
-                let event = SiteEvent::<T>::with_add(&[index]);
+                let event = SiteEvent::with_add(&[index]);
                 let _ = site_events.insert(key_start, event);
             }
 
             // end points goes into the site_event::drop list
-            if let Some(mut event) = site_events.get_mut(&key_end) {
+            if let Some(event) = site_events.get_mut(&key_end) {
                 let mut upper = event.drop.take().map_or(Vec::<usize>::new(), identity);
                 upper.push(index);
                 event.drop = Some(upper);
             } else {
-                let event = SiteEvent::<T>::with_drop(&[index]);
+                let event = SiteEvent::with_drop(&[index]);
                 let _ = site_events.insert(key_end, event);
             }
         }
@@ -507,7 +526,7 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
     ///
     fn add_intersection_event(
         &self,
-        site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent<T>>,
+        site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent>,
         position: &SiteEventKey<T>,
         intersecting_lines: &[usize],
     ) {
@@ -518,9 +537,7 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
                 // only add this line as an intersection if the intersection lies
                 // at the interior of the line (no end point)
                 let i_line = self.lines[*new_intersection];
-                if linestring_2d::point_ulps_eq(position.pos, i_line.start)
-                    || linestring_2d::point_ulps_eq(position.pos, i_line.end)
-                {
+                if position.pos.is_ulps_eq(i_line.start) || position.pos.is_ulps_eq(i_line.end) {
                     continue;
                 }
 
@@ -550,7 +567,10 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
     /// Handles input events, returns an iterator containing the results when done.
     pub fn compute(
         mut self,
-    ) -> Result<impl ExactSizeIterator<Item = (Point2<T>, Vec<usize>)>, LinestringError> {
+    ) -> Result<impl ExactSizeIterator<Item = (T, Vec<usize>)>, LinestringError>
+    where
+        T::Scalar: UlpsEq,
+    {
         // make the borrow checker happy by breaking the link between self and all the
         // containers and their iterators.
         let mut active_lines = AHashSet::<usize>::default();
@@ -560,10 +580,10 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
         // A list of intersection points and the line segments involved in each intersection
         let mut result: BTreeMap<SiteEventKey<T>, Vec<usize>> = BTreeMap::default();
         // The 'best' lines surrounding the event point but not directly connected to the point.
-        let mut neighbour_priority = MinMax::<T>::new();
+        let mut neighbour_priority = MinMax::new();
 
         // The 'best' lines directly connected to the event point.
-        let mut connected_priority = MinMaxSlope::<T>::new();
+        let mut connected_priority = MinMaxSlope::new();
 
         loop {
             if let Some((key, event)) = {
@@ -602,7 +622,7 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
                     break;
                 }
             } else {
-                self.sweepline_pos = Point2::new(T::max_value(), T::max_value());
+                self.sweepline_pos = T::new_2d(T::Scalar::max_value(), T::Scalar::max_value());
                 break;
             }
         }
@@ -615,11 +635,11 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
     fn handle_event(
         &mut self,
         key: &SiteEventKey<T>,
-        event: &SiteEvent<T>,
+        event: &SiteEvent,
         active_lines: &mut AHashSet<usize>,
         neighbour_priority: &mut MinMax<T>,
         connected_priority: &mut MinMaxSlope<T>,
-        site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent<T>>,
+        site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent>,
         result: &mut BTreeMap<SiteEventKey<T>, Vec<usize>>,
     ) -> Result<(), LinestringError> {
         self.sweepline_pos = key.pos;
@@ -633,7 +653,8 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
             println!("*************************************");
             print!(
                 "handle_event() sweepline=({:?},{:?})",
-                self.sweepline_pos.x, self.sweepline_pos.y,
+                self.sweepline_pos.x(),
+                self.sweepline_pos.y(),
             );
             print!(
                 ", drop={:?}",
@@ -728,7 +749,7 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
             {
                 //println!(" @{}^{})", intersection_x, intersection_slope);
                 neighbour_priority.update(
-                    self.sweepline_pos.x,
+                    self.sweepline_pos.x(),
                     intersection_x,
                     intersection_slope,
                     *line_index,
@@ -822,13 +843,13 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
         &mut self,
         left: &[usize],
         right: &[usize],
-        site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent<T>>,
+        site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent>,
     ) -> Result<(), LinestringError> {
         for left_i in left.iter() {
             for right_i in right.iter() {
                 let left_l = self.lines[*left_i];
                 let right_l = self.lines[*right_i];
-                if linestring_2d::point_ulps_eq(left_l.end, right_l.end) {
+                if left_l.end.is_ulps_eq(right_l.end) {
                     // if endpoints are equal they will already be in the event queue
                     continue;
                 }
@@ -837,17 +858,18 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
 
                 if let Some(intersection_p) = left_l.intersection_point(right_l) {
                     let intersection_p = intersection_p.single();
-                    if !intersection_p.x.is_finite() || !intersection_p.y.is_finite() {
+                    if !intersection_p.x().is_finite() || !intersection_p.y().is_finite() {
                         return Err(LinestringError::InvalidData(format!(
                             "Input data has intersection at invalid position x:{:?}, y:{:?}",
-                            intersection_p.x, intersection_p.y
+                            intersection_p.x(),
+                            intersection_p.y()
                         )));
                     }
                     // don't allow intersection 'behind' or 'at' current sweep-line position
-                    if intersection_p.y >= self.sweepline_pos.y
-                        && !(intersection_p.y == self.sweepline_pos.y
-                            && intersection_p.x < self.sweepline_pos.x)
-                        && !linestring_2d::point_ulps_eq(intersection_p, self.sweepline_pos)
+                    if intersection_p.y() >= self.sweepline_pos.y()
+                        && !(intersection_p.y() == self.sweepline_pos.y()
+                            && intersection_p.x() < self.sweepline_pos.x())
+                        && !intersection_p.is_ulps_eq(self.sweepline_pos)
                     {
                         #[cfg(feature = "console_trace")]
                         println!(
@@ -875,7 +897,7 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
     fn report_intersections_to_result<'a, I: Iterator<Item = &'a usize>>(
         &mut self,
         result: &mut BTreeMap<SiteEventKey<T>, Vec<usize>>,
-        pos: Point2<T>,
+        pos: T,
         intersecting_lines: I,
     ) {
         let key = SiteEventKey { pos };

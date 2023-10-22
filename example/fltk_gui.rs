@@ -1,55 +1,59 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// Copyright (c) 2021,2023 lacklustr@protonmail.com https://github.com/eadf
+
+// This file is part of the linestring crate.
+
 /*
-Linestring library.
+Copyright (c) 2021,2023 lacklustr@protonmail.com https://github.com/eadf
 
-Copyright (C) 2021 eadf https://github.com/eadf
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation, either version 3 of the License, or (at your option) any later
-version.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-This program is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
-You should have received a copy of the GNU General Public License along with
-this program. If not, see <https://www.gnu.org/licenses/>.
+or
 
-Also add information on how to contact you by electronic and paper mail.
+Copyright 2021,2023 lacklustr@protonmail.com https://github.com/eadf
 
-If the program does terminal interaction, make it output a short notice like
-this when it starts in an interactive mode:
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-intersection2d Copyright (C) 2021 eadf
+    http://www.apache.org/licenses/LICENSE-2.0
 
-This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
-
-This is free software, and you are welcome to redistribute it under certain
-conditions; type `show c' for details.
-
-The hypothetical commands `show w' and `show c' should show the appropriate
-parts of the General Public License. Of course, your program's commands might
-be different; for a GUI interface, you would use an "about box".
-
-You should also get your employer (if you work as a programmer) or school,
-if any, to sign a "copyright disclaimer" for the program, if necessary. For
-more information on this, and how to apply and follow the GNU GPL, see <https://www.gnu.org/licenses/>.
-
-The GNU General Public License does not permit incorporating your program
-into proprietary programs. If your program is a subroutine library, you may
-consider it more useful to permit linking proprietary applications with the
-library. If this is what you want to do, use the GNU Lesser General Public
-License instead of this License. But first, please read <https://www.gnu.org/
-licenses /why-not-lgpl.html>.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
-use fltk::app::redraw;
-use fltk::app::MouseWheel;
-use fltk::valuator::HorNiceSlider;
-use fltk::{app, draw::*, frame::*, window::*};
-use fltk::{enums::*, prelude::*};
+
+use fltk::{
+    app,
+    app::{redraw, MouseWheel},
+    draw::*,
+    enums::*,
+    frame::*,
+    prelude::*,
+    valuator::HorNiceSlider,
+    window::*,
+};
 use linestring::linestring_2d::{Aabb2, LineString2, SimpleAffine};
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
+use vector_traits::glam;
 
 // frame size
 const HF: i32 = 565;
@@ -74,9 +78,9 @@ pub enum GuiMessage {
 }
 
 struct SharedData {
-    lines: Vec<LineString2<f32>>,
+    lines: Vec<LineString2<glam::Vec2>>,
     last_message: Option<GuiMessage>,
-    affine: SimpleAffine<T>,
+    affine: SimpleAffine<glam::Vec2>,
 }
 
 fn main() {
@@ -122,7 +126,8 @@ fn main() {
     {
         // Flip the Y coordinate so that the geometry is Quadrant 0, while screen is Quadrant 4
         let mut shared_data_bm = shared_data_rc.borrow_mut();
-        let aabb = Aabb2::from([0.0, 0.0, W as f32, H as f32]);
+        let aabb =
+            Aabb2::<glam::Vec2>::with_points(&[(0.0, 0.0).into(), (W as f32, H as f32).into()]);
         shared_data_bm.affine = SimpleAffine::new(&aabb, &aabb).unwrap();
         shared_data_bm.affine.scale[1] *= -1.0;
     }
@@ -202,20 +207,20 @@ fn main() {
                         set_draw_color(Color::Black);
                     }
 
-                    for a_line in l.as_lines_iter() {
+                    for a_line in l.iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             false,
                         );
                     }
 
-                    let simplified_line = l.simplify(distance);
+                    let simplified_line = l.simplify_rdp(distance);
                     if simplified_line.is_self_intersecting().unwrap() {
                         set_draw_color(Color::Red);
                     } else {
                         set_draw_color(Color::Green);
                     }
-                    for a_line in simplified_line.as_lines_iter() {
+                    for a_line in simplified_line.iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             true,
@@ -247,7 +252,7 @@ fn main() {
                         set_draw_color(Color::Black);
                     }
 
-                    for a_line in l.as_lines_iter() {
+                    for a_line in l.iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             false,
@@ -260,7 +265,7 @@ fn main() {
                     } else {
                         set_draw_color(Color::Blue);
                     }
-                    for a_line in simplified_line.as_lines_iter() {
+                    for a_line in simplified_line.iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             true,
@@ -301,7 +306,7 @@ fn main() {
             };
             let reverse_middle = shared_data_bm
                 .affine
-                .transform_ba(cgmath::Point2::from([event.0 as T, event.1 as T]));
+                .transform_ba(glam::Vec2::from([event.0 as T, event.1 as T]));
             if reverse_middle.is_err() {
                 println!("{:?}", reverse_middle.err().unwrap());
                 return false;
@@ -312,7 +317,7 @@ fn main() {
                 shared_data_bm.affine.scale[0] *= scale_mod;
                 shared_data_bm.affine.scale[1] *= scale_mod;
             }
-            let new_middle = shared_data_bm.affine.transform_ab(cgmath::Point2::from([
+            let new_middle = shared_data_bm.affine.transform_ab(glam::Vec2::from([
                 reverse_middle[0] as T,
                 reverse_middle[1] as T,
             ]));
@@ -363,24 +368,23 @@ fn main() {
     }
 }
 
+// add some test data
 fn add_data(data: Rc<RefCell<SharedData>>) {
     let mut data_b = data.borrow_mut();
     data_b.lines.clear();
 
     // Add y=e^-x*cos(2πx)
-    let mut line: Vec<cgmath::Point2<f32>> = Vec::new();
+    let mut line: Vec<glam::Vec2> = Vec::with_capacity(150);
     for x in (0..150).skip(1) {
-        let x = x as T / 20.0;
+        let x = (x as T) / 20.0;
         let y: f32 = std::f32::consts::E.powf(-x) * (x * 2.0 * std::f32::consts::PI).cos();
-        line.push(cgmath::Point2::new(50.0 + x * 75.0, 200.0 + y * 300.0));
+        line.push(glam::Vec2::new(50.0 + x * 75.0, 200.0 + y * 300.0));
     }
-    let line = LineString2::<f32>::default()
-        .with_points(line)
-        .with_connected(false);
+    let line = LineString2::with_vec(line);
     data_b.lines.push(line);
 
     // Add a wobbly circle
-    let mut line: Vec<cgmath::Point2<f32>> = Vec::with_capacity(360);
+    let mut line: Vec<glam::Vec2> = Vec::with_capacity(360);
     for angle in (0..358).step_by(2) {
         let x: f32 = 400.0
             + (angle as T).to_radians().cos() * 250.0
@@ -388,14 +392,13 @@ fn add_data(data: Rc<RefCell<SharedData>>) {
         let y: f32 = 400.0
             + (angle as T).to_radians().sin() * 150.0
             + (FO as T) * (angle as T * 2.534).to_radians().cos();
-        line.push(cgmath::Point2::new(x, y));
+        line.push(glam::Vec2::new(x, y));
     }
+    line.push(line[0]);
     // Add an extra point that will cause self-intersection when simplified too much
-    line.push(cgmath::Point2::new(250_f32, 300.0));
+    line.push(glam::Vec2::new(250_f32, 300.0));
 
-    let line = LineString2::<f32>::default()
-        .with_points(line)
-        .with_connected(true);
+    let line = LineString2::with_vec(line);
 
     data_b.lines.push(line);
 }
