@@ -1,7 +1,7 @@
 [![crates.io](https://img.shields.io/crates/v/linestring.svg)](https://crates.io/crates/linestring)
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
-[![dependency status](https://deps.rs/crate/linestring/0.9.0/status.svg)](https://deps.rs/crate/linestring/0.9.0)
+[![dependency status](https://deps.rs/crate/linestring/0.10.0/status.svg)](https://deps.rs/crate/linestring/0.10.0)
 ![license](https://img.shields.io/crates/l/linestring)
 
 # Linestring: 2D poly-lines for generic vectors.
@@ -25,8 +25,8 @@ transitions between vector libraries like `glam` and `cgmath` (for now).
 
 Include the following dependencies in your `Cargo.toml` file, picking the vector implementation you need:
 ```toml
-vector-traits = {version="0.1", features= ["glam","cgmath","approx"]} # pick cgmath or glam, whatever you need
-linestring = {version="0.9"}
+vector-traits = {version="0.2", features= ["glam","cgmath"]} # pick cgmath or glam, whatever you need
+linestring = {version="0.10"}
 ```
 
 ## Demo GUI

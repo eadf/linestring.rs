@@ -46,11 +46,7 @@ mod tests;
 use crate::linestring_2d::LineString2;
 use rayon::prelude::*;
 use std::cmp::Ordering;
-use vector_traits::{
-    approx::{ulps_eq, UlpsEq},
-    num_traits::real::Real,
-    GenericScalar, GenericVector2, SimpleApprox,
-};
+use vector_traits::{approx::ulps_eq, num_traits::real::Real, GenericScalar, GenericVector2};
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Orientation {
@@ -99,10 +95,7 @@ fn find_lowest_x<T: GenericVector2>(points: &[T]) -> (usize, T) {
 /// assert!(!convex_hull::point_orientation(c, b, a).is_left());
 ///```
 #[inline(always)]
-pub fn point_orientation<T: GenericVector2 + SimpleApprox>(a: T, b: T, c: T) -> Orientation
-where
-    T::Scalar: UlpsEq,
-{
+pub fn point_orientation<T: GenericVector2>(a: T, b: T, c: T) -> Orientation {
     let value = cross_2d(a, b, c);
     if value == T::Scalar::ZERO || ulps_eq!(value, T::Scalar::ZERO) {
         Orientation::Collinear
@@ -141,10 +134,7 @@ pub fn is_point_left<T: GenericVector2>(a: T, b: T, c: T) -> bool {
 /// assert!(convex_hull::is_point_left_allow_collinear(a, b, a));
 ///```
 #[inline(always)]
-pub fn is_point_left_allow_collinear<T: GenericVector2>(a: T, b: T, c: T) -> bool
-where
-    T::Scalar: UlpsEq,
-{
+pub fn is_point_left_allow_collinear<T: GenericVector2>(a: T, b: T, c: T) -> bool {
     let result = cross_2d(a, b, c);
     result >= T::Scalar::ZERO || ulps_eq!(result, T::Scalar::ZERO)
 }
@@ -196,10 +186,7 @@ pub fn cross_2d<T: GenericVector2>(a: T, b: T, c: T) -> T::Scalar {
 ///   }
 /// }
 ///```
-pub fn gift_wrap<T: GenericVector2 + SimpleApprox>(mut input_points: &[T]) -> LineString2<T>
-where
-    T::Scalar: UlpsEq,
-{
+pub fn gift_wrap<T: GenericVector2>(mut input_points: &[T]) -> LineString2<T> {
     if !input_points.is_empty() && (input_points[0] == input_points[input_points.len() - 1]) {
         // disregard the duplicated loop point if it exists
         input_points = &input_points[1..];
@@ -295,11 +282,7 @@ where
 /// }
 ///```
 #[deprecated(since = "0.9.0", note = "please use `graham_scan` instead")]
-pub fn graham_scan_wo_atan2<T: GenericVector2>(mut input_points: &[T]) -> LineString2<T>
-where
-    T::Scalar: UlpsEq,
-    T: SimpleApprox,
-{
+pub fn graham_scan_wo_atan2<T: GenericVector2>(mut input_points: &[T]) -> LineString2<T> {
     if !input_points.is_empty() && (input_points[0] == input_points[input_points.len() - 1]) {
         // disregard the duplicated loop point if it exists
         input_points = &input_points[1..];
@@ -389,11 +372,7 @@ where
 ///   }
 /// }
 ///```
-pub fn graham_scan<T: GenericVector2>(mut input_points: &[T]) -> LineString2<T>
-where
-    T: SimpleApprox,
-    T::Scalar: UlpsEq,
-{
+pub fn graham_scan<T: GenericVector2>(mut input_points: &[T]) -> LineString2<T> {
     if !input_points.is_empty() && (input_points[0] == input_points[input_points.len() - 1]) {
         // disregard the duplicated loop point if it exists
         input_points = &input_points[1..];
@@ -489,11 +468,7 @@ where
 /// assert!(convex_hull::contains_convex_hull(&a, &b));
 /// assert!(!convex_hull::contains_convex_hull(&b, &a));
 ///```
-pub fn contains_convex_hull<T: GenericVector2>(a: &LineString2<T>, b: &LineString2<T>) -> bool
-where
-    T::Scalar: UlpsEq,
-    T: SimpleApprox,
-{
+pub fn contains_convex_hull<T: GenericVector2>(a: &LineString2<T>, b: &LineString2<T>) -> bool {
     if a.point_count() <= 1 {
         return false;
     }
@@ -553,11 +528,7 @@ where
 /// assert!(convex_hull::contains_convex_hull_par(&a, &b));
 /// assert!(!convex_hull::contains_convex_hull_par(&b, &a));
 ///```
-pub fn contains_convex_hull_par<T: GenericVector2>(a: &LineString2<T>, b: &LineString2<T>) -> bool
-where
-    T::Scalar: UlpsEq,
-    T: SimpleApprox,
-{
+pub fn contains_convex_hull_par<T: GenericVector2>(a: &LineString2<T>, b: &LineString2<T>) -> bool {
     if a.point_count() <= 1 {
         return false;
     }
@@ -590,10 +561,7 @@ where
 /// assert!(!convex_hull::contains_point_exclusive(&hull, [10.0,9.99999].into()));
 ///
 ///```
-pub fn contains_point_exclusive<T: GenericVector2>(input: &LineString2<T>, p: T) -> bool
-where
-    T::Scalar: UlpsEq,
-{
+pub fn contains_point_exclusive<T: GenericVector2>(input: &LineString2<T>, p: T) -> bool {
     //println!("testing {:?}", p);
     match input.0.len() {
         0 => return false,
@@ -702,10 +670,7 @@ where
 /// assert!(convex_hull::contains_point_inclusive(&hull, [10.0,5.0].into()));
 /// assert!(!convex_hull::contains_point_inclusive(&hull, [10.0,10.000001].into()));
 ///```
-pub fn contains_point_inclusive<T: GenericVector2>(input: &LineString2<T>, p: T) -> bool
-where
-    T::Scalar: UlpsEq,
-{
+pub fn contains_point_inclusive<T: GenericVector2>(input: &LineString2<T>, p: T) -> bool {
     //println!("testing {:?}", p);
 
     match input.0.len() {
@@ -796,10 +761,7 @@ where
     true
 }
 
-/*pub fn contains_point_inclusive_works<T: GenericVector2>(input: &LineString2<T>, p: T) -> bool
-where
-    T::Scalar: UlpsEq,
-{
+/*pub fn contains_point_inclusive_works<T: GenericVector2>(input: &LineString2<T>, p: T) -> bool {
     println!("testing {:?}", p);
 
     match input.0.len() {

@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# This script runs `grcov` and displays the results (not tested on windows)
+# Must be run in the root of the cargo project.
+
+# Set the Rust toolchain to Nightly for the script
+rustup override set nightly
+
 # Ensure necessary tools are installed
 command -v cargo >/dev/null 2>&1 || { echo >&2 "cargo is not installed. Aborting."; exit 1; }
 command -v grcov >/dev/null 2>&1 || { echo >&2 "grcov is not installed. Aborting."; exit 1; }
@@ -13,16 +19,13 @@ export LLVM_PROFILE_FILE='target/debug/coverage/%p-%m.profraw'
 cargo clean
 
 # Build the project
-cargo build
+cargo build --features "glam,cgmath"
 
 # Run tests
-cargo test
+cargo test --features "glam,cgmath"
 
 # Capture the coverage data
 grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/coverage/
-
-#list the index.html files
-find ./target -iname "index.html"
 
 # Open the coverage report in the default web browser
 case $(uname) in
@@ -31,3 +34,6 @@ case $(uname) in
     "CYGWIN"|"MINGW"|"MSYS") start ./target/debug/coverage/html/index.html ;;
     *) echo "Unable to open the coverage report automatically. Please open ./target/debug/coverage/html/index.html manually." ;;
 esac
+
+# Restore the original Rust toolchain
+rustup override unset

@@ -103,6 +103,7 @@ pub enum LinestringError {
 }
 
 pub mod linestring_2d;
+pub mod linestring_3d;
 
 //pub(crate) type VobU32 = vob::Vob<u32>;
 

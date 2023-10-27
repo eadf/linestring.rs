@@ -5,11 +5,15 @@
 
 #![deny(warnings)]
 
-use linestring::linestring_2d::{self, Aabb2, Intersection, Line2, LineString2, SimpleAffine};
+use linestring::{
+    linestring_2d::{self, Aabb2, Intersection, Line2, LineString2, SimpleAffine},
+    linestring_3d::{Line3, LineString3},
+};
 use std::ops::Neg;
 use vector_traits::{
     approx::{ulps_eq, AbsDiffEq, UlpsEq},
     glam::{vec2, Vec2, Vec3},
+    Approx, HasXY,
 };
 
 #[allow(dead_code)]
@@ -18,7 +22,6 @@ const EPSILON: f64 = 1e-10; // or some small value that's appropriate for your u
 fn silly_assert_approx_eq<T: SillyApproxEq + std::fmt::Debug>(v1: T, v2: T, epsilon: f64) {
     assert!(v1.silly_approx_eq(&v2, epsilon), "{:?} != {:?}", v1, v2);
 }
-
 trait SillyApproxEq {
     fn silly_approx_eq(&self, other: &Self, epsilon: f64) -> bool;
 }
@@ -94,10 +97,40 @@ fn linestring2_1() {
 }
 
 #[test]
+fn linestring3_1() {
+    let points = vec![
+        [0_f32, 0., 0.],
+        [1., 1., 0.],
+        [2., 2., 0.],
+        [3., 3., 0.],
+        [1., 10., 0.],
+    ];
+    let points_len = points.len();
+
+    let mut linestring: LineString3<Vec3> = points.into_iter().collect();
+    assert_eq!(linestring.len(), points_len);
+
+    linestring.connected = false;
+    //println!("as_lines={:?}", linestring.as_lines());
+    assert_eq!(linestring.as_lines().len(), points_len - 1);
+
+    linestring.connected = true;
+    //println!("as_lines={:?}", linestring.as_lines());
+    assert_eq!(linestring.as_lines().len(), points_len);
+}
+
+#[test]
 fn line2_1() {
     let line = linestring_2d::Line2::<Vec2>::from([[10., 0.], [0., 11.]]);
     assert_eq!(line.start, Vec2::from([10., 0.]));
     assert_eq!(line.end, Vec2::from([0., 11.]));
+}
+
+#[test]
+fn line3_1() {
+    let line = Line3::<Vec3>::from([[10., 0., 9.], [0., 11., 9.]]);
+    assert_eq!(line.start, Vec3::from([10., 0., 9.]));
+    assert_eq!(line.end, Vec3::from([0., 11., 9.]));
 }
 
 #[test]
@@ -369,6 +402,22 @@ fn simplify_2() {
 }
 
 #[test]
+fn simplify_3() {
+    let line = vec![
+        [77f32, 613., 0.],
+        [689., 650., 0.],
+        [710., 467., 0.],
+        [220., 200., 0.],
+        [120., 300., 0.],
+        [100., 100., 0.],
+        [77., 613., 0.],
+    ];
+    let mut line: LineString3<Vec3> = line.into_iter().collect();
+    line.connected = false;
+    assert_eq!(6, line.simplify_rdp(1.0).as_lines().len());
+}
+
+#[test]
 fn a_test() -> Result<(), linestring::LinestringError> {
     let _l: Vec<[f32; 2]> = vec![
         [651.3134, 410.21536],
@@ -488,7 +537,7 @@ fn simplify_vw_4() {
 
 #[test]
 fn voronoi_parabolic_arc_1() {
-    use vector_traits::{glam, SimpleApprox};
+    use vector_traits::glam;
     /*
     point1:Point { x: 200, y: 200 },
     segment:Line { start: Point { x: 100, y: 100 }, end: Point { x: 300, y: 100 } },
@@ -505,16 +554,17 @@ fn voronoi_parabolic_arc_1() {
     let vpa = linestring_2d::VoronoiParabolicArc::new(segment, cell_point, start_point, end_point);
     let result = vpa.discretize_2d(max_dist);
     println!("result: {:?}", result);
-
-    assert!(result.points()[0].is_ulps_eq([100.0, 200.0].into()));
-    assert!(result.points()[1].is_ulps_eq([125.0, 178.125].into()));
-    assert!(result.points()[2].is_ulps_eq([150.0, 162.5].into()));
-    assert!(result.points()[3].is_ulps_eq([175.0, 153.125].into()));
-    assert!(result.points()[4].is_ulps_eq([200.0, 150.0].into()));
-    assert!(result.points()[5].is_ulps_eq([225.0, 153.125].into()));
-    assert!(result.points()[6].is_ulps_eq([250.0, 162.5].into()));
-    assert!(result.points()[7].is_ulps_eq([275.0, 178.125].into()));
-    assert!(result.points()[8].is_ulps_eq([300.0, 200.0].into()));
+    let epsilon = <Vec2 as HasXY>::Scalar::default_epsilon();
+    let ulps = <Vec2 as HasXY>::Scalar::default_max_ulps();
+    assert!(result.points()[0].is_ulps_eq([100.0, 200.0].into(), epsilon, ulps));
+    assert!(result.points()[1].is_ulps_eq([125.0, 178.125].into(), epsilon, ulps));
+    assert!(result.points()[2].is_ulps_eq([150.0, 162.5].into(), epsilon, ulps));
+    assert!(result.points()[3].is_ulps_eq([175.0, 153.125].into(), epsilon, ulps));
+    assert!(result.points()[4].is_ulps_eq([200.0, 150.0].into(), epsilon, ulps));
+    assert!(result.points()[5].is_ulps_eq([225.0, 153.125].into(), epsilon, ulps));
+    assert!(result.points()[6].is_ulps_eq([250.0, 162.5].into(), epsilon, ulps));
+    assert!(result.points()[7].is_ulps_eq([275.0, 178.125].into(), epsilon, ulps));
+    assert!(result.points()[8].is_ulps_eq([300.0, 200.0].into(), epsilon, ulps));
     println!("result: {:?}", result);
 }
 

@@ -42,16 +42,16 @@ limitations under the License.
 */
 
 use super::{
-    Aabb2, Intersection, Line2, LineIterator, LineString2, PriorityDistance, SimpleAffine,
+    Aabb2, Intersection, Line2, LineIterator, LineString2, LineStringSet2, PriorityDistance,
+    SimpleAffine,
 };
 use std::{
     cmp::Ordering,
     fmt,
     fmt::{Debug, Display},
 };
-use vector_traits::{
-    approx::*, num_traits::real::Real, GenericScalar, GenericVector2, SimpleApprox,
-};
+//use std::marker::PhantomData;
+use vector_traits::{approx::*, num_traits::real::Real, GenericScalar, GenericVector2};
 
 fn format_float<G>(value: G) -> String
 where
@@ -64,10 +64,7 @@ where
     }
 }
 
-impl<T: GenericVector2> PartialEq for Line2<T>
-where
-    T::Scalar: UlpsEq,
-{
+impl<T: GenericVector2> PartialEq for Line2<T> {
     fn eq(&self, other: &Self) -> bool {
         ulps_eq!(self.start.x(), other.start.x())
             && ulps_eq!(self.start.y(), other.start.y())
@@ -75,38 +72,29 @@ where
             && ulps_eq!(self.end.y(), other.end.y())
     }
 }
-impl<T: GenericVector2> Eq for Line2<T> where T::Scalar: UlpsEq {}
+impl<T: GenericVector2> Eq for Line2<T> {}
 
-impl<T: GenericVector2> PartialOrd for PriorityDistance<T>
-where
-    T::Scalar: UlpsEq,
-{
+impl<T: GenericVector2> PartialOrd for PriorityDistance<T> {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<T: GenericVector2> Ord for PriorityDistance<T>
-where
-    T::Scalar: UlpsEq,
-{
+impl<T: GenericVector2> Ord for PriorityDistance<T> {
     #[inline(always)]
     fn cmp(&self, other: &Self) -> Ordering {
         self.key.partial_cmp(&other.key).unwrap().reverse()
     }
 }
 
-impl<T: GenericVector2> PartialEq for PriorityDistance<T>
-where
-    T::Scalar: UlpsEq,
-{
+impl<T: GenericVector2> PartialEq for PriorityDistance<T> {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
         ulps_eq!(self.key, other.key)
     }
 }
-impl<T: GenericVector2> Eq for PriorityDistance<T> where T::Scalar: UlpsEq {}
+impl<T: GenericVector2> Eq for PriorityDistance<T> {}
 
 impl<T: GenericVector2> From<[T::Scalar; 4]> for Line2<T> {
     fn from(array: [T::Scalar; 4]) -> Self {
@@ -155,10 +143,7 @@ impl<T: GenericVector2> From<Aabb2<T>> for LineString2<T> {
     }
 }
 
-impl<T: GenericVector2> PartialEq for Aabb2<T>
-where
-    T::Scalar: UlpsEq,
-{
+impl<T: GenericVector2> PartialEq for Aabb2<T> {
     fn eq(&self, other: &Self) -> bool {
         match (self.min_max, other.min_max) {
             (Some(slf), Some(other)) => {
@@ -172,7 +157,7 @@ where
         }
     }
 }
-impl<T: GenericVector2> Eq for Aabb2<T> where T::Scalar: UlpsEq {}
+impl<T: GenericVector2> Eq for Aabb2<T> {}
 
 impl<T: GenericVector2> Debug for Intersection<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -211,11 +196,7 @@ impl<T: GenericVector2> ExactSizeIterator for LineIterator<'_, T> {
     }
 }
 
-impl<'a, T: GenericVector2> IntoIterator for &'a LineString2<T>
-where
-    T::Scalar: UlpsEq,
-    T: SimpleApprox,
-{
+impl<'a, T: GenericVector2> IntoIterator for &'a LineString2<T> {
     type Item = Line2<T>;
     type IntoIter = LineIterator<'a, T>;
 
@@ -250,10 +231,7 @@ impl<T: GenericVector2> Debug for LineString2<T> {
     }
 }
 
-impl<T: GenericVector2> AbsDiffEq for Line2<T>
-where
-    T::Scalar: UlpsEq<Epsilon = T::Scalar>,
-{
+impl<T: GenericVector2> AbsDiffEq for Line2<T> {
     type Epsilon = T::Scalar;
 
     fn default_epsilon() -> Self::Epsilon {
@@ -275,10 +253,7 @@ where
     }
 }
 
-impl<T: GenericVector2> UlpsEq for Line2<T>
-where
-    T::Scalar: UlpsEq<Epsilon = T::Scalar>,
-{
+impl<T: GenericVector2> UlpsEq for Line2<T> {
     fn default_max_ulps() -> u32 {
         T::Scalar::default_max_ulps()
     }
@@ -310,16 +285,25 @@ impl<T: GenericVector2> Default for LineString2<T> {
     }
 }
 
-impl<'a, T: GenericVector2 + 'a, I: IntoIterator<Item = &'a T>> From<I> for Aabb2<T>
-where
-    T::Scalar: UlpsEq,
-    T: SimpleApprox,
-{
+impl<'a, T: GenericVector2 + 'a, I: IntoIterator<Item = &'a T>> From<I> for Aabb2<T> {
     fn from(iter: I) -> Self {
         let mut aabb = Aabb2::default();
         for p in iter {
             aabb.update_with_point(*p);
         }
         aabb
+    }
+}
+
+impl<T: GenericVector2> Default for LineStringSet2<T> {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            set: Vec::<_>::default(),
+            aabb: Aabb2::default(),
+            convex_hull: None,
+            internals: None,
+            //_pd:PhantomData,
+        }
     }
 }

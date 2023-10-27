@@ -41,14 +41,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::LinestringError;
+use crate::{
+    linestring_3d,
+    linestring_3d::{LineString3, Plane},
+    LinestringError,
+};
 use collections::binary_heap::BinaryHeap;
 use itertools::Itertools;
 use std::{collections, fmt::Debug};
 use vector_traits::{
     approx::*,
     num_traits::{real::Real, One, Zero},
-    GenericScalar, GenericVector2, HasXY, SimpleApprox,
+    GenericScalar, GenericVector2, HasXY, HasXYZ,
 };
 
 /// Module containing the convex hull calculations
@@ -88,11 +92,7 @@ pub struct Line2<T> {
     pub end: T,
 }
 
-impl<T: GenericVector2> Line2<T>
-where
-    T::Scalar: UlpsEq,
-    T: SimpleApprox,
-{
+impl<T: GenericVector2> Line2<T> {
     pub fn new(start: T, end: T) -> Self {
         Self { start, end }
     }
@@ -136,9 +136,17 @@ where
     /// from B to A for the purposes of this function.
     pub fn intersection_point(self, other: Self) -> Option<Intersection<T>> {
         // Check if either segment is a point
-        if self.start.is_ulps_eq(self.end) {
+        if self.start.is_ulps_eq(
+            self.end,
+            T::Scalar::default_epsilon(),
+            T::Scalar::default_max_ulps(),
+        ) {
             return intersect_line_point(other, self.start);
-        } else if other.start.is_ulps_eq(other.end) {
+        } else if other.start.is_ulps_eq(
+            other.end,
+            T::Scalar::default_epsilon(),
+            T::Scalar::default_max_ulps(),
+        ) {
             return intersect_line_point(self, other.start);
         }
 
@@ -286,6 +294,16 @@ where
             - p3.x() * p2.y();
         area * area
     }
+
+    /// Copy this lines2 into a line3, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    pub fn copy_to_3d(&self, plane: Plane) -> linestring_3d::Line3<T::Vector3> {
+        linestring_3d::Line3::new(
+            plane.point_to_3d::<T::Vector3>(self.start),
+            plane.point_to_3d::<T::Vector3>(self.end),
+        )
+    }
 }
 
 /// A parabolic arc as used in <https://github.com/eadf/boostvoronoi.rs>
@@ -308,10 +326,7 @@ pub struct VoronoiParabolicArc<T: GenericVector2> {
     pub end_point: T,
 }
 
-impl<T: GenericVector2 + SimpleApprox> VoronoiParabolicArc<T>
-where
-    T::Scalar: UlpsEq,
-{
+impl<T: GenericVector2> VoronoiParabolicArc<T> {
     pub fn new(segment: Line2<T>, cell_point: T, start_point: T, end_point: T) -> Self {
         Self {
             segment,
@@ -395,17 +410,23 @@ where
         rv
     }
 
-    /*/// Convert this parable abstraction into a single straight line
-    pub fn discretise_3d_straight_line(&self) -> linestring_3d::LineString3<T> {
-        let mut rv = linestring_3d::LineString3::default().with_connected(false);
+    /// Convert this parable abstraction into a single straight line
+    pub fn discretize_3d_straight_line(&self) -> LineString3<T::Vector3> {
+        let mut rv = LineString3::default().with_connected(false);
         let distance =
             -distance_to_line_squared_safe(self.segment.start, self.segment.end, self.start_point)
                 .sqrt();
-        rv.points
-            .push([self.start_point.x, self.start_point.y, distance].into());
+        rv.points.push(T::Vector3::new_3d(
+            self.start_point.x(),
+            self.start_point.y(),
+            distance,
+        ));
         let distance = -self.end_point.distance(self.cell_point);
-        rv.points
-            .push([self.end_point.x, self.end_point.y, distance].into());
+        rv.points.push(T::Vector3::new_3d(
+            self.end_point.x(),
+            self.end_point.y(),
+            distance,
+        ));
         rv
     }
 
@@ -415,22 +436,28 @@ where
     ///
     /// All of this code is ported from C++ boost 1.75.0
     /// <https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm>
-    pub fn discretise_3d(&self, max_dist: T) -> linestring_3d::LineString3<T> {
-        let mut rv = linestring_3d::LineString3::default().with_connected(false);
+    pub fn discretize_3d(&self, max_dist: T::Scalar) -> LineString3<T::Vector3> {
+        let mut rv = LineString3::default().with_connected(false);
         let z_comp = -self.start_point.distance(self.cell_point);
-        rv.points
-            .push([self.start_point.x, self.start_point.y, z_comp].into());
+        rv.points.push(T::Vector3::new_3d(
+            self.start_point.x(),
+            self.start_point.y(),
+            z_comp,
+        ));
 
         let z_comp = -self.end_point.distance(self.cell_point);
         // todo, don't insert end_point and then pop it again a few lines later..
-        rv.points
-            .push([self.end_point.x, self.end_point.y, z_comp].into());
+        rv.points.push(T::Vector3::new_3d(
+            self.end_point.x(),
+            self.end_point.y(),
+            z_comp,
+        ));
 
         // Apply the linear transformation to move start point of the segment to
         // the point with coordinates (0, 0) and the direction of the segment to
         // coincide the positive direction of the x-axis.
-        let segm_vec_x = self.segment.end.x - self.segment.start.x;
-        let segm_vec_y = self.segment.end.y - self.segment.start.y;
+        let segm_vec_x = self.segment.end.x() - self.segment.start.x();
+        let segm_vec_y = self.segment.end.y() - self.segment.start.y();
         let sqr_segment_length = segm_vec_x * segm_vec_x + segm_vec_y * segm_vec_y;
 
         // Compute x-coordinates of the endpoints of the edge
@@ -443,8 +470,8 @@ where
         // Compute parabola parameters in the transformed space.
         // Parabola has next representation:
         // f(x) = ((x-rot_x)^2 + rot_y^2) / (2.0*rot_y).
-        let point_vec_x = self.cell_point.x - self.segment.start.x;
-        let point_vec_y = self.cell_point.y - self.segment.start.y;
+        let point_vec_x = self.cell_point.x() - self.segment.start.x();
+        let point_vec_y = self.cell_point.y() - self.segment.start.y();
         let rot_x = segm_vec_x * point_vec_x + segm_vec_y * point_vec_y;
         let rot_y = segm_vec_x * point_vec_y - segm_vec_y * point_vec_x;
 
@@ -480,11 +507,11 @@ where
                 // Distance between parabola and line segment is less than max_dist.
                 let _ = point_stack.pop();
                 let inter_x = (segm_vec_x * new_x - segm_vec_y * new_y) / sqr_segment_length
-                    + self.segment.start.x;
+                    + self.segment.start.x();
                 let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
-                    + self.segment.start.y;
-                let z_comp = -Point2::new(inter_x, inter_y).distance(self.cell_point);
-                rv.points.push(Point3::new(inter_x, inter_y, z_comp));
+                    + self.segment.start.y();
+                let z_comp = -T::new_2d(inter_x, inter_y).distance(self.cell_point);
+                rv.points.push(T::Vector3::new_3d(inter_x, inter_y, z_comp));
                 cur_x = new_x;
                 cur_y = new_y;
             } else {
@@ -496,7 +523,7 @@ where
         let last_position = rv.points.len() - 1;
         rv.points[last_position] = last_point;
         rv
-    }*/
+    }
 
     /// Compute y(x) = ((x - a) * (x - a) + b * b) / (2 * b).
     #[inline(always)]
@@ -524,15 +551,15 @@ where
     }
 
     // exactly the same as get_point_projection but with a Point3 (Z component will be ignored)
-    /*fn point_projection_3d(point: &Point3<T>, segment: &Line2<T>) -> T {
-        let segment_vec_x = segment.end.x - segment.start.x;
-        let segment_vec_y = segment.end.y - segment.start.y;
-        let point_vec_x = point.x - segment.start.x;
-        let point_vec_y = point.y - segment.start.y;
+    fn point_projection_3d(point: &T::Vector3, segment: &Line2<T>) -> T::Scalar {
+        let segment_vec_x = segment.end.x() - segment.start.x();
+        let segment_vec_y = segment.end.y() - segment.start.y();
+        let point_vec_x = point.x() - segment.start.x();
+        let point_vec_y = point.y() - segment.start.y();
         let sqr_segment_length = segment_vec_x * segment_vec_x + segment_vec_y * segment_vec_y;
         let vec_dot = segment_vec_x * point_vec_x + segment_vec_y * point_vec_y;
         vec_dot / sqr_segment_length
-    }*/
+    }
 }
 
 struct PriorityDistance<T: GenericVector2> {
@@ -548,11 +575,7 @@ impl<'a, T: GenericVector2> LineIterator<'a, T> {
     }
 }
 
-impl<T: GenericVector2> LineString2<T>
-where
-    T::Scalar: UlpsEq,
-    T: SimpleApprox,
-{
+impl<T: GenericVector2> LineString2<T> {
     /// creates a new linestring with enough capacity allocated to store `capacity` points.
     /// If you want to store a square of points in a loop, you will need to use the `capacity`=5
     pub fn with_capacity(capacity: usize) -> Self {
@@ -618,9 +641,23 @@ where
                         }
                     } else if let Some(point) = l0.1.intersection_point(l1.1) {
                         let point = point.single();
-                        if (point.is_ulps_eq(l0.1.start) || point.is_ulps_eq(l0.1.end))
-                            && (point.is_ulps_eq(l1.1.start) || point.is_ulps_eq(l1.1.end))
-                        {
+                        if (point.is_ulps_eq(
+                            l0.1.start,
+                            T::Scalar::default_epsilon(),
+                            T::Scalar::default_max_ulps(),
+                        ) || point.is_ulps_eq(
+                            l0.1.end,
+                            T::Scalar::default_epsilon(),
+                            T::Scalar::default_max_ulps(),
+                        )) && (point.is_ulps_eq(
+                            l1.1.start,
+                            T::Scalar::default_epsilon(),
+                            T::Scalar::default_max_ulps(),
+                        ) || point.is_ulps_eq(
+                            l1.1.end,
+                            T::Scalar::default_epsilon(),
+                            T::Scalar::default_max_ulps(),
+                        )) {
                             continue;
                         } else {
                             /*println!(
@@ -796,6 +833,29 @@ where
         match self.0.len() {
             0 | 1 => LineIterator([].windows(2)), // Empty iterator
             _ => LineIterator(self.0.windows(2)),
+        }
+    }
+
+    /// Copy this Linestring2 into a Linestring3, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    pub fn copy_to_3d(&self, plane: Plane) -> LineString3<T::Vector3> {
+        match plane {
+            Plane::XY => self
+                .0
+                .iter()
+                .map(|p2d| T::Vector3::new_3d(p2d.x(), p2d.y(), T::Scalar::ZERO))
+                .collect(),
+            Plane::XZ => self
+                .0
+                .iter()
+                .map(|p2d| T::Vector3::new_3d(p2d.x(), T::Scalar::ZERO, p2d.y()))
+                .collect(),
+            Plane::YZ => self
+                .0
+                .iter()
+                .map(|p2d| T::Vector3::new_3d(T::Scalar::ZERO, p2d.x(), p2d.y()))
+                .collect(),
         }
     }
 
@@ -1026,6 +1086,208 @@ where
     pub fn contains_point_exclusive(&self, p: T) -> bool {
         self.is_connected() && convex_hull::contains_point_exclusive(self, p)
     }
+
+    /// Apply an operation over each coordinate.
+    /// Useful when you want to round the values of the coordinates.
+    pub fn apply<F>(&mut self, f: &F)
+    where
+        F: Fn(T) -> T,
+    {
+        for v in self.0.iter_mut() {
+            *v = f(*v)
+        }
+    }
+}
+/*
+pub trait Matrix<T:GenericVector2> {
+    fn transform(&self, v:T) -> T;
+}*/
+
+/// A set of 2d LineString, an aabb + convex_hull.
+/// It also contains a list of aabb & convex_hulls of shapes this set has gobbled up.
+/// This can be useful for separating out inner regions of the shape.
+///
+/// This struct is intended to contain related shapes. E.g. outlines of letters with holes
+#[derive(Clone)]
+pub struct LineStringSet2<T: GenericVector2> {
+    set: Vec<LineString2<T>>,
+    aabb: Aabb2<T>,
+    convex_hull: Option<LineString2<T>>,
+    pub internals: Option<Vec<(Aabb2<T>, LineString2<T>)>>,
+    //#[doc(hidden)]
+    //_pd :PhantomData<M>
+}
+
+impl<T: GenericVector2> LineStringSet2<T> {
+    /// steal the content of 'other' leaving it empty
+    pub fn steal_from(other: &mut LineStringSet2<T>) -> Self {
+        //println!("stealing from other.aabb:{:?}", other.aabb);
+        let mut set = Vec::<LineString2<T>>::new();
+        set.append(&mut other.set);
+        Self {
+            set,
+            aabb: other.aabb,
+            convex_hull: other.convex_hull.take(),
+            internals: other.internals.take(),
+            //_pd:PhantomData,
+        }
+    }
+
+    pub fn set(&self) -> &Vec<LineString2<T>> {
+        &self.set
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            set: Vec::<LineString2<T>>::with_capacity(capacity),
+            aabb: Aabb2::default(),
+            convex_hull: None,
+            internals: None,
+            //_pd:PhantomData,
+        }
+    }
+
+    pub fn get_internals(&self) -> Option<&Vec<(Aabb2<T>, LineString2<T>)>> {
+        self.internals.as_ref()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.set.is_empty()
+    }
+
+    pub fn push(&mut self, ls: LineString2<T>) {
+        if !ls.is_empty() {
+            self.set.push(ls);
+
+            for ls in self.set.last().unwrap().0.iter() {
+                self.aabb.update_with_point(*ls);
+            }
+        }
+    }
+
+    /// returns the combined convex hull of all the shapes in self.set
+    pub fn get_convex_hull(&self) -> &Option<LineString2<T>> {
+        &self.convex_hull
+    }
+
+    /// calculates the combined convex hull of all the shapes in self.set
+    pub fn calculate_convex_hull(&mut self) -> &LineString2<T> {
+        let tmp: Vec<_> = self.set.iter().flat_map(|x| x.points()).cloned().collect();
+        self.convex_hull = Some(convex_hull::graham_scan(&tmp));
+        self.convex_hull.as_ref().unwrap()
+    }
+
+    /// Returns the axis aligned bounding box of this set.
+    pub fn get_aabb(&self) -> Aabb2<T> {
+        self.aabb
+    }
+
+    /*/// Transform each individual component of this set using the transform matrix.
+    /// Return the result in a new object.
+    pub fn transform(&self, matrix3x3: &M) -> Self {
+        let internals = self.internals.as_ref().map(|internals| {
+            internals
+                .iter()
+                .map(|(aabb, line)| (transform_aabb2(matrix3x3, aabb),transform_linestring2( matrix3x3,line)))
+                .collect()
+        });
+
+        let convex_hull = self
+            .convex_hull
+            .as_ref()
+            .map(|convex_hull| transform_linestring2(matrix3x3, convex_hull));
+
+        Self {
+            aabb: transform_aabb2(matrix3x3, &self.aabb),
+            set: self.set.iter().map(|x| transform_linestring2(matrix3x3, x)).collect(),
+            convex_hull,
+            internals,
+            _pd:PhantomData,
+        }
+    }*/
+
+    /// Copy this linestringset2 into a linestringset3, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    /// The empty axis will be set to zero.
+    pub fn copy_to_3d(&self, plane: Plane) -> linestring_3d::LineStringSet3<T::Vector3> {
+        let mut rv = linestring_3d::LineStringSet3::<T::Vector3>::with_capacity(self.set.len());
+        for ls in self.set.iter() {
+            rv.push(ls.copy_to_3d(plane));
+        }
+        rv
+    }
+
+    /// drains the 'other' container of all shapes and put them into 'self'
+    pub fn take_from(&mut self, mut other: Self) {
+        self.aabb.update_aabb(other.aabb);
+        self.set.append(&mut other.set);
+    }
+
+    /// drains the 'other' container of all shapes and put them into 'self'
+    /// The other container must be entirely 'inside' the convex hull of 'self'
+    /// The 'other' container must also contain valid 'internals' and 'convex_hull' fields
+    pub fn take_from_internal(&mut self, other: &mut Self) -> Result<(), LinestringError> {
+        // sanity check
+        if other.convex_hull.is_none() {
+            return Err(LinestringError::InvalidData(
+                "'other' did not contain a valid 'convex_hull' field".to_string(),
+            ));
+        }
+        if self.aabb.low().is_none() {
+            //println!("self.aabb {:?}", self.aabb);
+            //println!("other.aabb {:?}", other.aabb);
+            return Err(LinestringError::InvalidData(
+                "'self' did not contain a valid 'aabb' field".to_string(),
+            ));
+        }
+        if other.aabb.low().is_none() {
+            return Err(LinestringError::InvalidData(
+                "'other' did not contain a valid 'aabb' field".to_string(),
+            ));
+        }
+        if !self.aabb.contains_aabb(other.aabb) {
+            //println!("self.aabb {:?}", self.aabb);
+            //println!("other.aabb {:?}", other.aabb);
+            return Err(LinestringError::InvalidData(
+                "The 'other.aabb' is not contained within 'self.aabb'".to_string(),
+            ));
+        }
+        if self.internals.is_none() {
+            self.internals = Some(Vec::<(Aabb2<T>, LineString2<T>)>::new())
+        }
+
+        self.set.append(&mut other.set);
+
+        if let Some(ref mut other_internals) = other.internals {
+            // self.internals.unwrap is safe now
+            self.internals.as_mut().unwrap().append(other_internals);
+        }
+
+        self.internals
+            .as_mut()
+            .unwrap()
+            .push((other.aabb, other.convex_hull.take().unwrap()));
+        Ok(())
+    }
+
+    /// Apply an operation over each coordinate in the contained objects.
+    /// Useful when you want to round the value of each contained coordinate.
+    pub fn apply<F: Fn(T) -> T>(&mut self, f: &F) {
+        for s in self.set.iter_mut() {
+            s.apply(f);
+        }
+        self.aabb.apply(f);
+        if let Some(ref mut convex_hull) = self.convex_hull {
+            convex_hull.apply(f);
+        }
+        if let Some(ref mut internals) = self.internals {
+            for i in internals.iter_mut() {
+                i.0.apply(f);
+                i.1.apply(f);
+            }
+        }
+    }
 }
 
 /// A simple 2d AABB
@@ -1035,11 +1297,7 @@ pub struct Aabb2<T: HasXY> {
     min_max: Option<(T, T)>,
 }
 
-impl<T: HasXY> Aabb2<T>
-where
-    T::Scalar: UlpsEq,
-    T: SimpleApprox,
-{
+impl<T: HasXY> Aabb2<T> {
     /// Creates a degenerate AABB with both minimum and maximum corners set to the provided point.
     pub fn new(point: T) -> Self {
         Self {
@@ -1071,10 +1329,10 @@ where
             return;
         }
         let (mut aabb_min, mut aabb_max) = self.min_max.unwrap();
-        *aabb_min.x_mut() = aabb_min.x().min(point.x());
-        *aabb_min.y_mut() = aabb_min.y().min(point.y());
-        *aabb_max.x_mut() = aabb_max.x().max(point.x());
-        *aabb_max.y_mut() = aabb_max.y().max(point.y());
+        aabb_min.set_x( aabb_min.x().min(point.x()));
+        aabb_min.set_y( aabb_min.y().min(point.y()));
+        aabb_max.set_x( aabb_max.x().max(point.x()));
+        aabb_max.set_y( aabb_max.y().max(point.y()));
         self.min_max = Some((aabb_min, aabb_max));
     }
 
@@ -1088,10 +1346,10 @@ where
         }
         let (mut aabb_min, mut aabb_max) = self.min_max.unwrap();
         for point in points.iter() {
-            *aabb_min.x_mut() = aabb_min.x().min(point.x());
-            *aabb_min.y_mut() = aabb_min.y().min(point.y());
-            *aabb_max.x_mut() = aabb_max.x().max(point.x());
-            *aabb_max.y_mut() = aabb_max.y().max(point.y());
+            aabb_min.set_x( aabb_min.x().min(point.x()));
+            aabb_min.set_y( aabb_min.y().min(point.y()));
+            aabb_max.set_x( aabb_max.x().max(point.x()));
+            aabb_max.set_y( aabb_max.y().max(point.y()));
         }
         self.min_max = Some((aabb_min, aabb_max));
     }
@@ -1199,15 +1457,24 @@ where
             None
         }
     }
+
+    /// Apply an operation over each coordinate.
+    pub fn apply<F>(&mut self, f: &F)
+    where
+        F: Fn(T) -> T,
+    {
+        if let Some(ref mut min_max) = self.min_max {
+            self.min_max = Some((f(min_max.0), f(min_max.1)))
+        }
+    }
 }
 
 /// Get any intersection point between line segment and point.
 /// Inspired by <https://stackoverflow.com/a/17590923>
-pub fn intersect_line_point<T: GenericVector2>(line: Line2<T>, point: T) -> Option<Intersection<T>>
-where
-    T::Scalar: UlpsEq,
-    T: SimpleApprox,
-{
+pub fn intersect_line_point<T: GenericVector2>(
+    line: Line2<T>,
+    point: T,
+) -> Option<Intersection<T>> {
     // take care of end point equality
     if ulps_eq!(line.start.x(), point.x()) && ulps_eq!(line.start.y(), point.y()) {
         return Some(Intersection::Intersection(point));
@@ -1298,12 +1565,12 @@ pub fn distance_to_line_squared<T: GenericVector2>(l0: T, l1: T, p: T) -> T::Sca
 /// Same as distance_to_line_squared<T> but it can be called when a-b might be 0.
 /// It's a little slower because it does the a==b test
 #[inline(always)]
-pub fn distance_to_line_squared_safe<T: GenericVector2>(l0: T, l1: T, p: T) -> T::Scalar
-where
-    T::Scalar: UlpsEq,
-    T: SimpleApprox,
-{
-    if l0.is_ulps_eq(l1) {
+pub fn distance_to_line_squared_safe<T: GenericVector2>(l0: T, l1: T, p: T) -> T::Scalar {
+    if l0.is_ulps_eq(
+        l1,
+        T::Scalar::default_epsilon(),
+        T::Scalar::default_max_ulps(),
+    ) {
         // give the point-to-point answer if the segment is a point
         l0.distance_sq(p)
     } else {
@@ -1326,11 +1593,7 @@ pub struct SimpleAffine<T: GenericVector2> {
     pub b_offset: [T::Scalar; 2],
 }
 
-impl<T: GenericVector2> SimpleAffine<T>
-where
-    T::Scalar: UlpsEq,
-    T: SimpleApprox,
-{
+impl<T: GenericVector2> SimpleAffine<T> {
     pub fn new(a_aabb: &Aabb2<T>, b_aabb: &Aabb2<T>) -> Result<Self, LinestringError> {
         let min_dim = T::Scalar::ONE;
         let two = T::Scalar::TWO;

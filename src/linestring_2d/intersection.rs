@@ -44,9 +44,7 @@ limitations under the License.
 use crate::{linestring_2d, LinestringError};
 use ahash::AHashSet;
 use std::{cmp::Ordering, collections::BTreeMap, convert::identity, fmt, fmt::Debug};
-use vector_traits::{
-    approx::*, num_traits::real::Real, GenericScalar, GenericVector2, SimpleApprox,
-};
+use vector_traits::{approx::*, num_traits::real::Real, GenericScalar, GenericVector2};
 
 #[derive(Clone, Copy)]
 pub struct SiteEventKey<T: GenericVector2> {
@@ -70,11 +68,7 @@ impl<T: GenericVector2> Debug for SiteEventKey<T> {
     }
 }
 
-impl<T: GenericVector2> Ord for SiteEventKey<T>
-where
-    T: SimpleApprox,
-    T::Scalar: UlpsEq,
-{
+impl<T: GenericVector2> Ord for SiteEventKey<T> {
     /// It should be impossible for a !is_finite() number to be added to SiteEventKey
     #[inline(always)]
     fn cmp(&self, other: &Self) -> Ordering {
@@ -85,7 +79,6 @@ where
 #[allow(clippy::non_canonical_partial_ord_impl)]
 impl<T: GenericVector2> PartialOrd for SiteEventKey<T>
 where
-    T: SimpleApprox,
     T::Scalar: UlpsEq,
 {
     #[inline(always)]
@@ -102,15 +95,16 @@ where
     }
 }
 
-impl<T: GenericVector2> Eq for SiteEventKey<T> where T: SimpleApprox {}
+impl<T: GenericVector2> Eq for SiteEventKey<T> {}
 
-impl<T: GenericVector2> PartialEq for SiteEventKey<T>
-where
-    T: SimpleApprox,
-{
+impl<T: GenericVector2> PartialEq for SiteEventKey<T> {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
-        self.pos.is_ulps_eq(other.pos)
+        self.pos.is_ulps_eq(
+            other.pos,
+            T::Scalar::default_epsilon(),
+            T::Scalar::default_max_ulps(),
+        )
     }
 }
 
@@ -378,10 +372,7 @@ impl SiteEvent {
 fn sweepline_intersection<T: GenericVector2>(
     sweepline: T,
     other: &linestring_2d::Line2<T>,
-) -> Option<(T::Scalar, T::Scalar)>
-where
-    T::Scalar: UlpsEq,
-{
+) -> Option<(T::Scalar, T::Scalar)> {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
     let y1 = other.start.y();
     let y2 = other.end.y();
@@ -435,11 +426,7 @@ impl<T: GenericVector2> Default for IntersectionData<T> {
     }
 }
 
-impl<T: GenericVector2> IntersectionData<T>
-where
-    T: SimpleApprox,
-    T::Scalar: UlpsEq,
-{
+impl<T: GenericVector2> IntersectionData<T> {
     pub fn get_sweepline_pos(&self) -> &T {
         &self.sweepline_pos
     }
@@ -537,7 +524,15 @@ where
                 // only add this line as an intersection if the intersection lies
                 // at the interior of the line (no end point)
                 let i_line = self.lines[*new_intersection];
-                if position.pos.is_ulps_eq(i_line.start) || position.pos.is_ulps_eq(i_line.end) {
+                if position.pos.is_ulps_eq(
+                    i_line.start,
+                    T::Scalar::default_epsilon(),
+                    T::Scalar::default_max_ulps(),
+                ) || position.pos.is_ulps_eq(
+                    i_line.end,
+                    T::Scalar::default_epsilon(),
+                    T::Scalar::default_max_ulps(),
+                ) {
                     continue;
                 }
 
@@ -567,10 +562,7 @@ where
     /// Handles input events, returns an iterator containing the results when done.
     pub fn compute(
         mut self,
-    ) -> Result<impl ExactSizeIterator<Item = (T, Vec<usize>)>, LinestringError>
-    where
-        T::Scalar: UlpsEq,
-    {
+    ) -> Result<impl ExactSizeIterator<Item = (T, Vec<usize>)>, LinestringError> {
         // make the borrow checker happy by breaking the link between self and all the
         // containers and their iterators.
         let mut active_lines = AHashSet::<usize>::default();
@@ -849,7 +841,11 @@ where
             for right_i in right.iter() {
                 let left_l = self.lines[*left_i];
                 let right_l = self.lines[*right_i];
-                if left_l.end.is_ulps_eq(right_l.end) {
+                if left_l.end.is_ulps_eq(
+                    right_l.end,
+                    T::Scalar::default_epsilon(),
+                    T::Scalar::default_max_ulps(),
+                ) {
                     // if endpoints are equal they will already be in the event queue
                     continue;
                 }
@@ -869,7 +865,11 @@ where
                     if intersection_p.y() >= self.sweepline_pos.y()
                         && !(intersection_p.y() == self.sweepline_pos.y()
                             && intersection_p.x() < self.sweepline_pos.x())
-                        && !intersection_p.is_ulps_eq(self.sweepline_pos)
+                        && !intersection_p.is_ulps_eq(
+                            self.sweepline_pos,
+                            T::Scalar::default_epsilon(),
+                            T::Scalar::default_max_ulps(),
+                        )
                     {
                         #[cfg(feature = "console_trace")]
                         println!(
