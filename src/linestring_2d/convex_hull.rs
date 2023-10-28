@@ -489,9 +489,7 @@ pub fn contains_convex_hull<T: GenericVector2>(a: &LineString2<T>, b: &LineStrin
     }
 
     // If both checks passed, now do a complete check
-    let rv = b.0.iter().all(|p| contains_point_inclusive(a, *p));
-    println!("rv:{rv}");
-    rv
+    b.0.iter().all(|p| contains_point_inclusive(a, *p))
 }
 
 /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull (inclusive)
