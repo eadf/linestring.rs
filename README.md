@@ -1,8 +1,9 @@
 [![crates.io](https://img.shields.io/crates/v/linestring.svg)](https://crates.io/crates/linestring)
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
-[![dependency status](https://deps.rs/crate/linestring/0.10.1/status.svg)](https://deps.rs/crate/linestring/0.10.1)
+[![dependency status](https://deps.rs/crate/linestring/0.10.2/status.svg)](https://deps.rs/crate/linestring/0.10.2)
 ![license](https://img.shields.io/crates/l/linestring)
+[![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/eadf)
 
 # Linestring: 2D poly-lines for generic vectors.
 
@@ -45,6 +46,11 @@ cargo run --example fltk_gui
 ### Minimum Supported Rust Version (MSRV)
 
 The minimum supported version of Rust for `linestring` is `1.66`.
+
+## Contributing
+
+We welcome contributions from the community.
+Feel free to submit pull requests or report issues on our GitHub repository.
 
 ## License
 

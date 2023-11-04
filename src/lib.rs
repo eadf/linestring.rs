@@ -137,3 +137,7 @@ impl<T: num_traits::PrimInt + Debug> GrowingVob for vob::Vob<T> {
         self.get(bit).unwrap_or(false)
     }
 }
+
+pub mod prelude {
+    pub use crate::linestring_2d::LineString2;
+}

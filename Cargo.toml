@@ -1,6 +1,6 @@
 [package]
 name = "linestring"
-version = "0.10.1"
+version = "0.10.2"
 authors = ["eadf"]
 edition = "2021"
 description = "2d line strings"
@@ -21,19 +21,24 @@ ahash = "0.8.6"
 thiserror = "1.0.50"
 itertools = "0.11.0"
 vob="3.0.3"
+smallvec = "1.11.1"
 
 [[example]]
 name = "fltk_gui"
 path = "example/fltk_gui.rs"
 
 [dev-dependencies]
-fltk = "1.4.15"
+fltk = "1.4.16"
 rand = "0.8.5"
 criterion = "0.5.1"
 vector-traits = { version = "0.2", features = ["glam"] }
 
 [[bench]]
 name = "intersection_bench"
+harness = false
+
+[[bench]]
+name = "indexed_intersection_bench"
 harness = false
 
 [[bench]]

@@ -41,22 +41,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::{linestring_2d, LinestringError};
+#[cfg(test)]
+mod tests;
+
+use crate::{linestring_2d::Line2, LinestringError};
 use ahash::AHashSet;
+use smallvec::{smallvec, SmallVec};
 use std::{cmp::Ordering, collections::BTreeMap, convert::identity, fmt, fmt::Debug};
 use vector_traits::{approx::*, num_traits::real::Real, GenericScalar, GenericVector2};
 
 #[derive(Clone, Copy)]
 pub struct SiteEventKey<T: GenericVector2> {
     pub pos: T,
-}
-
-impl<T: GenericVector2> SiteEventKey<T> {
-    pub fn new(x: T::Scalar, y: T::Scalar) -> Self {
-        Self {
-            pos: T::new_2d(x, y),
-        }
-    }
+    pub index: Option<usize>,
 }
 
 impl<T: GenericVector2> Debug for SiteEventKey<T> {
@@ -64,6 +61,7 @@ impl<T: GenericVector2> Debug for SiteEventKey<T> {
         f.debug_tuple("")
             .field(&self.pos.x())
             .field(&self.pos.y())
+            .field(&self.index)
             .finish()
     }
 }
@@ -225,12 +223,15 @@ where
     }
 
     /// sort candidates based on slope, keep only the ones with 'flattest' angle to the left and right
-    fn update_both(&mut self, candidate_index: usize, lines: &[linestring_2d::Line2<T>]) {
+    fn update_both(&mut self, vertices: &[T], candidate_index: usize, lines: &[(usize, usize)]) {
         let line = lines[candidate_index];
-        let candidate_slope = if ulps_eq!(&line.end.y(), &line.start.y()) {
+        let line_start = vertices[line.0];
+        let line_end = vertices[line.1];
+
+        let candidate_slope = if ulps_eq!(&line_end.y(), &line_start.y()) {
             T::Scalar::INFINITY
         } else {
-            (line.end.x() - line.start.x()) / (line.end.y() - line.start.y())
+            (line_end.x() - line_start.x()) / (line_end.y() - line_start.y())
         };
 
         self.update_left(false, candidate_slope, candidate_index);
@@ -334,7 +335,7 @@ where
 pub struct SiteEvent {
     drop: Option<Vec<usize>>,
     add: Option<Vec<usize>>,
-    intersection: Option<Vec<usize>>,
+    intersection: Option<SmallVec<[usize; 1]>>,
 }
 
 impl SiteEvent {
@@ -342,7 +343,7 @@ impl SiteEvent {
         Self {
             drop: None,
             add: None,
-            intersection: Some(i.to_vec()),
+            intersection: Some(i.into()),
         }
     }
 
@@ -362,7 +363,7 @@ impl SiteEvent {
         }
     }
 
-    pub fn get_intersections(&self) -> &Option<Vec<usize>> {
+    pub fn get_intersections(&self) -> &Option<SmallVec<[usize; 1]>> {
         &self.intersection
     }
 }
@@ -370,14 +371,18 @@ impl SiteEvent {
 /// Returns *one* point of intersection between the `sweepline` and `other`
 /// Second return value is the slope of the line
 fn sweepline_intersection<T: GenericVector2>(
+    vertices: &[T],
     sweepline: T,
-    other: &linestring_2d::Line2<T>,
+    other: (usize, usize),
 ) -> Option<(T::Scalar, T::Scalar)> {
     // line equation: y=slope*x+d => d=y-slope*x => x = (y-d)/slope
-    let y1 = other.start.y();
-    let y2 = other.end.y();
-    let x1 = other.start.x();
-    let x2 = other.end.x();
+    let other_start = vertices[other.0];
+    let other_end = vertices[other.1];
+
+    let y1 = other_start.y();
+    let y2 = other_end.y();
+    let x1 = other_start.x();
+    let x2 = other_end.x();
     if ulps_eq!(&y1, &y2) {
         // horizontal line: return to the point right of sweepline.x, if any
         // Any point to the left are supposedly already handled.
@@ -397,9 +402,46 @@ fn sweepline_intersection<T: GenericVector2>(
 /// Contains the data the sweep-line intersection algorithm needs to operate.
 /// Some of these containers are stored inside an Option. This makes it possible
 /// to take() them and make the borrow-checker happy.
-pub struct IntersectionData<T: GenericVector2> {
+/// ```
+/// use itertools::Itertools;
+/// use linestring::linestring_2d::indexed_intersection::IntersectionTester;
+/// use vector_traits::glam::{self, vec2}; // or use the crate glam directly
+///
+/// let vertices: Vec<glam::Vec2> = vec![
+///     vec2(651.3134, 410.21536),
+///     vec2(335.7384, 544.54614),
+///     vec2(154.29922, 363.10654),
+///     vec2(425.06284, 255.50153),
+///     vec2(651.1434, 387.16595),
+///     vec2(250.0, 300.0),
+/// ];
+/// // edges are counted in the order they are presented to IntersectionTester
+/// let example_edges: Vec<(usize, usize)> = (0..vertices.len() as usize)
+///         .tuples()
+///         .collect();
+/// let input_vertices_len = vertices.len();
+/// let (output_vertices, result_iter) = IntersectionTester::new(vertices)
+///     .with_ignore_end_point_intersections(true)?
+///     .with_stop_at_first_intersection(true)?
+///     .with_edges( example_edges.iter())?
+///     .compute().unwrap();
+///
+/// assert_eq!(output_vertices.len(),input_vertices_len+1);
+/// assert_eq!(1, result_iter.len());
+/// for (intersection_vertex_id, affected_edges) in result_iter {
+///     println!(
+///       "Found an intersection at {:?}, affected edges:{:?}",
+///        output_vertices[intersection_vertex_id], affected_edges
+///     );
+/// }
+/// # Ok::<(), linestring::LinestringError>(())
+/// ```
+pub struct IntersectionTester<T: GenericVector2> {
     // sweep-line position
     sweepline_pos: T,
+    // sweep-line position: a index into self.vertices. Is usually a value, only at end and start
+    // of the algorithm it will be set to None
+    sweepline_pos_index: Option<usize>,
     // Stop when first intersection is found
     stop_at_first_intersection: bool,
     // Allow start&end points to intersect
@@ -411,27 +453,31 @@ pub struct IntersectionData<T: GenericVector2> {
     site_events: Option<BTreeMap<SiteEventKey<T>, SiteEvent>>,
     // The input geometry. These lines are re-arranged so that Line.start.y <= Line.end.y
     // These are never changed while the algorithm is running.
-    lines: Vec<linestring_2d::Line2<T>>,
+    lines: Vec<(usize, usize)>,
+    // The array containing the actual vertices
+    vertices: Vec<T>,
 }
 
-impl<T: GenericVector2> Default for IntersectionData<T> {
-    fn default() -> Self {
+impl<T: GenericVector2> IntersectionTester<T> {
+    pub fn new(vertices: Vec<T>) -> Self {
         Self {
+            vertices,
             sweepline_pos: T::new_2d(-T::Scalar::max_value(), -T::Scalar::max_value()),
+            sweepline_pos_index: None,
             stop_at_first_intersection: false,
             ignore_end_point_intersections: false,
             site_events: Some(BTreeMap::new()),
-            lines: Vec::<linestring_2d::Line2<T>>::new(),
+            lines: Vec::<(usize, usize)>::new(),
         }
     }
-}
 
-impl<T: GenericVector2> IntersectionData<T> {
-    pub fn get_sweepline_pos(&self) -> &T {
-        &self.sweepline_pos
+    #[inline]
+    pub fn get_sweepline_pos(&self) -> (T, Option<usize>) {
+        (self.sweepline_pos, self.sweepline_pos_index)
     }
 
-    pub fn get_lines(&self) -> &Vec<linestring_2d::Line2<T>> {
+    #[inline]
+    pub fn get_lines(&self) -> &[(usize, usize)] {
         &self.lines
     }
 
@@ -451,20 +497,24 @@ impl<T: GenericVector2> IntersectionData<T> {
     /// Add data to the input lines.
     /// Sort the end point according to the order of SiteEventKey.
     /// Populate the event queue
-    /// TODO: Use IntoIterator instead of Iterator
-    pub fn with_lines<IT>(mut self, input_iter: IT) -> Result<Self, LinestringError>
+    pub fn with_edges<'a, IT>(mut self, input_iter: IT) -> Result<Self, LinestringError>
     where
-        IT: Iterator<Item = linestring_2d::Line2<T>>,
+        IT: IntoIterator<Item = &'a (usize, usize)>,
     {
         let mut site_events = self.site_events.take().ok_or_else(|| {
             LinestringError::InternalError("with_lines() could not take 'site_events'".to_string())
         })?;
 
-        for (index, mut aline) in input_iter.enumerate() {
-            if !(aline.start.x().is_finite()
-                && aline.start.y().is_finite()
-                && aline.end.x().is_finite()
-                && aline.end.y().is_finite())
+        for (index, aline) in input_iter.into_iter().enumerate() {
+            let mut start_index = aline.0;
+            let mut start = self.vertices[start_index];
+            let mut end_index = aline.1;
+            let mut end = self.vertices[end_index];
+
+            if !(start.x().is_finite()
+                && start.y().is_finite()
+                && end.x().is_finite()
+                && end.y().is_finite())
             {
                 return Err(LinestringError::InvalidData(
                     "Some of the points are infinite".to_string(),
@@ -473,18 +523,32 @@ impl<T: GenericVector2> IntersectionData<T> {
 
             // Re-arrange so that:
             // SiteEvent.pos.start < SiteEvent.pos.end (primary ordering: pos.y, secondary: pos.x)
-            if !(SiteEventKey { pos: aline.start }).lt(&(SiteEventKey { pos: aline.end })) {
-                std::mem::swap(&mut aline.start, &mut aline.end);
+            if !(SiteEventKey {
+                pos: start,
+                index: Some(start_index),
+            })
+            .lt(&(SiteEventKey {
+                pos: end,
+                index: Some(end_index),
+            })) {
+                std::mem::swap(&mut start_index, &mut end_index);
+                std::mem::swap(&mut start, &mut end);
             };
 
-            self.lines.push(aline);
+            self.lines.push(*aline);
 
-            let key_start = SiteEventKey { pos: aline.start };
-            let key_end = SiteEventKey { pos: aline.end };
+            let key_start = SiteEventKey {
+                pos: start,
+                index: Some(start_index),
+            };
+            let key_end = SiteEventKey {
+                pos: end,
+                index: Some(end_index),
+            };
 
             // start points goes into the site_event::add list
             if let Some(event) = site_events.get_mut(&key_start) {
-                let mut lower = event.add.take().map_or(Vec::<usize>::new(), identity);
+                let mut lower = event.add.take().map_or(Vec::<usize>::default(), identity);
                 lower.push(index);
                 event.add = Some(lower);
             } else {
@@ -494,7 +558,7 @@ impl<T: GenericVector2> IntersectionData<T> {
 
             // end points goes into the site_event::drop list
             if let Some(event) = site_events.get_mut(&key_end) {
-                let mut upper = event.drop.take().map_or(Vec::<usize>::new(), identity);
+                let mut upper = event.drop.take().map_or(Vec::<usize>::default(), identity);
                 upper.push(index);
                 event.drop = Some(upper);
             } else {
@@ -508,10 +572,10 @@ impl<T: GenericVector2> IntersectionData<T> {
         Ok(self)
     }
 
-    #[inline]
     ///
     /// Add a new intersection event to the event queue
     ///
+    #[inline]
     fn add_intersection_event(
         &self,
         site_events: &mut BTreeMap<SiteEventKey<T>, SiteEvent>,
@@ -526,11 +590,11 @@ impl<T: GenericVector2> IntersectionData<T> {
                 // at the interior of the line (no end point)
                 let i_line = self.lines[*new_intersection];
                 if position.pos.is_ulps_eq(
-                    i_line.start,
+                    self.vertices[i_line.0],
                     T::Scalar::default_epsilon(),
                     T::Scalar::default_max_ulps(),
                 ) || position.pos.is_ulps_eq(
-                    i_line.end,
+                    self.vertices[i_line.1],
                     T::Scalar::default_epsilon(),
                     T::Scalar::default_max_ulps(),
                 ) {
@@ -540,7 +604,7 @@ impl<T: GenericVector2> IntersectionData<T> {
                 if let Some(prev_intersections) = &mut event.intersection {
                     prev_intersections.push(*new_intersection);
                 } else {
-                    let new_vec = vec![*new_intersection];
+                    let new_vec = smallvec![*new_intersection];
                     event.intersection = Some(new_vec);
                 }
                 intersections_added += 1;
@@ -558,17 +622,22 @@ impl<T: GenericVector2> IntersectionData<T> {
         }
     }
 
-    /// Handles input events, returns an iterator containing the results when done.
+    //#[allow(unused_assignments)]
     #[allow(clippy::type_complexity)]
+    /// Handles input events, returns an iterator containing the results when done.
+    /// Return a new vertex list, an iterator of all the detected intersections:
+    /// (intersection point index, a Vec of affected edges)
     pub fn compute(
         mut self,
-    ) -> Result<impl ExactSizeIterator<Item = (T, Vec<usize>)>, LinestringError> {
+    ) -> Result<(Vec<T>, impl ExactSizeIterator<Item = (usize, Vec<usize>)>), LinestringError> {
         // make the borrow checker happy by breaking the link between self and all the
         // containers and their iterators.
-        let mut active_lines = AHashSet::<usize>::default();
         let mut site_events = self.site_events.take().ok_or_else(|| {
-            LinestringError::InternalError("compute() could not take 'site_events'".to_string())
+            LinestringError::InternalError(
+                "compute() could not take ownership of 'site_events'".to_string(),
+            )
         })?;
+        let mut active_lines = AHashSet::<usize>::with_capacity(site_events.len());
         // A list of intersection points and the line segments involved in each intersection
         let mut result: BTreeMap<SiteEventKey<T>, Vec<usize>> = BTreeMap::default();
         // The 'best' lines surrounding the event point but not directly connected to the point.
@@ -615,13 +684,18 @@ impl<T: GenericVector2> IntersectionData<T> {
                 }
             } else {
                 self.sweepline_pos = T::new_2d(T::Scalar::max_value(), T::Scalar::max_value());
+                self.sweepline_pos_index = None;
                 break;
             }
         }
         // no need to put the borrowed containers back
-        Ok(result.into_iter().map(|x| (x.0.pos, x.1)))
+        Ok((
+            self.vertices,
+            result.into_iter().map(|x| (x.0.index.unwrap(), x.1)),
+        ))
     }
 
+    #[inline(always)]
     #[allow(clippy::too_many_arguments)]
     fn handle_event(
         &mut self,
@@ -634,6 +708,7 @@ impl<T: GenericVector2> IntersectionData<T> {
         result: &mut BTreeMap<SiteEventKey<T>, Vec<usize>>,
     ) -> Result<(), LinestringError> {
         self.sweepline_pos = key.pos;
+        self.sweepline_pos_index = key.index;
 
         let removed_active_lines = event.drop.iter().flatten().count();
         let added_active_lines = event.add.iter().flatten().count();
@@ -674,20 +749,23 @@ impl<T: GenericVector2> IntersectionData<T> {
                 if removed_active_lines > 0 {
                     self.report_intersections_to_result(
                         result,
-                        self.sweepline_pos,
+                        self.sweepline_pos_index.unwrap(),
                         event.drop.iter().flatten(),
                     );
                 }
                 if added_active_lines > 0 {
                     self.report_intersections_to_result(
                         result,
-                        self.sweepline_pos,
+                        self.sweepline_pos_index.unwrap(),
                         event.add.iter().flatten(),
                     );
                 }
                 self.report_intersections_to_result(
                     result,
-                    self.sweepline_pos,
+                    self.sweepline_pos_index.unwrap_or_else(|| {
+                        println!("self.sweepline_pos:{:?}", self.sweepline_pos);
+                        panic!();
+                    }),
                     event.intersection.iter().flatten(),
                 );
             }
@@ -696,21 +774,21 @@ impl<T: GenericVector2> IntersectionData<T> {
             if removed_active_lines > 0 {
                 self.report_intersections_to_result(
                     result,
-                    self.sweepline_pos,
+                    self.sweepline_pos_index.unwrap(),
                     event.drop.iter().flatten(),
                 );
             }
             if added_active_lines > 0 {
                 self.report_intersections_to_result(
                     result,
-                    self.sweepline_pos,
+                    self.sweepline_pos_index.unwrap(),
                     event.add.iter().flatten(),
                 );
             }
             if intersections_found > 0 {
                 self.report_intersections_to_result(
                     result,
-                    self.sweepline_pos,
+                    self.sweepline_pos_index.unwrap(),
                     event.intersection.iter().flatten(),
                 );
             }
@@ -735,9 +813,11 @@ impl<T: GenericVector2> IntersectionData<T> {
             }
 
             //print!("(sweepline_intersection id={:?}", line_index);
-            if let Some((intersection_x, intersection_slope)) =
-                sweepline_intersection(self.sweepline_pos, self.lines.get(*line_index).unwrap())
-            {
+            if let Some((intersection_x, intersection_slope)) = sweepline_intersection(
+                &self.vertices,
+                self.sweepline_pos,
+                *self.lines.get(*line_index).unwrap(),
+            ) {
                 //println!(" @{}^{})", intersection_x, intersection_slope);
                 neighbour_priority.update(
                     self.sweepline_pos.x(),
@@ -778,10 +858,10 @@ impl<T: GenericVector2> IntersectionData<T> {
         } else {
             connected_priority.clear();
             for l in event.add.iter().flatten() {
-                connected_priority.update_both(*l, &self.lines);
+                connected_priority.update_both(&self.vertices, *l, &self.lines);
             }
             for l in event.intersection.iter().flatten() {
-                connected_priority.update_both(*l, &self.lines);
+                connected_priority.update_both(&self.vertices, *l, &self.lines);
             }
             #[cfg(feature = "console_trace")]
             {
@@ -840,8 +920,11 @@ impl<T: GenericVector2> IntersectionData<T> {
             for right_i in right.iter() {
                 let left_l = self.lines[*left_i];
                 let right_l = self.lines[*right_i];
-                if left_l.end.is_ulps_eq(
-                    right_l.end,
+                let left_l_end = self.vertices[left_l.1];
+                let right_l_end = self.vertices[right_l.1];
+
+                if left_l_end.is_ulps_eq(
+                    right_l_end,
                     T::Scalar::default_epsilon(),
                     T::Scalar::default_max_ulps(),
                 ) {
@@ -850,8 +933,10 @@ impl<T: GenericVector2> IntersectionData<T> {
                 }
                 #[cfg(feature = "console_trace")]
                 print!("testing intersection between {} and {}: ", left_i, right_i);
-
-                if let Some(intersection_p) = left_l.intersection_point(right_l) {
+                let left_l_as_line = Line2::new(self.vertices[left_l.0], self.vertices[left_l.1]);
+                let right_l_as_line =
+                    Line2::new(self.vertices[right_l.0], self.vertices[right_l.1]);
+                if let Some(intersection_p) = left_l_as_line.intersection_point(right_l_as_line) {
                     let intersection_p = intersection_p.single();
                     if !intersection_p.x().is_finite() || !intersection_p.y().is_finite() {
                         return Err(LinestringError::InvalidData(format!(
@@ -876,10 +961,13 @@ impl<T: GenericVector2> IntersectionData<T> {
                             left_i, right_i, intersection_p
                         );
 
+                        let intersection_p_index = self.vertices.len();
+                        self.vertices.push(intersection_p);
                         self.add_intersection_event(
                             site_events,
                             &SiteEventKey {
                                 pos: intersection_p,
+                                index: Some(intersection_p_index),
                             },
                             &[*left_i, *right_i],
                         )
@@ -893,13 +981,17 @@ impl<T: GenericVector2> IntersectionData<T> {
         Ok(())
     }
 
-    fn report_intersections_to_result<'a, I: Iterator<Item = &'a usize>>(
+    fn report_intersections_to_result<'b, I: Iterator<Item = &'b usize>>(
         &mut self,
         result: &mut BTreeMap<SiteEventKey<T>, Vec<usize>>,
-        pos: T,
+        pos_index: usize,
         intersecting_lines: I,
     ) {
-        let key = SiteEventKey { pos };
+        let pos = self.vertices[pos_index];
+        let key = SiteEventKey {
+            pos,
+            index: Some(pos_index),
+        };
 
         let value = if let Some(value) = result.get_mut(&key) {
             value

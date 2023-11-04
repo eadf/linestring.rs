@@ -763,22 +763,22 @@ impl<T: GenericVector3> Aabb3<T> {
         let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
 
         if point.x() < aabb_min.x() {
-            aabb_min.set_x( point.x());
+            aabb_min.set_x(point.x());
         }
         if point.y() < aabb_min.y() {
-            aabb_min.set_y( point.y());
+            aabb_min.set_y(point.y());
         }
         if point.z() < aabb_min.z() {
-            aabb_min.set_z( point.z());
+            aabb_min.set_z(point.z());
         }
         if point.x() > aabb_max.x() {
-            aabb_max.set_x( point.x());
+            aabb_max.set_x(point.x());
         }
         if point.y() > aabb_max.y() {
-            aabb_max.set_y( point.y());
+            aabb_max.set_y(point.y());
         }
         if point.z() > aabb_max.z() {
-            aabb_max.set_z( point.z());
+            aabb_max.set_z(point.z());
         }
         self.min_max = Some((aabb_min, aabb_max));
     }

@@ -58,6 +58,8 @@ use vector_traits::{
 /// Module containing the convex hull calculations
 pub mod convex_hull;
 pub mod impls;
+/// Module containing the intersection calculations but for indexed vertexes
+pub mod indexed_intersection;
 /// Module containing the intersection calculations
 pub mod intersection;
 
@@ -1329,10 +1331,10 @@ impl<T: HasXY> Aabb2<T> {
             return;
         }
         let (mut aabb_min, mut aabb_max) = self.min_max.unwrap();
-        aabb_min.set_x( aabb_min.x().min(point.x()));
-        aabb_min.set_y( aabb_min.y().min(point.y()));
-        aabb_max.set_x( aabb_max.x().max(point.x()));
-        aabb_max.set_y( aabb_max.y().max(point.y()));
+        aabb_min.set_x(aabb_min.x().min(point.x()));
+        aabb_min.set_y(aabb_min.y().min(point.y()));
+        aabb_max.set_x(aabb_max.x().max(point.x()));
+        aabb_max.set_y(aabb_max.y().max(point.y()));
         self.min_max = Some((aabb_min, aabb_max));
     }
 
@@ -1346,10 +1348,10 @@ impl<T: HasXY> Aabb2<T> {
         }
         let (mut aabb_min, mut aabb_max) = self.min_max.unwrap();
         for point in points.iter() {
-            aabb_min.set_x( aabb_min.x().min(point.x()));
-            aabb_min.set_y( aabb_min.y().min(point.y()));
-            aabb_max.set_x( aabb_max.x().max(point.x()));
-            aabb_max.set_y( aabb_max.y().max(point.y()));
+            aabb_min.set_x(aabb_min.x().min(point.x()));
+            aabb_min.set_y(aabb_min.y().min(point.y()));
+            aabb_max.set_x(aabb_max.x().max(point.x()));
+            aabb_max.set_y(aabb_max.y().max(point.y()));
         }
         self.min_max = Some((aabb_min, aabb_max));
     }
