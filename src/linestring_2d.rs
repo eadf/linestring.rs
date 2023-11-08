@@ -586,8 +586,10 @@ impl<T: GenericVector2> LineString2<T> {
 
     /// Returns `true` if the last and first points of the collection are exactly the same,
     /// indicating a closed loop.
+    /// Note that an empty linestring is also "closed" since first() and last() object are the
+    /// same. I.e. None
     pub fn is_connected(&self) -> bool {
-        self.0.len() > 1 && self.0.first().unwrap() == self.0.last().unwrap()
+        self.0.is_empty() || self.0.first().unwrap() == self.0.last().unwrap()
     }
 
     /// Copies the points of the iterator into the LineString2
@@ -597,7 +599,7 @@ impl<T: GenericVector2> LineString2<T> {
         T: 'b,
         I: Iterator<Item = &'b T>,
     {
-        Self(iter.copied().collect())
+        Self(iter.cloned().collect())
     }
 
     pub fn with_iter<I>(iter: I) -> Self
@@ -610,6 +612,7 @@ impl<T: GenericVector2> LineString2<T> {
     pub fn with_vec(v: Vec<T>) -> Self {
         Self(v)
     }
+
     pub fn with_point(v: T) -> Self {
         Self(vec![v])
     }
@@ -1173,10 +1176,10 @@ impl<T: GenericVector2> LineStringSet2<T> {
     }
 
     /// calculates the combined convex hull of all the shapes in self.set
-    pub fn calculate_convex_hull(&mut self) -> &LineString2<T> {
+    pub fn calculate_convex_hull(&mut self) -> Result<&LineString2<T>, LinestringError> {
         let tmp: Vec<_> = self.set.iter().flat_map(|x| x.points()).cloned().collect();
-        self.convex_hull = Some(convex_hull::graham_scan(&tmp));
-        self.convex_hull.as_ref().unwrap()
+        self.convex_hull = Some(convex_hull::graham_scan(&tmp)?);
+        Ok(self.convex_hull.as_ref().unwrap())
     }
 
     /// Returns the axis aligned bounding box of this set.

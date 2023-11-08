@@ -64,7 +64,7 @@ pub enum Shape3d<T: GenericVector3> {
 
 /// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
 #[allow(clippy::upper_case_acronyms)]
-#[derive(fmt::Debug, Copy, Clone)]
+#[derive(fmt::Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Plane {
     XY,
     XZ,

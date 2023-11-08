@@ -8,11 +8,12 @@
 use linestring::{
     linestring_2d::{self, Aabb2, Intersection, Line2, LineString2, SimpleAffine},
     linestring_3d::{Line3, LineString3},
+    LinestringError,
 };
 use std::ops::Neg;
 use vector_traits::{
     approx::{ulps_eq, AbsDiffEq, UlpsEq},
-    glam::{vec2, Vec2, Vec3},
+    glam::{dvec2, vec2, Vec2, Vec3},
     Approx, HasXY,
 };
 
@@ -648,23 +649,28 @@ fn convex_hull_1() -> Result<(), linestring::LinestringError> {
         [50., 2.].into(),
         [0f32, 0.].into(),
     ];
-    let l = LineString2::with_vec(lines.clone());
-    let gw = linestring_2d::convex_hull::gift_wrap(&l.0.clone());
-    let gs = linestring_2d::convex_hull::graham_scan(&l.0);
+    let l = LineString2::with_vec(lines);
+    let gw = linestring_2d::convex_hull::gift_wrap(&l.0)?;
+    let gs = linestring_2d::convex_hull::graham_scan(&l.0)?;
+    let indices: Vec<usize> = (0..l.0.len()).collect();
+    let igs = linestring_2d::convex_hull::indexed_graham_scan(&l.0, &indices)?;
 
     if !gw.approx_eq(&gs) {
-        println!("input:{:?}", lines);
+        println!("input:{:?}", l.0);
         println!("gw:{:?}", gw);
         println!("gs:{:?}", gs);
         panic!("test failed")
     }
     assert!(linestring_2d::convex_hull::contains_convex_hull(&gw, &gs,));
     assert!(linestring_2d::convex_hull::contains_convex_hull(&gs, &gw,));
+    assert_eq!(gw.0.len(), igs.len());
+    assert_eq!(gw.0.len(), gs.0.len());
+
     Ok(())
 }
 
 #[test]
-fn convex_hull_2() {
+fn convex_hull_2() -> Result<(), LinestringError> {
     use linestring_2d::convex_hull;
     use rand::{rngs::StdRng, Rng, SeedableRng};
 
@@ -676,16 +682,20 @@ fn convex_hull_2() {
     }
 
     let a = LineString2::with_vec(points);
-    let a = convex_hull::graham_scan(&a.0);
+    let a = convex_hull::graham_scan(&a.0)?;
+    let indices: Vec<usize> = (0..a.0.len()).collect();
+    let igs = linestring_2d::convex_hull::indexed_graham_scan(&a.0, &indices)?;
     let center = Vec2::new(2000.0, 2000.0);
+    assert_eq!(igs.len(), a.0.len());
 
     for l in a.iter() {
         assert!(convex_hull::is_point_left(l.start, l.end, center));
     }
+    Ok(())
 }
 
 #[test]
-fn convex_hull_3() {
+fn convex_hull_3() -> Result<(), LinestringError> {
     use linestring_2d::convex_hull;
     use rand::{rngs::StdRng, Rng, SeedableRng};
 
@@ -696,7 +706,7 @@ fn convex_hull_3() {
         points_a.push(p.into());
     }
 
-    let a = convex_hull::graham_scan(&points_a);
+    let a = convex_hull::graham_scan(&points_a)?;
 
     let mut points_b = Vec::<Vec2>::new();
     for _i in 0..1023 {
@@ -704,7 +714,10 @@ fn convex_hull_3() {
         points_b.push(p.into());
     }
 
-    let b = convex_hull::graham_scan(&points_b.clone());
+    let b = convex_hull::graham_scan(&points_b)?;
+    let indices: Vec<usize> = (0..points_b.len()).collect();
+    let igs = linestring_2d::convex_hull::indexed_graham_scan(&points_b, &indices)?;
+    assert_eq!(b.0.len(), igs.len());
 
     println!(
         "convex hull b: start:{}, end:{}",
@@ -717,12 +730,13 @@ fn convex_hull_3() {
     assert!(!convex_hull::contains_convex_hull_par(&b, &a));
 
     #[allow(deprecated)]
-    let b = convex_hull::graham_scan_wo_atan2(&points_b);
+    let b = convex_hull::graham_scan_wo_atan2(&points_b)?;
 
     assert!(convex_hull::contains_convex_hull(&a, &b));
     assert!(convex_hull::contains_convex_hull_par(&a, &b));
     assert!(!convex_hull::contains_convex_hull(&b, &a));
     assert!(!convex_hull::contains_convex_hull_par(&b, &a));
+    Ok(())
 }
 
 #[test]
@@ -735,8 +749,10 @@ fn convex_hull_4() -> Result<(), linestring::LinestringError> {
     ];
 
     let l = LineString2::with_vec(lines);
-    let gw = linestring_2d::convex_hull::gift_wrap(&l.0.clone());
-    let gs = linestring_2d::convex_hull::graham_scan(&l.0.clone());
+    let gw = linestring_2d::convex_hull::gift_wrap(&l.0)?;
+    let gs = linestring_2d::convex_hull::graham_scan(&l.0)?;
+    let indices: Vec<usize> = (0..l.0.len()).collect();
+    let igs = linestring_2d::convex_hull::indexed_graham_scan(&l.0, &indices)?;
 
     if !gw.approx_eq(&gs) {
         println!("input:{:?}", l);
@@ -744,6 +760,8 @@ fn convex_hull_4() -> Result<(), linestring::LinestringError> {
         println!("graham's scan:{:?}", gs);
         panic!("test failed")
     }
+    assert_eq!(igs.len(), gs.0.len());
+    assert_eq!(igs.len(), gw.0.len());
     Ok(())
 }
 
@@ -759,9 +777,10 @@ fn convex_hull_5() -> Result<(), linestring::LinestringError> {
     ];
 
     let l = LineString2::with_vec(lines);
-    //.with_connected(false);
-    let gw = linestring_2d::convex_hull::gift_wrap(&l.0.clone());
-    let gs = linestring_2d::convex_hull::graham_scan(&l.0.clone());
+    let gw = linestring_2d::convex_hull::gift_wrap(&l.0)?;
+    let gs = linestring_2d::convex_hull::graham_scan(&l.0)?;
+    let indices: Vec<usize> = (0..l.0.len()).collect();
+    let igs = linestring_2d::convex_hull::indexed_graham_scan(&l.0, &indices)?;
 
     if !gw.approx_eq(&gs) {
         println!("input:{:?}", l);
@@ -769,9 +788,100 @@ fn convex_hull_5() -> Result<(), linestring::LinestringError> {
         println!("graham's scan:{:?}", gs);
         panic!("test failed")
     }
+    assert_eq!(gs.0.len(), igs.len());
     Ok(())
 }
 
+/// Generate a convex hull test in a grid pattern, with lots of co-linear edges
+#[test]
+fn convex_hull_6() -> Result<(), LinestringError> {
+    use linestring_2d::convex_hull;
+
+    // Define the grid parameters
+    let grid_size = 100; // Number of subgrids in each dimension
+
+    // Calculate the spacing between grid points
+    let grid_spacing = 1.0 / (grid_size as f32);
+    let mut pos = vec2(0.0, 0.0);
+    let mut delta_x = grid_spacing;
+
+    // Generate points in a grid pattern
+    let mut points: Vec<Vec2> = Vec::new();
+    for _i in 0..grid_size {
+        for _j in 0..grid_size {
+            points.push(pos);
+            pos.x += delta_x;
+        }
+        points.push(pos);
+        delta_x *= -1.0;
+        //pos.x = 0.0;
+        pos.y += grid_spacing;
+    }
+    println!("pos:{:?}", pos);
+    println!("points.len():{:?}", points.len());
+
+    let ghs = convex_hull::graham_scan(&points)?;
+    let gw = convex_hull::gift_wrap(&points)?;
+    #[allow(deprecated)]
+    let ghsw = convex_hull::graham_scan_wo_atan2(&points)?;
+    let indices: Vec<usize> = (0..points.len()).collect();
+    let igs = linestring_2d::convex_hull::indexed_graham_scan(&points, &indices)?;
+    println!("ghs.len():{:?}", ghs.0.len());
+    println!("gw.len():{:?}", gw.0.len());
+    println!("ghsw.len():{:?}", ghsw.0.len());
+    //println!("points:{:?}", points.iter().take(100).collect::<Vec<_>>());
+
+    /*if false && ghs.0.len() != gw.0.len() {
+        let mut fg = SimplePlot::default();
+        for window in ghs.0.windows(2) {
+            fg.draw_line(window[0].x, window[0].y, window[1].x, window[1].y)
+        }
+        for p in &points {
+            fg.draw_point(p.x, p.y);
+        }
+        fg.show();
+
+        let mut fg = SimplePlot::default();
+        for window in gw.0.windows(2) {
+            fg.draw_line(window[0].x, window[0].y, window[1].x, window[1].y)
+        }
+        for p in &points {
+            fg.draw_point(p.x, p.y);
+        }
+        fg.show();
+    }*/
+
+    for chunks in ghs.0.windows(3) {
+        // test f32
+        let cross = convex_hull::cross_2d(chunks[0], chunks[1], chunks[2]);
+        assert!(cross >= 0.0);
+        // test f64
+        let a = dvec2(chunks[0].x as f64, chunks[0].y as f64);
+        let b = dvec2(chunks[0].x as f64, chunks[0].y as f64);
+        let c = dvec2(chunks[0].x as f64, chunks[0].y as f64);
+        let cross = convex_hull::cross_2d(a, b, c);
+        assert!(
+            cross >= 0.0,
+            "a:{:?}, b{:?}, c{:?}, cross:{}",
+            a,
+            b,
+            c,
+            cross
+        );
+    }
+
+    assert_eq!(ghs.0.len(), gw.0.len());
+    assert_eq!(ghs.0.len(), igs.len());
+    assert_eq!(ghs.0.len(), ghsw.0.len());
+    assert_eq!(ghs.0, ghsw.0);
+    assert_eq!(ghs.0, gw.0);
+    for p in points {
+        assert!(convex_hull::contains_point_inclusive(&ghs, p));
+        assert!(convex_hull::contains_point_inclusive(&gw, p));
+        assert!(convex_hull::contains_point_inclusive(&ghsw, p));
+    }
+    Ok(())
+}
 #[test]
 fn distance_to_line_squared_01() {
     let a = Vec2::new(0.0, 0.0);
