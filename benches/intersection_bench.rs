@@ -3,7 +3,7 @@
 
 // This file is part of the linestring crate.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use linestring::linestring_2d::LineString2;
 use vector_traits::glam::Vec2;
 
@@ -24,7 +24,9 @@ fn intersection_bench_1(c: &mut Criterion) {
 
     c.bench_function("intersection_bench", |b| {
         b.iter(|| {
-            assert!(!linestring.is_self_intersecting().unwrap());
+            black_box({
+                assert!(!linestring.is_self_intersecting().unwrap());
+            });
         })
     });
 }

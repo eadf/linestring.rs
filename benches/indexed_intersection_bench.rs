@@ -3,7 +3,7 @@
 
 // This file is part of the linestring crate.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use itertools::Itertools;
 use linestring::linestring_2d::indexed_intersection::IntersectionTester;
 use vector_traits::glam::Vec2;
@@ -25,15 +25,17 @@ fn indexed_intersection_bench_1(c: &mut Criterion) {
 
     c.bench_function("indexed_intersection_bench", |b| {
         b.iter(|| {
-            let (_output_vertices, _result_iter) = IntersectionTester::new(vertices.clone())
-                .with_ignore_end_point_intersections(true)
-                .unwrap()
-                .with_stop_at_first_intersection(true)
-                .unwrap()
-                .with_edges(edges.clone().iter())
-                .unwrap()
-                .compute()
-                .unwrap();
+            black_box({
+                let (_output_vertices, _result_iter) = IntersectionTester::new(vertices.clone())
+                    .with_ignore_end_point_intersections(true)
+                    .unwrap()
+                    .with_stop_at_first_intersection(true)
+                    .unwrap()
+                    .with_edges(edges.clone().iter())
+                    .unwrap()
+                    .compute()
+                    .unwrap();
+            });
         })
     });
 }

@@ -3,7 +3,7 @@
 
 // This file is part of the linestring crate.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use linestring::linestring_2d::LineString2;
 use vector_traits::glam;
 
@@ -24,7 +24,9 @@ fn simplify_bench_rdp(c: &mut Criterion) {
 
     c.bench_function("simplify_bench_rdp", |b| {
         b.iter(|| {
-            linestring.simplify_rdp(0.01);
+            black_box({
+                linestring.simplify_rdp(0.01);
+            });
         })
     });
 }
@@ -46,10 +48,12 @@ fn simplify_bench_vw(c: &mut Criterion) {
 
     c.bench_function("simplify_bench_vw", |b| {
         b.iter(|| {
-            linestring.simplify_vw(11000);
+            black_box({
+                linestring.simplify_vw(11000);
+            });
         })
     });
 }
 
-criterion_group!(benches2, simplify_bench_rdp, simplify_bench_vw);
-criterion_main!(benches2);
+criterion_group!(simplify_benches, simplify_bench_rdp, simplify_bench_vw);
+criterion_main!(simplify_benches);

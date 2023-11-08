@@ -70,17 +70,17 @@ impl Orientation {
 }
 
 /// finds the point with lowest x, if x is equal -> find the point with lowest y value
-fn find_lowest_x<T: GenericVector2>(points: &[T]) -> Result<(usize, T), LinestringError> {
-    if points.is_empty() {
+fn find_lowest_x<T: GenericVector2>(vertices: &[T]) -> Result<(usize, T), LinestringError> {
+    if vertices.is_empty() {
         return Err(LinestringError::InvalidData(
             "No points to compare".to_string(),
         ));
     }
 
     let mut min_idx = 0;
-    let mut min_val = points[0];
+    let mut min_val = vertices[0];
 
-    for (idx, point) in points.iter().enumerate().skip(1) {
+    for (idx, point) in vertices.iter().enumerate().skip(1) {
         match point.x().partial_cmp(&min_val.x()) {
             Some(Ordering::Less) => {
                 min_idx = idx;
@@ -90,6 +90,54 @@ fn find_lowest_x<T: GenericVector2>(points: &[T]) -> Result<(usize, T), Linestri
                 if point.y() < min_val.y() {
                     min_idx = idx;
                     min_val = *point;
+                }
+            }
+            Some(Ordering::Greater) => (),
+            _ => {
+                return Err(LinestringError::InvalidData(
+                    format!(
+                        "Comparison failed for x-coordinate ({},{}) vs ({},{})",
+                        point.x(),
+                        point.y(),
+                        min_val.x(),
+                        min_val.y()
+                    )
+                    .to_string(),
+                ));
+            }
+        }
+    }
+
+    Ok((min_idx, min_val))
+}
+
+/// finds the point with lowest x, if x is equal -> find the point with lowest y value
+/// returns the index out of `indices` that, in turn indicate the lowest value vertex.
+/// i.e. `vertices[indices[lowest_index]]` -> lowest vertex of `vertices`
+fn indexed_find_lowest_x<T: GenericVector2>(
+    vertices: &[T],
+    indices: &[usize],
+) -> Result<(usize, T), LinestringError> {
+    if vertices.is_empty() || indices.is_empty() {
+        return Err(LinestringError::InvalidData(
+            "No points to compare".to_string(),
+        ));
+    }
+
+    let mut min_idx = 0;
+    let mut min_val = vertices[indices[0]];
+
+    for (idx, _) in indices.iter().enumerate().skip(1) {
+        let point = vertices[idx];
+        match point.x().partial_cmp(&min_val.x()) {
+            Some(Ordering::Less) => {
+                min_idx = idx;
+                min_val = point;
+            }
+            Some(Ordering::Equal) => {
+                if point.y() < min_val.y() {
+                    min_idx = idx;
+                    min_val = point;
                 }
             }
             Some(Ordering::Greater) => (),
@@ -194,6 +242,7 @@ pub fn cross_2d<T: GenericVector2>(a: T, b: T, c: T) -> T::Scalar {
 /// # use linestring::linestring_2d::convex_hull;
 /// # use vector_traits::glam::Vec2;
 /// # use rand::{Rng, SeedableRng, rngs::StdRng};
+/// use linestring::prelude::LineString2;
 /// let mut rng:StdRng = SeedableRng::from_seed([42; 32]);
 /// let mut points = Vec::<Vec2>::new();
 /// for _i in 0..50 {
@@ -202,7 +251,7 @@ pub fn cross_2d<T: GenericVector2>(a: T, b: T, c: T) -> T::Scalar {
 /// }
 ///
 /// let a = linestring_2d::LineString2::with_vec(points);
-/// let convex_hull = convex_hull::gift_wrap(&a.points())?;
+/// let convex_hull:LineString2<Vec2> = convex_hull::gift_wrap(&a.points())?;
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
 /// for p in convex_hull.points().iter() {
@@ -220,7 +269,7 @@ pub fn gift_wrap<T: GenericVector2>(
     mut input_points: &[T],
 ) -> Result<LineString2<T>, LinestringError> {
     if input_points.is_empty() {
-        return Ok(LineString2::with_capacity(0));
+        return Ok(LineString2::with_vec(Vec::with_capacity(0)));
     }
     if input_points[0] == input_points[input_points.len() - 1] {
         // disregard the duplicated loop point if it exists
@@ -243,13 +292,13 @@ pub fn gift_wrap<T: GenericVector2>(
 
     let starting_point = find_lowest_x(input_points)?.0;
 
-    let mut hull = LineString2::with_capacity(input_points.len() / 2);
+    let mut hull = Vec::with_capacity(input_points.len() / 2);
     // To track visited points
     let mut visited = AHashSet::with_capacity(input_points.len());
     let mut point_on_hull = starting_point;
     //println!("starting point {:?}:{}", input_points[starting_point], starting_point);
     loop {
-        hull.0.push(input_points[point_on_hull]);
+        hull.push(input_points[point_on_hull]);
         if point_on_hull != starting_point {
             // don't mark the starting_point or we won't know where to stop
             //println!("hull marking {:?}:{} as visited", input_points[point_on_hull], point_on_hull);
@@ -293,12 +342,12 @@ pub fn gift_wrap<T: GenericVector2>(
         if end_point == starting_point {
             // complete the loop, `hull` now represents a closed loop of points.
             // Each edge can be iterated over by `hull.iter().window(2)`
-            hull.0.push(input_points[end_point]);
+            hull.push(input_points[end_point]);
             break;
         }
     }
 
-    Ok(hull)
+    Ok(LineString2::with_vec(hull))
 }
 
 /// finds the convex hull using Gift wrapping algorithm
@@ -330,64 +379,81 @@ pub fn gift_wrap<T: GenericVector2>(
 /// }
 /// # Ok::<(), linestring::LinestringError>(())
 ///```
+#[inline]
 pub fn indexed_gift_wrap<T: GenericVector2>(
-    input_points: &[T],
-    mut input_indices: &[usize],
+    vertices: &[T],
+    indices: &[usize],
 ) -> Result<Vec<usize>, LinestringError> {
-    if input_points.is_empty() {
-        return Ok(Vec::with_capacity(0));
+    let mut hull = indexed_gift_wrap_no_loop(vertices, indices)?;
+    // complete the loop, `hull` now represents a closed loop of points.
+    // Each edge can be iterated over by `rv.points.iter().window(2)`
+    if hull.len() > 1 {
+        let first = hull.first().unwrap();
+        hull.push(*first);
     }
-    if !input_indices.is_empty() && (input_indices[0] == input_indices[input_indices.len() - 1]) {
+    Ok(hull)
+}
+
+fn indexed_gift_wrap_no_loop<T: GenericVector2>(
+    vertices: &[T],
+    mut indices: &[usize],
+) -> Result<Vec<usize>, LinestringError> {
+    if vertices.len() <= 1 {
+        return Ok(indices.to_vec());
+    }
+    if indices.first().unwrap() == indices.last().unwrap() {
         // disregard the duplicated loop point if it exists
-        input_indices = &input_indices[0..input_indices.len() - 1];
+        indices = &indices[0..indices.len() - 1];
     }
-    if input_indices.len() <= 2 {
-        return Ok((0..input_indices.len()).collect());
+    if indices.len() <= 2 {
+        return Ok(indices.to_vec());
     }
-    if input_indices.len() == 3 {
+    if indices.len() == 3 {
         return if is_point_left(
-            input_points[input_indices[0]],
-            input_points[input_indices[1]],
-            input_points[input_indices[2]],
+            vertices[indices[0]],
+            vertices[indices[1]],
+            vertices[indices[2]],
         ) {
-            Ok((0..input_indices.len()).collect())
+            // input_indices was already CCW
+            Ok(indices.to_vec())
         } else {
-            Ok(vec![0, 2, 1])
+            // Convert from CW to CCW
+            Ok(vec![indices[0], indices[2], indices[1]])
         };
     }
-    let starting_index = find_lowest_x(input_points)?.0;
+    let starting_index = indexed_find_lowest_x(vertices, &indices)?.0;
 
-    let mut hull = Vec::with_capacity(input_points.len() / 4);
+    let mut hull = Vec::with_capacity(indices.len() / 4);
     // To track visited points
-    let mut visited = AHashSet::with_capacity(input_points.len());
+    let mut visited = AHashSet::with_capacity(indices.len());
     let mut point_on_hull = starting_index;
     //println!("starting point {:?}:{}", input_points[starting_point], starting_point);
     loop {
-        hull.push(point_on_hull);
+        hull.push(indices[point_on_hull]);
         if point_on_hull != starting_index {
             // don't mark the starting_point or we won't know where to stop
             let _ = visited.insert(point_on_hull);
         }
-        let mut end_point = (point_on_hull + 1) % input_points.len();
+        let mut end_point = (point_on_hull + 1) % indices.len();
 
-        for j in 0..input_points.len() {
+        for j in 0..indices.len() {
             if j == point_on_hull || j == end_point || visited.contains(&j) {
                 continue;
             }
 
             let orient = point_orientation(
-                input_points[point_on_hull],
-                input_points[end_point],
-                input_points[j],
+                vertices[indices[point_on_hull]],
+                vertices[indices[end_point]],
+                vertices[indices[j]],
             );
             if orient == Orientation::Right {
                 // replace end_point with the candidate if candidate is to the right,
                 end_point = j;
             } else if orient == Orientation::Collinear {
                 let distance_sq_candidate =
-                    input_points[point_on_hull].distance_sq(input_points[j]);
+                    vertices[indices[point_on_hull]].distance_sq(vertices[indices[j]]);
                 let distance_sq_end_point =
-                    input_points[point_on_hull].distance_sq(input_points[end_point]);
+                    vertices[indices[point_on_hull]].distance_sq(vertices[indices[end_point]]);
 
                 if distance_sq_candidate > distance_sq_end_point {
                     // if point_on_hull->end_point && point_on_hull->candidate are collinear and
@@ -402,12 +468,14 @@ pub fn indexed_gift_wrap<T: GenericVector2>(
 
         point_on_hull = end_point;
         if end_point == starting_index {
-            // complete the loop, `hull` now represents a closed loop of points.
-            // Each edge can be iterated over by `hull.iter().window(2)`
-            hull.push(end_point);
             break;
         }
     }
+    /*println!("indexed_gift_wrap:");
+    println!("starting_index {:?}", input_indices[starting_index]);
+    println!("input {:?}", input_vertices);
+    println!("input indices {:?}", input_indices);
+    println!("result {:?}", hull);*/
 
     Ok(hull)
 }
@@ -590,32 +658,33 @@ pub fn graham_scan<T: GenericVector2>(
 
     //println!("starting_point:{:?}", starting_point);
     //println!("sorted:{:?}", input_points);
-    let mut rv = Vec::<T>::with_capacity(input_points.len());
-    rv.push(starting_point);
+    let mut hull = Vec::<T>::with_capacity(input_points.len());
+    hull.push(starting_point);
 
     for (p, _, _) in input_points.iter() {
         if *p == starting_point {
             continue;
         }
-        while rv.len() > 1 {
-            let last = rv.len() - 1;
-            let cross = cross_2d(rv[last - 1], rv[last], *p);
+        while hull.len() > 1 {
+            let last = hull.len() - 1;
+            let cross = cross_2d(hull[last - 1], hull[last], *p);
             if T::Scalar::ZERO > cross || ulps_eq!(cross, T::Scalar::ZERO) {
-                let _ = rv.pop();
+                let _ = hull.pop();
             } else {
                 break;
             }
         }
         //println!("pushing p:{:?}", p);
-        rv.push(*p);
+        hull.push(*p);
     }
     //println!("result {:?}", rv);
 
     // complete the loop, `hull` now represents a closed loop of points.
     // Each edge can be iterated over by `rv.points.iter().window(2)`
-    let first = rv.first().unwrap();
-    rv.push(*first);
-    Ok(LineString2::with_vec(rv))
+    if hull.len() > 1 {
+        hull.push(*hull.first().unwrap());
+    }
+    Ok(LineString2::with_vec(hull))
 }
 
 /// finds the convex hull using Grahams scan
@@ -646,42 +715,61 @@ pub fn graham_scan<T: GenericVector2>(
 /// }
 /// # Ok::<(), linestring::LinestringError>(())
 ///```
+#[inline]
 pub fn indexed_graham_scan<T: GenericVector2>(
-    input_points: &[T],
-    mut input_indices: &[usize],
+    vertices: &[T],
+    indices: &[usize],
 ) -> Result<Vec<usize>, LinestringError> {
-    if input_points.is_empty() {
-        return Ok(Vec::with_capacity(0));
+    let mut hull = indexed_graham_scan_no_loop(vertices, indices)?;
+    // complete the loop, `hull` now represents a closed loop of points.
+    // Each edge can be iterated over by `rv.points.iter().window(2)`
+    if hull.len() > 1 {
+        hull.push(*hull.first().unwrap());
     }
-    if !input_indices.is_empty() && (input_indices[0] == input_indices[input_indices.len() - 1]) {
+    Ok(hull)
+}
+
+fn indexed_graham_scan_no_loop<T: GenericVector2>(
+    vertices: &[T],
+    mut indices: &[usize],
+) -> Result<Vec<usize>, LinestringError> {
+    //println!("indexed_graham_scan: input {:?}", indices);
+
+    if vertices.len() <= 1 {
+        return Ok(indices.to_vec());
+    }
+    if indices.first().unwrap() == indices.last().unwrap() {
         // disregard the duplicated loop point if it exists
-        input_indices = &input_indices[0..input_indices.len() - 1];
+        indices = &indices[0..indices.len() - 1];
     }
-    if input_indices.len() <= 2 {
-        return Ok((0..input_indices.len()).collect());
+    if indices.len() <= 2 {
+        return Ok(indices.to_vec());
     }
-    if input_indices.len() == 3 {
+    if indices.len() == 3 {
         return if is_point_left(
-            input_points[input_indices[0]],
-            input_points[input_indices[1]],
-            input_points[input_indices[2]],
+            vertices[indices[0]],
+            vertices[indices[1]],
+            vertices[indices[2]],
         ) {
-            Ok((0..input_indices.len()).collect())
+            // input_indices was already CCW
+            Ok(indices.to_vec())
         } else {
-            Ok(vec![0, 2, 1])
+            // Convert from CW to CCW
+            Ok(vec![indices[0], indices[2], indices[1]])
         };
     }
 
-    let (starting_index, starting_point) = find_lowest_x(input_points)?;
-    //let ref_dir = T::new(T::Scalar::ONE, T::Scalar::ZERO);
-    let input_indices: Vec<usize> = input_points
+    let (starting_index, starting_point) = indexed_find_lowest_x(vertices, &indices)?;
+    let starting_index = indices[starting_index];
+    // sort all indices with regard to the angle to starting_point
+    let sorted_indices: Vec<usize> = indices
         .iter()
-        .enumerate()
-        .map(|(i, &p)| {
+        .map(|i| {
+            let p = vertices[*i];
             let diff = p - starting_point;
             let angle = diff.y().atan2(diff.x());
             let distance = starting_point.distance_sq(p);
-            (i, angle, distance)
+            (*i, angle, distance)
         })
         .sorted_unstable_by(|a, b| {
             a.1.partial_cmp(&b.1)
@@ -691,35 +779,128 @@ pub fn indexed_graham_scan<T: GenericVector2>(
         .map(|a| a.0)
         .collect();
 
-    //println!("starting_point:{:?}", starting_point);
-    //println!("sorted:{:?}", input_points);
-    let mut rv = Vec::<usize>::with_capacity(input_points.len());
-    rv.push(starting_index);
+    let mut hull = Vec::<usize>::with_capacity(vertices.len());
+    hull.push(starting_index);
 
-    for i in input_indices.iter() {
+    for i in sorted_indices.iter() {
         if *i == starting_index {
             continue;
         }
-        let p = input_points[*i];
-        while rv.len() > 1 {
-            let last = rv.len() - 1;
-            let cross = cross_2d(input_points[rv[last - 1]], input_points[rv[last]], p);
+        let p = vertices[*i];
+        while hull.len() > 1 {
+            let last_in_hull = hull.len() - 1;
+            let cross = cross_2d(
+                vertices[hull[last_in_hull - 1]],
+                vertices[hull[last_in_hull]],
+                p,
+            );
             if T::Scalar::ZERO > cross || ulps_eq!(cross, T::Scalar::ZERO) {
-                let _ = rv.pop();
+                let _ = hull.pop();
             } else {
                 break;
             }
         }
-        //println!("pushing p:{:?}", p);
-        rv.push(*i);
+        hull.push(*i);
     }
-    //println!("result {:?}", rv);
+
+    /*println!("indexed_graham_scan:");
+        println!("starting_index {:?}", starting_index);
+        println!("input {:?}", vertices);
+        println!("input indices {:?}", indices);
+        println!("result {:?}", hull);
+    */
+    Ok(hull)
+}
+
+/// Combines two convex hulls together using `indexed_gift_wrap()` (for the moment)
+fn indexed_convex_hull_combiner<T: GenericVector2>(
+    vertices: &[T],
+    indices_a: Result<Vec<usize>, LinestringError>,
+    indices_b: Result<Vec<usize>, LinestringError>,
+) -> Result<Vec<usize>, LinestringError> {
+    let mut indices_a = indices_a?;
+    let indices_b = indices_b?;
+    /*println!(
+        "indexed_convex_hull_combiner: indices_a {:?} indices_b:{:?}",
+        indices_a, indices_b
+    );*/
+
+    if indices_a.is_empty() {
+        return Ok(indices_b);
+    }
+    if indices_b.is_empty() {
+        return Ok(indices_a);
+    }
+    /*
+    if indices_a.last().unwrap() == indices_a.first().unwrap() {
+       let _ = indices_a.pop();
+    }
+    if indices_b.last().unwrap() == indices_b.first().unwrap() {
+        let _ = indices_b.pop();
+    }*/
+    indices_a.extend(indices_b.iter());
+    //println!("indexed_convex_hull_combiner: combined {:?}", indices_a);
+    indexed_gift_wrap_no_loop(vertices, &indices_a)
+}
+
+pub fn convex_hull_par<T: GenericVector2>(
+    vertices: &[T],
+    mut indices: &[usize],
+    chunk_size: usize,
+) -> Result<Vec<usize>, LinestringError> {
+    if vertices.len() <= 1 {
+        return Ok(indices.to_vec());
+    }
+    if indices.first().unwrap() == indices.last().unwrap() {
+        // disregard the duplicated loop point if it exists
+        indices = &indices[0..indices.len() - 1];
+    }
+    if indices.len() <= 2 {
+        return Ok(indices.to_vec());
+    }
+    if indices.len() == 3 {
+        return if is_point_left(
+            vertices[indices[0]],
+            vertices[indices[1]],
+            vertices[indices[2]],
+        ) {
+            // input_indices was already CCW
+            Ok(indices.to_vec())
+        } else {
+            // Convert from CW to CCW
+            Ok(vec![indices[0], indices[2], indices[1]])
+        };
+    }
+
+    // Create chunks of indices
+    let chunks: Vec<_> = indices.chunks(chunk_size).collect();
+
+    // Run indexed_graham_scan in parallel on each chunk
+    //let hulls: Vec<Result<Vec<usize>, LinestringError>> =
+    let mut hull = chunks
+        .into_par_iter()
+        .map(|chunk| indexed_graham_scan_no_loop(vertices, &chunk))
+        //.collect::<Result<Vec<_>, LinestringError>>();
+        // Combine the partial convex hulls using indexed_convex_hull_combiner
+        //let final_hull = hulls.into_par_iter()
+        .reduce(
+            || Ok(Vec::<usize>::default()),
+            |result, partial_hull| {
+                match result {
+                    Ok(indices) => {
+                        indexed_convex_hull_combiner(vertices, Ok(indices), partial_hull)
+                    }
+                    Err(some_err) => Err(some_err), // Pass through error
+                }
+            },
+        )?;
 
     // complete the loop, `hull` now represents a closed loop of points.
     // Each edge can be iterated over by `rv.points.iter().window(2)`
-    let first = rv.first().unwrap();
-    rv.push(*first);
-    Ok(rv)
+    if hull.len() > 1 {
+        hull.push(*hull.first().unwrap());
+    }
+    Ok(hull)
 }
 
 /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull (inclusive)

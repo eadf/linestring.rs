@@ -639,8 +639,9 @@ fn transform_test_2() -> Result<(), linestring::LinestringError> {
 }
 
 #[test]
-fn convex_hull_1() -> Result<(), linestring::LinestringError> {
-    let lines: Vec<Vec2> = vec![
+fn convex_hull_0() -> Result<(), linestring::LinestringError> {
+    use linestring::linestring_2d::convex_hull;
+    let line: Vec<Vec2> = vec![
         [0f32, 0.].into(),
         [100., 0.].into(),
         [100., 100.].into(),
@@ -649,22 +650,58 @@ fn convex_hull_1() -> Result<(), linestring::LinestringError> {
         [50., 2.].into(),
         [0f32, 0.].into(),
     ];
-    let l = LineString2::with_vec(lines);
-    let gw = linestring_2d::convex_hull::gift_wrap(&l.0)?;
-    let gs = linestring_2d::convex_hull::graham_scan(&l.0)?;
-    let indices: Vec<usize> = (0..l.0.len()).collect();
-    let igs = linestring_2d::convex_hull::indexed_graham_scan(&l.0, &indices)?;
 
-    if !gw.approx_eq(&gs) {
-        println!("input:{:?}", l.0);
+    let gw = convex_hull::gift_wrap(&line)?;
+    let indices: Vec<usize> = (0..line.len()).collect();
+    let pch: Vec<Vec2> = convex_hull::convex_hull_par(&line, &indices, 2)?
+        .into_iter()
+        .map(|i| line[i])
+        .collect();
+    assert_eq!(gw.0, pch);
+    Ok(())
+}
+
+#[test]
+fn convex_hull_1() -> Result<(), linestring::LinestringError> {
+    use linestring::linestring_2d::convex_hull;
+    let line: Vec<Vec2> = vec![
+        [0f32, 0.].into(),
+        [100., 0.].into(),
+        [100., 100.].into(),
+        [0., 100.].into(),
+        [1., 1220.].into(),
+        [50., 2.].into(),
+        [0f32, 0.].into(),
+    ];
+
+    let gw = convex_hull::gift_wrap(&line)?;
+    let gs = convex_hull::graham_scan(&line)?;
+    let indices: Vec<usize> = (0..line.len()).collect();
+    let igs: LineString2<Vec2> = convex_hull::indexed_graham_scan(&line, &indices)?
+        .into_iter()
+        .map(|i| line[i])
+        .collect();
+    let igw: LineString2<Vec2> = convex_hull::indexed_gift_wrap(&line, &indices)?
+        .into_iter()
+        .map(|i| line[i])
+        .collect();
+    let pch: LineString2<Vec2> = convex_hull::convex_hull_par(&line, &indices, 2)?
+        .into_iter()
+        .map(|i| line[i])
+        .collect();
+
+    if gw.0 != gs.0 {
+        println!("input:{:?}", line);
         println!("gw:{:?}", gw);
         println!("gs:{:?}", gs);
         panic!("test failed")
     }
-    assert!(linestring_2d::convex_hull::contains_convex_hull(&gw, &gs,));
-    assert!(linestring_2d::convex_hull::contains_convex_hull(&gs, &gw,));
-    assert_eq!(gw.0.len(), igs.len());
-    assert_eq!(gw.0.len(), gs.0.len());
+    assert!(convex_hull::contains_convex_hull(&gw, &gs,));
+    assert!(convex_hull::contains_convex_hull(&gs, &gw,));
+    assert_eq!(gw.0, igs.0);
+    assert_eq!(gw.0, gs.0);
+    assert_eq!(gw.0, igw.0);
+    assert_eq!(gw.0, pch.0);
 
     Ok(())
 }
@@ -676,21 +713,22 @@ fn convex_hull_2() -> Result<(), LinestringError> {
 
     let mut rng: StdRng = SeedableRng::from_seed([42; 32]);
     let mut points = Vec::<Vec2>::new();
-    for _i in 0..1023 {
+    for _i in 0..3023 {
         let p: [f32; 2] = [rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0)];
         points.push(p.into());
     }
 
-    let a = LineString2::with_vec(points);
-    let a = convex_hull::graham_scan(&a.0)?;
-    let indices: Vec<usize> = (0..a.0.len()).collect();
-    let igs = linestring_2d::convex_hull::indexed_graham_scan(&a.0, &indices)?;
+    let gs = convex_hull::graham_scan(&points)?;
+    let indices: Vec<usize> = (0..points.len()).collect();
+    let igs = convex_hull::indexed_graham_scan(&points, &indices)?;
+    let igw = convex_hull::indexed_gift_wrap(&points, &indices)?;
     let center = Vec2::new(2000.0, 2000.0);
-    assert_eq!(igs.len(), a.0.len());
 
-    for l in a.iter() {
+    for l in gs.iter() {
         assert!(convex_hull::is_point_left(l.start, l.end, center));
     }
+    assert_eq!(igs.len(), gs.0.len());
+    assert_eq!(igs, igw);
     Ok(())
 }
 
@@ -717,6 +755,7 @@ fn convex_hull_3() -> Result<(), LinestringError> {
     let b = convex_hull::graham_scan(&points_b)?;
     let indices: Vec<usize> = (0..points_b.len()).collect();
     let igs = linestring_2d::convex_hull::indexed_graham_scan(&points_b, &indices)?;
+
     assert_eq!(b.0.len(), igs.len());
 
     println!(
@@ -741,33 +780,61 @@ fn convex_hull_3() -> Result<(), LinestringError> {
 
 #[test]
 fn convex_hull_4() -> Result<(), linestring::LinestringError> {
-    let lines: Vec<Vec2> = vec![
+    use linestring_2d::convex_hull;
+
+    /*let l = LineString2::<Vec2>::with_vec(vec![
+        (5.027466, 1.39643).into(),
+        (0.572535, 3.40357).into(),
+        (1.796431, 0.172535).into(),
+        (3.80357, 4.627465).into(),
+    ]);
+    */
+    let vertices: Vec<Vec2> = vec![
+        (0.0, 0.0).into(),
+        (0.0, 0.0).into(),
+        (0.0, 0.0).into(),
+        (0.0, 0.0).into(),
+        (0.0, 0.0).into(),
+        (0.0, 0.0).into(),
+        (0.0, 0.0).into(),
         (5.027466, 1.39643).into(),
         (0.572535, 3.40357).into(),
         (1.796431, 0.172535).into(),
         (3.80357, 4.627465).into(),
     ];
 
-    let l = LineString2::with_vec(lines);
-    let gw = linestring_2d::convex_hull::gift_wrap(&l.0)?;
-    let gs = linestring_2d::convex_hull::graham_scan(&l.0)?;
-    let indices: Vec<usize> = (0..l.0.len()).collect();
-    let igs = linestring_2d::convex_hull::indexed_graham_scan(&l.0, &indices)?;
-
-    if !gw.approx_eq(&gs) {
-        println!("input:{:?}", l);
+    let gw = convex_hull::gift_wrap(&vertices[7..])?;
+    let gs = convex_hull::graham_scan(&vertices[7..])?;
+    let offset_indices: Vec<usize> = (7..vertices.len()).collect();
+    let igs: Vec<Vec2> = convex_hull::indexed_graham_scan(&vertices, &offset_indices)?
+        .into_iter()
+        .map(|i| vertices[i])
+        .collect();
+    let igw: Vec<Vec2> = convex_hull::indexed_gift_wrap(&vertices, &offset_indices)?
+        .into_iter()
+        .map(|i| vertices[i])
+        .collect();
+    let pch: Vec<Vec2> = convex_hull::convex_hull_par(&vertices, &offset_indices, 2)?
+        .into_iter()
+        .map(|i| vertices[i])
+        .collect();
+    if gw.0 != gs.0 {
+        println!("input:{:?}", &vertices[7..]);
         println!("gift wrapping:{:?}", gw);
         println!("graham's scan:{:?}", gs);
         panic!("test failed")
     }
-    assert_eq!(igs.len(), gs.0.len());
-    assert_eq!(igs.len(), gw.0.len());
+    assert_eq!(igs, gs.0);
+    assert_eq!(igs, gw.0);
+    assert_eq!(igs, igw);
+    assert_eq!(igs, pch);
     Ok(())
 }
 
 #[test]
 fn convex_hull_5() -> Result<(), linestring::LinestringError> {
-    let lines: Vec<Vec2> = vec![
+    use linestring::linestring_2d::convex_hull;
+    let vertices: Vec<Vec2> = vec![
         (0.0, 0.0).into(),
         (2.0, 3.0).into(), // collinear
         (4.0, 3.0).into(), // collinear
@@ -776,19 +843,23 @@ fn convex_hull_5() -> Result<(), linestring::LinestringError> {
         (7.0, 4.0).into(),
     ];
 
-    let l = LineString2::with_vec(lines);
-    let gw = linestring_2d::convex_hull::gift_wrap(&l.0)?;
-    let gs = linestring_2d::convex_hull::graham_scan(&l.0)?;
-    let indices: Vec<usize> = (0..l.0.len()).collect();
-    let igs = linestring_2d::convex_hull::indexed_graham_scan(&l.0, &indices)?;
-
-    if !gw.approx_eq(&gs) {
-        println!("input:{:?}", l);
+    let gw = linestring_2d::convex_hull::gift_wrap(&vertices)?;
+    let gs = convex_hull::graham_scan(&vertices)?;
+    let indices: Vec<usize> = (0..vertices.len()).collect();
+    let igs = convex_hull::indexed_graham_scan(&vertices, &indices)?;
+    let igw = convex_hull::indexed_gift_wrap(&vertices, &indices)?;
+    let pch = convex_hull::convex_hull_par(&vertices, &indices, 2)?;
+    if gw.0 != gs.0 {
+        println!("input:{:?}", vertices);
         println!("gift wrapping:{:?}", gw);
         println!("graham's scan:{:?}", gs);
         panic!("test failed")
     }
     assert_eq!(gs.0.len(), igs.len());
+    assert_eq!(gs.0.len(), igw.len());
+    assert_eq!(igs, igw);
+    assert_eq!(igs, pch);
+
     Ok(())
 }
 
