@@ -221,14 +221,9 @@ impl<T: GenericVector3> From<[T::Scalar; 6]> for Line3<T> {
 /// If the 'connected' field is set the 'as_lines()' method will connect start point with the
 /// end-point.
 /// Todo: The builder structure of this struct needs to be revisited
-/// Todo: Remove the `connected` flag, just like LineString2
 #[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
 pub struct LineString3<T: GenericVector3> {
     pub(crate) points: Vec<T>,
-
-    /// if connected is set the as_lines() method will add an extra line connecting
-    /// the first and last point
-    pub connected: bool,
 }
 
 /// A set of linestrings + an aabb
@@ -288,17 +283,11 @@ impl<T: GenericVector3> LineString3<T> {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             points: Vec::<T>::with_capacity(capacity),
-            connected: false,
         }
     }
 
     pub fn with_points(mut self, points: Vec<T>) -> Self {
         self.points = points;
-        self
-    }
-
-    pub fn with_connected(mut self, connected: bool) -> Self {
-        self.connected = connected;
         self
     }
 
@@ -311,7 +300,6 @@ impl<T: GenericVector3> LineString3<T> {
     {
         Self {
             points: iter.into_iter().copied().collect(),
-            connected: false,
         }
     }
 
@@ -352,43 +340,32 @@ impl<T: GenericVector3> LineString3<T> {
 
     /// Returns the line string as a Vec of lines
     /// Will be deprecated at some time, use self.as_lines_iter().collect() instead
+    #[deprecated(since="0.10.2", note="it will be removed")]
     #[inline(always)]
     pub fn as_lines(&self) -> Vec<Line3<T>> {
         self.as_lines_iter().collect()
     }
 
     /// Returns the line string as a iterator of lines
+    /// TODO: Make window and chunk iterator types
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
     pub fn as_lines_iter(&self) -> Box<dyn Iterator<Item = Line3<T>> + '_> {
-        if self.connected {
-            Box::new(
-                self.points
-                    .iter()
-                    .chain(self.points.last())
-                    .tuple_windows::<(_, _)>()
-                    .map(|(a, b)| Line3 { start: *a, end: *b }),
-            )
-        } else {
             Box::new(
                 self.points
                     .iter()
                     .tuple_windows::<(_, _)>()
                     .map(|(a, b)| Line3 { start: *a, end: *b }),
             )
-        }
     }
 
     /// The iterator of as_lines_iter() does not implement ExactSizeIterator.
     /// This can be used as a work around for that problem
+    #[deprecated(since="0.10.2", note="the new iterator will be ExactSizeIterator")]
     pub fn as_lines_iter_len(&self) -> usize {
         if self.points.len() < 2 {
             return 0;
         }
-        if self.connected {
-            self.points.len()
-        } else {
-            self.points.len() - 1
-        }
+        self.points.len()
     }
 
     pub fn push(&mut self, point: T) {
@@ -410,36 +387,16 @@ impl<T: GenericVector3> LineString3<T> {
         if self.points.len() <= 2 {
             return self.clone();
         }
-        if self.connected {
-            let mut points = self.points.clone();
-            // add the start-point to the end
-            points.push(*points.first().unwrap());
 
-            let mut rv: Vec<T> = Vec::with_capacity(points.len());
-            // _simplify() always omits the the first point of the result, so we have to add that
-            rv.push(*points.first().unwrap());
-            rv.append(&mut Self::_simplify_rdp(
-                distance_predicate * distance_predicate,
-                points.as_slice(),
-            ));
-            // remove the start-point from the the end
-            let _ = rv.remove(rv.len() - 1);
-            Self {
-                points: rv,
-                connected: true,
-            }
-        } else {
-            let mut rv: Vec<T> = Vec::with_capacity(self.points.len());
-            // _simplify() always omits the the first point of the result, so we have to add that
-            rv.push(*self.points.first().unwrap());
-            rv.append(&mut Self::_simplify_rdp(
-                distance_predicate * distance_predicate,
-                self.points.as_slice(),
-            ));
-            Self {
-                points: rv,
-                connected: false,
-            }
+        let mut rv: Vec<T> = Vec::with_capacity(self.points.len());
+        // _simplify() always omits the the first point of the result, so we have to add that
+        rv.push(*self.points.first().unwrap());
+        rv.append(&mut Self::_simplify_rdp(
+            distance_predicate * distance_predicate,
+            self.points.as_slice(),
+        ));
+        Self {
+            points: rv,
         }
     }
 
@@ -489,10 +446,8 @@ impl<T: GenericVector3> LineString3<T> {
     /// Simplify using Visvalingam–Whyatt algorithm. This algorithm will delete 'points_to_delete'
     /// of points from the polyline with the smallest area defined by one point and it's neighbours.
     pub fn simplify_vw(&self, points_to_delete: usize) -> Self {
-        if (self.connected && self.points.len() <= 1) || (!self.connected && self.points.len() <= 2)
-        {
-            // Nothing to do here, we can't delete endpoints if not connected,
-            // and we must leave at least one point if connected.
+        if self.points.len() <= 2 {
+            // Nothing to do here, we can't delete endpoints
             return self.clone();
         }
         // priority queue key: area, value: indices of self.points + a copy of area.
@@ -522,22 +477,6 @@ impl<T: GenericVector3> LineString3<T> {
                 // point j is connected to point i and k
                 let _ = link_tree.insert(j.0, (i.0, k.0, area));
             }
-        }
-        if self.connected {
-            // add an extra point at the end, faking the loop
-            let i = self.points.len() - 2;
-            let j = self.points.len() - 1;
-            let k = self.points.len();
-            let area = Line3::triangle_area_squared_times_4(
-                &self.points[i],
-                &self.points[j],
-                &self.points[0],
-            );
-            search_tree.push(PriorityDistance {
-                key: area,
-                index: j,
-            });
-            let _ = link_tree.insert(j, (i, k, area));
         }
 
         let self_points_len = self.points.len();
@@ -628,29 +567,13 @@ impl<T: GenericVector3> LineString3<T> {
 
         // Todo: we *know* the order of the points, remove sorted_unstable()
         // we just don't know the first non-deleted point after start :/
-        if !self.connected {
-            [0_usize]
-                .iter()
-                .copied()
-                .chain(
-                    link_tree
-                        .keys()
-                        .sorted_unstable()
-                        .copied()
-                        .chain([self.points.len() - 1].iter().copied()),
-                )
-                .map(|x| self.points[x])
-                .collect::<Self>()
-                .with_connected(false)
-        } else {
-            [0_usize]
-                .iter()
-                .copied()
-                .chain(link_tree.keys().sorted_unstable().copied())
-                .map(|x| self.points[x])
-                .collect::<Self>()
-                .with_connected(true)
-        }
+
+        [0_usize]
+            .iter()
+            .copied()
+            .chain(link_tree.keys().sorted_unstable().copied())
+            .map(|x| self.points[x])
+            .collect::<Self>()
     }
     pub fn apply<F: Fn(T) -> T>(mut self, f: &F) -> Self {
         self.points.iter_mut().for_each(|v| *v = f(*v));
@@ -662,7 +585,6 @@ impl<T: GenericVector3, IC: Into<T>> FromIterator<IC> for LineString3<T> {
     fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
         LineString3 {
             points: iter.into_iter().map(|c| c.into()).collect(),
-            connected: false,
         }
     }
 }

@@ -108,16 +108,11 @@ fn linestring3_1() {
     ];
     let points_len = points.len();
 
-    let mut linestring: LineString3<Vec3> = points.into_iter().collect();
+    let linestring: LineString3<Vec3> = points.into_iter().collect();
     assert_eq!(linestring.len(), points_len);
-
-    linestring.connected = false;
-    //println!("as_lines={:?}", linestring.as_lines());
-    assert_eq!(linestring.as_lines().len(), points_len - 1);
-
-    linestring.connected = true;
-    //println!("as_lines={:?}", linestring.as_lines());
-    assert_eq!(linestring.as_lines().len(), points_len);
+    #[allow(deprecated)]{
+        assert_eq!(linestring.as_lines().len(), points_len-1);
+    }
 }
 
 #[test]
@@ -414,9 +409,10 @@ fn simplify_3() {
         [100., 100., 0.],
         [77., 613., 0.],
     ];
-    let mut line: LineString3<Vec3> = line.into_iter().collect();
-    line.connected = false;
-    assert_eq!(6, line.simplify_rdp(1.0).as_lines().len());
+    let line: LineString3<Vec3> = line.into_iter().collect();
+    #[allow(deprecated)]{
+        assert_eq!(6, line.simplify_rdp(1.0).as_lines().len());
+    }
 }
 
 #[test]

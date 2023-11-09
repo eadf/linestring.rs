@@ -48,7 +48,6 @@ impl<T: GenericVector3> Default for LineString3<T> {
     fn default() -> Self {
         Self {
             points: Vec::<T>::default(),
-            connected: false,
         }
     }
 }

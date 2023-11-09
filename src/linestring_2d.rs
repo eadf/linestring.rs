@@ -489,7 +489,7 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
 
     /// Convert this parable abstraction into a single straight line
     pub fn discretize_3d_straight_line(&self) -> LineString3<T::Vector3> {
-        let mut rv = LineString3::default().with_connected(false);
+        let mut rv = LineString3::default();
         let distance =
             -distance_to_line_squared_safe(self.segment.start, self.segment.end, self.start_point)
                 .sqrt();
@@ -514,7 +514,7 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
     /// All of this code is ported from C++ boost 1.75.0
     /// <https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm>
     pub fn discretize_3d(&self, max_dist: T::Scalar) -> LineString3<T::Vector3> {
-        let mut rv = LineString3::default().with_connected(false);
+        let mut rv = LineString3::default();
         let z_comp = -self.start_point.distance(self.cell_point);
         rv.points.push(T::Vector3::new_3d(
             self.start_point.x(),
