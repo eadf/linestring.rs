@@ -78,7 +78,7 @@ pub enum GuiMessage {
 }
 
 struct SharedData {
-    lines: Vec<LineString2<glam::Vec2>>,
+    lines: Vec<Vec<glam::Vec2>>,
     last_message: Option<GuiMessage>,
     affine: SimpleAffine<glam::Vec2>,
 }
@@ -380,7 +380,6 @@ fn add_data(data: Rc<RefCell<SharedData>>) {
         let y: f32 = std::f32::consts::E.powf(-x) * (x * 2.0 * std::f32::consts::PI).cos();
         line.push(glam::Vec2::new(50.0 + x * 75.0, 200.0 + y * 300.0));
     }
-    let line = LineString2::with_vec(line);
     data_b.lines.push(line);
 
     // Add a wobbly circle
@@ -397,8 +396,6 @@ fn add_data(data: Rc<RefCell<SharedData>>) {
     line.push(line[0]);
     // Add an extra point that will cause self-intersection when simplified too much
     line.push(glam::Vec2::new(250_f32, 300.0));
-
-    let line = LineString2::with_vec(line);
 
     data_b.lines.push(line);
 }

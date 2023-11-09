@@ -41,12 +41,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::linestring_2d::{convex_hull, LineString2};
+use crate::linestring_2d::convex_hull;
 use vector_traits::glam::DVec2;
 
 #[test]
 fn contains_point_exclusive_1() {
-    let mut hull = LineString2::<DVec2>::with_capacity(5);
+    let mut hull = Vec::<DVec2>::with_capacity(5);
     hull.push([0.0, 0.0].into());
     hull.push([10.0, 0.0].into());
     hull.push([10.0, 10.0].into());
@@ -90,7 +90,7 @@ fn contains_point_exclusive_1() {
 
 #[test]
 fn contains_point_inclusive_1() {
-    let mut hull = LineString2::<DVec2>::with_capacity(5);
+    let mut hull = Vec::<DVec2>::with_capacity(5);
     hull.push([0.0, 0.0].into());
     hull.push([10.0, 0.0].into());
     hull.push([10.0, 10.0].into());

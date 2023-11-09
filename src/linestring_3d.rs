@@ -43,10 +43,7 @@ limitations under the License.
 
 mod impls;
 
-use crate::{
-    linestring_2d::{LineString2, LineStringSet2},
-    LinestringError,
-};
+use crate::{linestring_2d::LineStringSet2, LinestringError};
 use itertools::Itertools;
 use std::{collections, fmt, fs, hash::Hash, io, io::Write, path};
 use vector_traits::{
@@ -321,7 +318,7 @@ impl<T: GenericVector3> LineString3<T> {
     /// Copy this linestring3 into a linestring2, keeping the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_2d(&self, plane: Plane) -> LineString2<T::Vector2> {
+    pub fn copy_to_2d(&self, plane: Plane) -> Vec<T::Vector2> {
         match plane {
             Plane::XY => self
                 .points

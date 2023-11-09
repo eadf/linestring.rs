@@ -42,8 +42,7 @@ limitations under the License.
 */
 
 use super::{
-    Aabb2, Intersection, Line2, LineIterator, LineString2, LineStringSet2, PriorityDistance,
-    SimpleAffine,
+    Aabb2, Intersection, Line2, LineIterator, LineStringSet2, PriorityDistance, SimpleAffine,
 };
 use std::{
     cmp::Ordering,
@@ -114,18 +113,7 @@ impl<T: GenericVector2> From<[[T::Scalar; 2]; 2]> for Line2<T> {
     }
 }
 
-impl<IC, T> FromIterator<IC> for LineString2<T>
-where
-    IC: Into<T>,
-    T: GenericVector2,
-    T::Scalar: GenericScalar,
-{
-    fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
-        LineString2::<T>(iter.into_iter().map(|c| c.into()).collect())
-    }
-}
-
-impl<T: GenericVector2> From<Aabb2<T>> for LineString2<T> {
+impl<T: GenericVector2> From<Aabb2<T>> for Vec<T> {
     /// creates a connected LineString2 from the outlines of the Aabb2
     fn from(other: Aabb2<T>) -> Self {
         if let Some(min_max) = other.min_max {
@@ -136,9 +124,9 @@ impl<T: GenericVector2> From<Aabb2<T>> for LineString2<T> {
                 T::new_2d(min_max.0.x(), min_max.1.y()),
                 min_max.0,
             ];
-            Self(points)
+            points
         } else {
-            Self(Vec::<T>::new())
+            Vec::<T>::default()
         }
     }
 }
@@ -196,15 +184,6 @@ impl<T: GenericVector2> ExactSizeIterator for LineIterator<'_, T> {
     }
 }
 
-impl<'a, T: GenericVector2> IntoIterator for &'a LineString2<T> {
-    type Item = Line2<T>;
-    type IntoIter = LineIterator<'a, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.line_iter()
-    }
-}
-
 impl<T: GenericVector2> Debug for Line2<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -215,19 +194,6 @@ impl<T: GenericVector2> Debug for Line2<T> {
             format_float(self.end.x()),
             format_float(self.end.y()),
         )
-    }
-}
-
-impl<T: GenericVector2> Debug for LineString2<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[",)?;
-        if let Some(last) = self.0.last() {
-            for p in self.0.iter().rev().skip(1).rev() {
-                write!(f, "({},{}),", format_float(p.x()), format_float(p.y()),)?;
-            }
-            write!(f, "({},{})", format_float(last.x()), format_float(last.y()),)?;
-        }
-        write!(f, "]",)
     }
 }
 
@@ -276,12 +242,6 @@ impl<T: GenericVector2> UlpsEq for Line2<T> {
 impl<T: GenericVector2> Default for Aabb2<T> {
     fn default() -> Self {
         Self { min_max: None }
-    }
-}
-
-impl<T: GenericVector2> Default for LineString2<T> {
-    fn default() -> Self {
-        Self(vec![])
     }
 }
 

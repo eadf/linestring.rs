@@ -250,11 +250,10 @@ pub fn cross_2d<T: GenericVector2>(a: T, b: T, c: T) -> T::Scalar {
 ///   points.push(p.into());
 /// }
 ///
-/// let a = linestring_2d::LineString2::with_vec(points);
-/// let convex_hull:LineString2<Vec2> = convex_hull::gift_wrap(&a.points())?;
+/// let convex_hull:Vec<Vec2> = convex_hull::gift_wrap(&points)?;
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
-/// for p in convex_hull.points().iter() {
+/// for p in convex_hull.iter() {
 ///   for l in convex_hull.line_iter() {
 ///     // all segments should have the center point at the 'left' side
 ///     assert!(convex_hull::point_orientation(l.start, l.end, center).is_left());
@@ -265,28 +264,22 @@ pub fn cross_2d<T: GenericVector2>(a: T, b: T, c: T) -> T::Scalar {
 /// }
 /// # Ok::<(), linestring::LinestringError>(())
 ///```
-pub fn gift_wrap<T: GenericVector2>(
-    mut input_points: &[T],
-) -> Result<LineString2<T>, LinestringError> {
+pub fn gift_wrap<T: GenericVector2>(mut input_points: &[T]) -> Result<Vec<T>, LinestringError> {
     if input_points.is_empty() {
-        return Ok(LineString2::with_vec(Vec::with_capacity(0)));
+        return Ok(Vec::with_capacity(0));
     }
     if input_points[0] == input_points[input_points.len() - 1] {
         // disregard the duplicated loop point if it exists
         input_points = &input_points[1..];
     }
     if input_points.len() <= 2 {
-        return Ok(LineString2::with_vec(input_points.to_vec()));
+        return Ok(input_points.to_vec());
     }
     if input_points.len() == 3 {
         return if is_point_left(input_points[0], input_points[1], input_points[2]) {
-            Ok(LineString2::with_vec(input_points.to_vec()))
+            Ok(input_points.to_vec())
         } else {
-            Ok(LineString2::with_vec(vec![
-                input_points[0],
-                input_points[2],
-                input_points[1],
-            ]))
+            Ok(vec![input_points[0], input_points[2], input_points[1]])
         };
     }
 
@@ -347,7 +340,7 @@ pub fn gift_wrap<T: GenericVector2>(
         }
     }
 
-    Ok(LineString2::with_vec(hull))
+    Ok(hull)
 }
 
 /// finds the convex hull using the [Gift wrapping algorithm](https://en.wikipedia.org/wiki/Gift_wrapping_algorithm)
@@ -511,12 +504,11 @@ fn indexed_gift_wrap_no_loop<T: GenericVector2>(
 ///   points.push(p.into());
 /// }
 ///
-/// let a = LineString2::with_vec(points);
 /// #[allow(deprecated)]
-/// let convex_hull = convex_hull::graham_scan_wo_atan2(&a.points())?;
+/// let convex_hull = convex_hull::graham_scan_wo_atan2(&points)?;
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
-/// for p in convex_hull.points().iter() {
+/// for p in convex_hull.iter() {
 ///   for l in convex_hull.line_iter() {
 ///     // all segments should have the center point at the 'left' side
 ///     assert!(convex_hull::is_point_left(l.start, l.end, center));
@@ -529,26 +521,22 @@ fn indexed_gift_wrap_no_loop<T: GenericVector2>(
 #[deprecated(since = "0.9.0", note = "please use `graham_scan` instead")]
 pub fn graham_scan_wo_atan2<T: GenericVector2>(
     mut input_points: &[T],
-) -> Result<LineString2<T>, LinestringError> {
+) -> Result<Vec<T>, LinestringError> {
     if input_points.is_empty() {
-        return Ok(LineString2::with_capacity(0));
+        return Ok(Vec::with_capacity(0));
     }
     if !input_points.is_empty() && (input_points[0] == input_points[input_points.len() - 1]) {
         // disregard the duplicated loop point if it exists
         input_points = &input_points[1..];
     }
     if input_points.len() <= 2 {
-        return Ok(LineString2::with_vec(input_points.to_vec()));
+        return Ok(input_points.to_vec());
     }
     if input_points.len() == 3 {
         return if is_point_left(input_points[0], input_points[1], input_points[2]) {
-            Ok(LineString2::with_vec(input_points.to_vec()))
+            Ok(input_points.to_vec())
         } else {
-            Ok(LineString2::with_vec(vec![
-                input_points[0],
-                input_points[2],
-                input_points[1],
-            ]))
+            Ok(vec![input_points[0], input_points[2], input_points[1]])
         };
     }
 
@@ -577,27 +565,27 @@ pub fn graham_scan_wo_atan2<T: GenericVector2>(
     // sort the input points so that the edges to the 'right' of starting_point goes first
     input_points.sort_unstable_by(comparator);
 
-    let mut rv = LineString2::with_capacity(input_points.len());
-    rv.0.push(starting_point);
+    let mut rv = Vec::with_capacity(input_points.len());
+    rv.push(starting_point);
 
     for p in input_points.iter() {
-        while rv.0.len() > 1 {
-            let last = rv.0.len() - 1;
-            let cross = cross_2d(rv.0[last - 1], rv.0[last], *p);
+        while rv.len() > 1 {
+            let last = rv.len() - 1;
+            let cross = cross_2d(rv[last - 1], rv[last], *p);
             if cross < T::Scalar::ZERO || ulps_eq!(cross, T::Scalar::ZERO) {
-                let _ = rv.0.pop();
+                let _ = rv.pop();
             } else {
                 break;
             }
         }
-        if rv.0.last().unwrap() != p {
-            rv.0.push(*p);
+        if rv.last().unwrap() != p {
+            rv.push(*p);
         }
     }
 
     if !rv.is_connected() {
-        let first = rv.0.first().unwrap();
-        rv.0.push(*first)
+        let first = rv.first().unwrap();
+        rv.push(*first)
     };
     Ok(rv)
 }
@@ -615,11 +603,10 @@ pub fn graham_scan_wo_atan2<T: GenericVector2>(
 ///   points.push(p.into());
 /// }
 ///
-/// let a = LineString2::with_vec(points);
-/// let convex_hull = convex_hull::graham_scan(&a.points())?;
+/// let convex_hull = convex_hull::graham_scan(&points)?;
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
-/// for p in convex_hull.points().iter() {
+/// for p in convex_hull.iter() {
 ///   for l in convex_hull.line_iter() {
 ///     // all segments should have the center point at the 'left' side
 ///     assert!(convex_hull::is_point_left(l.start, l.end, center));
@@ -629,28 +616,22 @@ pub fn graham_scan_wo_atan2<T: GenericVector2>(
 /// }
 /// # Ok::<(), linestring::LinestringError>(())
 ///```
-pub fn graham_scan<T: GenericVector2>(
-    mut input_points: &[T],
-) -> Result<LineString2<T>, LinestringError> {
+pub fn graham_scan<T: GenericVector2>(mut input_points: &[T]) -> Result<Vec<T>, LinestringError> {
     if input_points.is_empty() {
-        return Ok(LineString2::with_capacity(0));
+        return Ok(Vec::with_capacity(0));
     }
     if !input_points.is_empty() && (input_points[0] == input_points[input_points.len() - 1]) {
         // disregard the duplicated loop point if it exists
         input_points = &input_points[1..];
     }
     if input_points.len() <= 2 {
-        return Ok(LineString2::with_vec(input_points.to_vec()));
+        return Ok(input_points.to_vec());
     }
     if input_points.len() == 3 {
         return if is_point_left(input_points[0], input_points[1], input_points[2]) {
-            Ok(LineString2::with_vec(input_points.to_vec()))
+            Ok(input_points.to_vec())
         } else {
-            Ok(LineString2::with_vec(vec![
-                input_points[0],
-                input_points[2],
-                input_points[1],
-            ]))
+            Ok(vec![input_points[0], input_points[2], input_points[1]])
         };
     }
 
@@ -701,7 +682,7 @@ pub fn graham_scan<T: GenericVector2>(
     if hull.len() > 1 {
         hull.push(*hull.first().unwrap());
     }
-    Ok(LineString2::with_vec(hull))
+    Ok(hull)
 }
 
 /// Finds the convex hull using [Graham's Scan](https://en.wikipedia.org/wiki/Graham_scan)
@@ -1075,17 +1056,17 @@ pub fn combine_indexed_convex_hull_not_working<T: GenericVector2>(
 ///   points.push(p.into());
 /// }
 ///
-/// let a = LineString2::with_vec(points);
-/// let indices:Vec<usize> = (0..a.0.len()).collect();
-/// let convex_hull = convex_hull::convex_hull_par(&a.points(), &indices,250)?;
+/// let a = points;
+/// let indices:Vec<usize> = (0..a.len()).collect();
+/// let convex_hull = convex_hull::convex_hull_par(&a, &indices,250)?;
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
 /// for point in convex_hull.iter() {
 ///   for edge in convex_hull.chunks_exact(2) {
 ///     // all segments should have the center point at the 'left' side
-///     assert!(convex_hull::is_point_left(a.0[edge[0]], a.0[edge[1]], center));
+///     assert!(convex_hull::is_point_left(a[edge[0]], a[edge[1]], center));
 ///     // all points on the hull should be 'left' of every segment in the hull
-///     assert!(convex_hull::is_point_left_allow_collinear(a.0[edge[0]], a.0[edge[1]], a.0[*point]));
+///     assert!(convex_hull::is_point_left_allow_collinear(a[edge[0]], a[edge[1]], a[*point]));
 ///   }
 /// }
 /// # Ok::<(), linestring::LinestringError>(())
@@ -1173,8 +1154,7 @@ pub fn convex_hull_par<T: GenericVector2>(
 ///    points.push(p.into());
 /// }
 ///
-/// let a = LineString2::with_vec(points);
-/// let a = convex_hull::graham_scan(&a.points())?;
+/// let a = convex_hull::graham_scan(&points)?;
 ///
 /// let mut points = Vec::<Vec2>::new();
 /// for _i in 0..1023 {
@@ -1182,14 +1162,13 @@ pub fn convex_hull_par<T: GenericVector2>(
 ///    points.push(p.into());
 /// }
 ///
-/// let b = LineString2::with_vec(points);
-/// let b = convex_hull::graham_scan(&b.points())?;
+/// let b = convex_hull::graham_scan(&points)?;
 ///
 /// assert!(convex_hull::contains_convex_hull(&a, &b));
 /// assert!(!convex_hull::contains_convex_hull(&b, &a));
 /// # Ok::<(), linestring::LinestringError>(())
 ///```
-pub fn contains_convex_hull<T: GenericVector2>(a: &LineString2<T>, b: &LineString2<T>) -> bool {
+pub fn contains_convex_hull<T: GenericVector2>(a: &Vec<T>, b: &Vec<T>) -> bool {
     if a.point_count() <= 1 {
         return false;
     }
@@ -1199,18 +1178,18 @@ pub fn contains_convex_hull<T: GenericVector2>(a: &LineString2<T>, b: &LineStrin
     }
 
     // First, quickly check midpoint of 'a' against start and midpoint of 'b'
-    let a_midpoint = a.0.len() / 2;
-    let b_midpoint = b.0.len() / 2;
+    let a_midpoint = a.len() / 2;
+    let b_midpoint = b.len() / 2;
 
-    let a_mid_edge = (a.0[a_midpoint - 1], a.0[a_midpoint]);
-    if !is_point_left_allow_collinear(a_mid_edge.0, a_mid_edge.1, b.0[0])
-        || !is_point_left_allow_collinear(a_mid_edge.0, a_mid_edge.1, b.0[b_midpoint])
+    let a_mid_edge = (a[a_midpoint - 1], a[a_midpoint]);
+    if !is_point_left_allow_collinear(a_mid_edge.0, a_mid_edge.1, b[0])
+        || !is_point_left_allow_collinear(a_mid_edge.0, a_mid_edge.1, b[b_midpoint])
     {
         return false;
     }
 
     // If both checks passed, now do a complete check
-    b.0.iter().all(|p| contains_point_inclusive(a, *p))
+    b.iter().all(|p| contains_point_inclusive(a, *p))
 }
 
 /// Returns true if the 'a' convex hull entirely contains the 'b' convex hull (inclusive)
@@ -1221,17 +1200,16 @@ pub fn contains_convex_hull<T: GenericVector2>(a: &LineString2<T>, b: &LineStrin
 /// # use vector_traits::glam::Vec2;
 ///
 /// let mut rng:StdRng = SeedableRng::from_seed([42; 32]);
-/// let mut points = Vec::<Vec2>::new();
+/// let mut vertices = Vec::<Vec2>::new();
 /// for _i in 0..4023 {
 ///    let p: [f32; 2] = [rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0)];
-///    points.push(p.into());
+///    vertices.push(p.into());
 /// }
 /// // close the loop
-/// points.push(*points.first().unwrap());
+/// vertices.push(*vertices.first().unwrap());
 ///
 ///
-/// let a = LineString2::with_vec(points);
-/// let a = convex_hull::graham_scan(&a.points())?;
+/// let a = convex_hull::graham_scan(&vertices)?;
 ///
 /// let mut points = Vec::<Vec2>::new();
 /// for _i in 0..1023 {
@@ -1241,14 +1219,13 @@ pub fn contains_convex_hull<T: GenericVector2>(a: &LineString2<T>, b: &LineStrin
 /// // close the loop
 /// points.push(*points.first().unwrap());
 ///
-/// let b = LineString2::with_vec(points);
-/// let b = convex_hull::graham_scan(&b.points())?;
+/// let b = convex_hull::graham_scan(&points)?;
 ///
 /// assert!(convex_hull::contains_convex_hull_par(&a, &b));
 /// assert!(!convex_hull::contains_convex_hull_par(&b, &a));
 /// # Ok::<(), linestring::LinestringError>(())
 ///```
-pub fn contains_convex_hull_par<T: GenericVector2>(a: &LineString2<T>, b: &LineString2<T>) -> bool {
+pub fn contains_convex_hull_par<T: GenericVector2>(a: &Vec<T>, b: &Vec<T>) -> bool {
     if a.point_count() <= 1 {
         return false;
     }
@@ -1256,7 +1233,7 @@ pub fn contains_convex_hull_par<T: GenericVector2>(a: &LineString2<T>, b: &LineS
         // Is 'nothing' contained inside any finite convex hull or not?
         return true;
     }
-    b.0.par_iter().all(|p| contains_point_inclusive(a, *p))
+    b.par_iter().all(|p| contains_point_inclusive(a, *p))
 }
 
 /// Returns true if the 'a' convex hull contains the 'b' point (exclusive)
@@ -1265,7 +1242,7 @@ pub fn contains_convex_hull_par<T: GenericVector2>(a: &LineString2<T>, b: &LineS
 /// # use vector_traits::glam::DVec2;
 /// # use linestring::linestring_2d::{convex_hull,LineString2};
 ///
-/// let mut hull = LineString2::<DVec2>::with_capacity(4);
+/// let mut hull = Vec::<DVec2>::with_capacity(4);
 /// hull.push([0.0,0.0].into());
 /// hull.push([10.0,0.0].into());
 /// hull.push([10.0,10.0].into());
@@ -1281,23 +1258,23 @@ pub fn contains_convex_hull_par<T: GenericVector2>(a: &LineString2<T>, b: &LineS
 /// assert!(!convex_hull::contains_point_exclusive(&hull, [10.0,9.99999].into()));
 ///
 ///```
-pub fn contains_point_exclusive<T: GenericVector2>(input: &LineString2<T>, p: T) -> bool {
+pub fn contains_point_exclusive<T: GenericVector2>(input: &Vec<T>, p: T) -> bool {
     //println!("testing {:?}", p);
-    match input.0.len() {
+    match input.len() {
         0 => return false,
-        1 => return p == input.0[0],
+        1 => return p == input[0],
         2 => {
-            if input.0[0] != input.0[1] {
+            if input[0] != input[1] {
                 return false;
             }
         }
         _ => (),
     };
-    let (mut slice, input_offset) = if input.0[0] == input.0[input.0.len() - 1] {
+    let (mut slice, input_offset) = if input[0] == input[input.len() - 1] {
         // skip the explicit vertex loop, from now on the loop is implicit
-        (&input.0[1..], 1)
+        (&input[1..], 1)
     } else {
-        (&input.0[..], 0)
+        (&input[..], 0)
     };
     let mut retain_index_0 = false;
 
@@ -1317,7 +1294,7 @@ pub fn contains_point_exclusive<T: GenericVector2>(input: &LineString2<T>, p: T)
         } else {
             println!("slicing edge: [{:?},{:?}]", slice[0], slice[mid]);
         }*/
-        if (retain_index_0 && is_point_left_allow_collinear(input.0[input_offset], slice[mid], p))
+        if (retain_index_0 && is_point_left_allow_collinear(input[input_offset], slice[mid], p))
             || (!retain_index_0 && is_point_left_allow_collinear(slice[0], slice[mid], p))
         {
             // Point is to the left of the second half
@@ -1338,7 +1315,7 @@ pub fn contains_point_exclusive<T: GenericVector2>(input: &LineString2<T>, p: T)
     //println!("{:?}", slice );
     // Check the final slice (triangle)
     if retain_index_0 {
-        if !is_point_left(input.0[input_offset], slice[0], p) {
+        if !is_point_left(input[input_offset], slice[0], p) {
             //println!("return false 3.1 for slice: 0+{:?}", slice);
             return false;
         }
@@ -1348,7 +1325,7 @@ pub fn contains_point_exclusive<T: GenericVector2>(input: &LineString2<T>, p: T)
                 return false;
             }
         }
-        if !is_point_left(slice[slice.len() - 1], input.0[input_offset], p) {
+        if !is_point_left(slice[slice.len() - 1], input[input_offset], p) {
             //println!("return false 3.3 slice:0+{:?}", slice);
             return false;
         }
@@ -1374,7 +1351,7 @@ pub fn contains_point_exclusive<T: GenericVector2>(input: &LineString2<T>, p: T)
 /// # use vector_traits::glam::DVec2;
 /// # use linestring::linestring_2d::{convex_hull,LineString2};
 ///
-/// let mut hull = LineString2::<DVec2>::with_capacity(4);
+/// let mut hull = Vec::<DVec2>::with_capacity(4);
 /// hull.push([0.0,0.0].into());
 /// hull.push([10.0,0.0].into());
 /// hull.push([10.0,10.0].into());
@@ -1390,14 +1367,14 @@ pub fn contains_point_exclusive<T: GenericVector2>(input: &LineString2<T>, p: T)
 /// assert!(convex_hull::contains_point_inclusive(&hull, [10.0,5.0].into()));
 /// assert!(!convex_hull::contains_point_inclusive(&hull, [10.0,10.000001].into()));
 ///```
-pub fn contains_point_inclusive<T: GenericVector2>(input: &LineString2<T>, p: T) -> bool {
+pub fn contains_point_inclusive<T: GenericVector2>(input: &Vec<T>, p: T) -> bool {
     //println!("testing {:?}", p);
 
-    match input.0.len() {
+    match input.len() {
         0 => return false,
-        1 => return p == input.0[0],
+        1 => return p == input[0],
         2 => {
-            if input.0[0] != input.0[1] {
+            if input[0] != input[1] {
                 // this is no convex hull
                 // TODO: but technically we should check if p lies on the line
                 return false;
@@ -1406,11 +1383,11 @@ pub fn contains_point_inclusive<T: GenericVector2>(input: &LineString2<T>, p: T)
         _ => (),
     };
 
-    let (mut slice, input_offset) = if input.0[0] == input.0[input.0.len() - 1] {
+    let (mut slice, input_offset) = if input[0] == input[input.len() - 1] {
         // skip the explicit vertex loop, from now on the loop is implicit
-        (&input.0[1..], 1)
+        (&input[1..], 1)
     } else {
-        (&input.0[..], 0)
+        (&input[..], 0)
     };
     let mut retain_index_0 = false;
 
@@ -1430,7 +1407,7 @@ pub fn contains_point_inclusive<T: GenericVector2>(input: &LineString2<T>, p: T)
         } else {
             println!("slicing edge: [{:?},{:?}]", slice[0], slice[mid]);
         }*/
-        if (retain_index_0 && is_point_left_allow_collinear(input.0[input_offset], slice[mid], p))
+        if (retain_index_0 && is_point_left_allow_collinear(input[input_offset], slice[mid], p))
             || (!retain_index_0 && is_point_left_allow_collinear(slice[0], slice[mid], p))
         {
             // Point is to the left of the second half
@@ -1451,7 +1428,7 @@ pub fn contains_point_inclusive<T: GenericVector2>(input: &LineString2<T>, p: T)
     //println!("{:?}", slice );
     // Check the final slice (triangle)
     if retain_index_0 {
-        if !is_point_left_allow_collinear(input.0[input_offset], slice[0], p) {
+        if !is_point_left_allow_collinear(input[input_offset], slice[0], p) {
             //println!("return false 3.1 for slice: 0+{:?}", slice);
             return false;
         }
@@ -1461,7 +1438,7 @@ pub fn contains_point_inclusive<T: GenericVector2>(input: &LineString2<T>, p: T)
                 return false;
             }
         }
-        if !is_point_left_allow_collinear(slice[slice.len() - 1], input.0[input_offset], p) {
+        if !is_point_left_allow_collinear(slice[slice.len() - 1], input[input_offset], p) {
             //println!("return false 3.3 slice:0+{:?}", slice);
             return false;
         }

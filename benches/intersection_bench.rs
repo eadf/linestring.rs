@@ -9,18 +9,17 @@ use vector_traits::glam::Vec2;
 
 #[cfg(test)]
 fn intersection_bench_1(c: &mut Criterion) {
-    let mut vertices = Vec::<Vec2>::with_capacity(10000);
+    let mut linestring = Vec::<Vec2>::with_capacity(10000);
     let mut angle = 0.0_f32;
     let mut radius = 0.1_f32;
     for _i in 0..10000 {
-        vertices.push(Vec2 {
+        linestring.push(Vec2 {
             x: angle.cos() * radius,
             y: angle.sin() * radius,
         });
         angle += 0.1;
         radius += 0.2;
     }
-    let linestring = LineString2::<Vec2>::with_vec(vertices);
 
     c.bench_function("intersection_bench", |b| {
         b.iter(|| {

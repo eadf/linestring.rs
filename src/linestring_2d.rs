@@ -82,10 +82,77 @@ pub mod intersection;
 ///   - Inclusion tests for points, AABBs, and other convex hulls, both in parallel and single-threaded versions.
 ///
 /// In its essence, this structure provides foundational utilities for handling and manipulating
-/// polylines in a 2D space.
+/// poly-lines in a 2D space.
 ///
-#[derive(Clone)]
-pub struct LineString2<T: GenericVector2>(pub Vec<T>);
+pub trait LineString2<T: GenericVector2> {
+    /// returns true if fist element == last element
+    fn is_connected(&self) -> bool;
+
+    /// Returns the number of points in the line.
+    /// If the linestring is connected it does not count the last point
+    fn point_count(&self) -> usize;
+
+    /// Returns true if the lines are self intersecting
+    /// If number of points < 10 then the intersections are tested using brute force O(n²)
+    /// If more than that a sweep-line algorithm is used O(n*log(n)+i*log(n))
+    fn is_self_intersecting(&self) -> Result<bool, LinestringError>;
+
+    /// This intersection method returns the first intersection it finds.
+    fn intersection(&self, other: &Line2<T>) -> Option<Intersection<T>>;
+
+    /// intersection method that returns two possible intersection points
+    /// Use this when you know there can only be two intersection points (e.g. convex hulls)
+    fn find_two_intersections(&self, other: &Line2<T>) -> (Option<T>, Option<T>);
+
+    /// intersection method that returns all possible intersection points
+    fn find_all_intersections(&self, other: &Line2<T>) -> Vec<Intersection<T>>;
+
+    /// tests if a ray intersect an edge from p0 to p1
+    /// It returns the smallest `t` it can find
+    fn ray_edge_intersection(origin: T, ray_dir: T, p0: T, p1: T) -> Option<T::Scalar>;
+
+    /// This method returns the closest ray intersections with the Linestring.
+    /// This might return the origin position if the position is already on a line segment
+    fn closest_ray_intersection(&self, ray_dir: T, origin: T) -> Option<T>;
+
+    /// returns true if this and the other objects are the same.
+    /// float equality is determined by ulps_eq!()
+    fn approx_eq(&self, other: &Self) -> bool;
+
+    /// Returns the line string as a iterator of Line2
+    #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
+    fn line_iter(&self) -> LineIterator<'_, T>;
+
+    /// Copy this Linestring2 into a Linestring3, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    fn copy_to_3d(&self, plane: Plane) -> LineString3<T::Vector3>;
+
+    /// Simplify using Ramer–Douglas–Peucker algorithm
+    fn simplify_rdp(&self, distance_predicate: T::Scalar) -> Self;
+
+    fn simplify_rdp_recursive(rv: &mut Vec<T>, points: &[T], distance_predicate_sq: T::Scalar);
+
+    /// Simplify using Visvalingam–Whyatt algorithm. This algorithm will delete 'points_to_delete'
+    /// of points from the polyline with the smallest area defined by one point and it's neighbours.
+    fn simplify_vw(&self, points_to_delete: usize) -> Self;
+
+    /// Returns true if self is a convex hull and it contains the 'b' point (inclusive)
+    /// This function is single threaded.
+    /// Will return unpredictable results if self is not a convex hull.
+    fn contains_point_inclusive(&self, p: T) -> bool;
+
+    /// Returns true if self is a convex hull and it contains the 'b' point (exclusive)
+    /// This function is single threaded.
+    /// Will return unpredictable results if self is not a convex hull.
+    fn contains_point_exclusive(&self, p: T) -> bool;
+
+    /// Apply an operation over each coordinate.
+    /// Useful when you want to round the values of the coordinates.
+    fn apply<F>(&mut self, f: &F)
+    where
+        F: Fn(T) -> T;
+}
 
 /// A 2d line
 #[derive(Copy, Clone)]
@@ -341,8 +408,8 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
     /// Convert this parable abstraction into discrete line segment sample points.
     /// All of this code is ported from C++ boost 1.75.0
     /// <https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm>
-    pub fn discretize_2d(&self, max_dist: T::Scalar) -> LineString2<T> {
-        let mut rv = LineString2::with_point(self.start_point);
+    pub fn discretize_2d(&self, max_dist: T::Scalar) -> Vec<T> {
+        let mut rv = vec![self.start_point];
 
         // Apply the linear transformation to move start point of the segment to
         // the point with coordinates (0, 0) and the direction of the segment to
@@ -398,7 +465,7 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
                 let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
                     + self.segment.start.y();
                 let p = T::new_2d(inter_x, inter_y);
-                rv.0.push(p);
+                rv.push(p);
                 cur_x = new_x;
                 cur_y = new_y;
             } else {
@@ -407,8 +474,8 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
         }
 
         // Update last point.
-        let last_position = rv.0.len() - 1;
-        rv.0[last_position] = self.end_point;
+        let last_position = rv.len() - 1;
+        rv[last_position] = self.end_point;
         rv
     }
 
@@ -577,61 +644,32 @@ impl<'a, T: GenericVector2> LineIterator<'a, T> {
     }
 }
 
-impl<T: GenericVector2> LineString2<T> {
-    /// creates a new linestring with enough capacity allocated to store `capacity` points.
-    /// If you want to store a square of points in a loop, you will need to use the `capacity`=5
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self(Vec::<T>::with_capacity(capacity))
-    }
-
+impl<T: GenericVector2> LineString2<T> for Vec<T> {
     /// Returns `true` if the last and first points of the collection are exactly the same,
     /// indicating a closed loop.
     /// Note that an empty linestring is also "closed" since first() and last() object are the
     /// same. I.e. None
-    pub fn is_connected(&self) -> bool {
-        self.0.is_empty() || self.0.first().unwrap() == self.0.last().unwrap()
+    fn is_connected(&self) -> bool {
+        self.is_empty() || self.first().unwrap() == self.last().unwrap()
     }
 
-    /// Copies the points of the iterator into the LineString2
-    /// from_iter is already claimed for into() objects.
-    pub fn with_iter_ref<'b, I>(iter: I) -> Self
-    where
-        T: 'b,
-        I: Iterator<Item = &'b T>,
-    {
-        Self(iter.cloned().collect())
-    }
-
-    pub fn with_iter<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = T>,
-    {
-        Self(iter.collect())
-    }
-
-    pub fn with_vec(v: Vec<T>) -> Self {
-        Self(v)
-    }
-
-    pub fn with_point(v: T) -> Self {
-        Self(vec![v])
-    }
-
-    /// Moves all the elements of `other` into `Self`, leaving `other` empty.
-    /// TODO: currently ignores if `other` is connected or not.
-    /// # Panics
-    /// Panics if the number of elements in the points vector overflows a `usize`.
-    pub fn append(&mut self, mut other: Self) {
-        self.0.append(&mut other.0);
+    /// Returns the number of points in the line.
+    /// If the linestring is connected it does not count the last point
+    fn point_count(&self) -> usize {
+        if self.len() > 2 && self.is_connected() {
+            self.len() - 1
+        } else {
+            self.len()
+        }
     }
 
     /// Returns true if the lines are self intersecting
     /// If number of points < 10 then the intersections are tested using brute force O(n²)
     /// If more than that a sweep-line algorithm is used O(n*log(n)+i*log(n))
-    pub fn is_self_intersecting(&self) -> Result<bool, LinestringError> {
-        if self.0.len() <= 2 {
+    fn is_self_intersecting(&self) -> Result<bool, LinestringError> {
+        if self.len() <= 2 {
             Ok(false)
-        } else if self.0.len() < 10 {
+        } else if self.len() < 10 {
             //let lines = self.as_lines_iter();
             let iter = self.line_iter();
             let iter_len = iter.len();
@@ -693,7 +731,7 @@ impl<T: GenericVector2> LineString2<T> {
     }
 
     /// This intersection method returns the first intersection it finds.
-    pub fn intersection(&self, other: &Line2<T>) -> Option<Intersection<T>> {
+    fn intersection(&self, other: &Line2<T>) -> Option<Intersection<T>> {
         for l in self.line_iter() {
             let intersection = l.intersection_point(*other);
             if intersection.is_some() {
@@ -705,7 +743,7 @@ impl<T: GenericVector2> LineString2<T> {
 
     /// intersection method that returns two possible intersection points
     /// Use this when you know there can only be two intersection points (e.g. convex hulls)
-    pub fn find_two_intersections(&self, other: &Line2<T>) -> (Option<T>, Option<T>) {
+    fn find_two_intersections(&self, other: &Line2<T>) -> (Option<T>, Option<T>) {
         let mut intersections: Vec<T> = Vec::new();
 
         for edge in self.line_iter() {
@@ -744,7 +782,7 @@ impl<T: GenericVector2> LineString2<T> {
     }
 
     /// intersection method that returns all possible intersection points
-    pub fn find_all_intersections(&self, other: &Line2<T>) -> Vec<Intersection<T>> {
+    fn find_all_intersections(&self, other: &Line2<T>) -> Vec<Intersection<T>> {
         let mut intersections: Vec<Intersection<T>> = Vec::new();
 
         for edge in self.line_iter() {
@@ -757,7 +795,7 @@ impl<T: GenericVector2> LineString2<T> {
 
     /// tests if a ray intersect an edge from p0 to p1
     /// It returns the smallest `t` it can find
-    pub fn ray_edge_intersection(origin: T, ray_dir: T, p0: T, p1: T) -> Option<T::Scalar> {
+    fn ray_edge_intersection(origin: T, ray_dir: T, p0: T, p1: T) -> Option<T::Scalar> {
         let s = p1.sub(p0);
         let r_cross_s = ray_dir.perp_dot(s);
 
@@ -782,13 +820,13 @@ impl<T: GenericVector2> LineString2<T> {
 
     /// This method returns the closest ray intersections with the Linestring.
     /// This might return the origin position if the position is already on a line segment
-    pub fn closest_ray_intersection(&self, ray_dir: T, origin: T) -> Option<T> {
+    fn closest_ray_intersection(&self, ray_dir: T, origin: T) -> Option<T> {
         let mut nearest_t: Option<T::Scalar> = None;
-        if self.0.len() <= 1 {
+        if self.len() <= 1 {
             return None;
         }
         // iterate over every vertex pair as an edge
-        self.0.windows(2).for_each(|v| {
+        self.windows(2).for_each(|v| {
             match (
                 Self::ray_edge_intersection(origin, ray_dir, v[0], v[1]),
                 nearest_t,
@@ -801,30 +839,14 @@ impl<T: GenericVector2> LineString2<T> {
         nearest_t.map(|t| origin + ray_dir * t)
     }
 
-    #[inline(always)]
-    pub fn points(&self) -> &Vec<T> {
-        &self.0
-    }
-
-    /// returns the number of points in the point list
-    /// not the number of segments
-    pub fn point_count(&self) -> usize {
-        self.0.len()
-    }
-
-    /// returns true if the point list is empty
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
     /// returns true if this and the other objects are the same.
     /// float equality is determined by ulps_eq!()
-    pub fn approx_eq(&self, other: &Self) -> bool {
-        if self.0.len() != other.0.len() {
+    fn approx_eq(&self, other: &Self) -> bool {
+        if self.len() != other.len() {
             return false;
         }
 
-        for (point_a, point_b) in self.0.iter().zip(other.0.iter()) {
+        for (point_a, point_b) in self.iter().zip(other.iter()) {
             if !ulps_eq!(point_a.x(), point_b.x()) || !ulps_eq!(point_a.y(), point_b.y()) {
                 return false;
             }
@@ -834,50 +856,43 @@ impl<T: GenericVector2> LineString2<T> {
 
     /// Returns the line string as a iterator of Line2
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-    pub fn line_iter(&self) -> LineIterator<'_, T> {
-        match self.0.len() {
+    fn line_iter(&self) -> LineIterator<'_, T> {
+        match self.len() {
             0 | 1 => LineIterator([].windows(2)), // Empty iterator
-            _ => LineIterator(self.0.windows(2)),
+            _ => LineIterator(self.windows(2)),
         }
     }
 
     /// Copy this Linestring2 into a Linestring3, populating the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_3d(&self, plane: Plane) -> LineString3<T::Vector3> {
+    fn copy_to_3d(&self, plane: Plane) -> LineString3<T::Vector3> {
         match plane {
             Plane::XY => self
-                .0
                 .iter()
                 .map(|p2d| T::Vector3::new_3d(p2d.x(), p2d.y(), T::Scalar::ZERO))
                 .collect(),
             Plane::XZ => self
-                .0
                 .iter()
                 .map(|p2d| T::Vector3::new_3d(p2d.x(), T::Scalar::ZERO, p2d.y()))
                 .collect(),
             Plane::YZ => self
-                .0
                 .iter()
                 .map(|p2d| T::Vector3::new_3d(T::Scalar::ZERO, p2d.x(), p2d.y()))
                 .collect(),
         }
     }
 
-    pub fn push(&mut self, point: T) {
-        self.0.push(point);
-    }
-
     /// Simplify using Ramer–Douglas–Peucker algorithm
-    pub fn simplify_rdp(&self, distance_predicate: T::Scalar) -> Self {
-        if self.0.len() <= 2 {
+    fn simplify_rdp(&self, distance_predicate: T::Scalar) -> Self {
+        if self.len() <= 2 {
             return self.clone();
         }
 
-        let mut rv: Vec<T> = Vec::with_capacity(self.0.len());
-        rv.push(self.0[0]);
-        Self::simplify_rdp_recursive(&mut rv, &self.0, distance_predicate * distance_predicate);
-        Self(rv)
+        let mut rv: Vec<T> = Vec::with_capacity(self.len());
+        rv.push(self[0]);
+        Self::simplify_rdp_recursive(&mut rv, self, distance_predicate * distance_predicate);
+        rv
     }
 
     fn simplify_rdp_recursive(rv: &mut Vec<T>, points: &[T], distance_predicate_sq: T::Scalar) {
@@ -917,9 +932,9 @@ impl<T: GenericVector2> LineString2<T> {
 
     /// Simplify using Visvalingam–Whyatt algorithm. This algorithm will delete 'points_to_delete'
     /// of points from the polyline with the smallest area defined by one point and it's neighbours.
-    pub fn simplify_vw(&self, points_to_delete: usize) -> Self {
+    fn simplify_vw(&self, points_to_delete: usize) -> Self {
         let connected = self.is_connected();
-        if self.0.len() <= 2 {
+        if self.len() <= 2 {
             // Nothing to do here, we can't delete endpoints
             return self.clone();
         }
@@ -935,10 +950,10 @@ impl<T: GenericVector2> LineString2<T> {
         // AHashMap::<node_id:usize, (prev_node_id:usize, next_node_id:usize, area:T)>
         let mut link_tree = ahash::AHashMap::<usize, (usize, usize, T::Scalar)>::default();
         {
-            let mut iter_i = self.0.iter().enumerate();
-            let mut iter_j = self.0.iter().enumerate().skip(1);
+            let mut iter_i = self.iter().enumerate();
+            let mut iter_j = self.iter().enumerate().skip(1);
             // the k iterator will terminate before i & j, so the iter_i & iter_j unwrap()s are safe
-            for k in self.0.iter().enumerate().skip(2) {
+            for k in self.iter().enumerate().skip(2) {
                 let i = iter_i.next().unwrap();
                 let j = iter_j.next().unwrap();
                 // define the area between point i, j & k as search criteria
@@ -953,10 +968,10 @@ impl<T: GenericVector2> LineString2<T> {
         }
         if connected {
             // add an extra point at the end, faking the loop
-            let i = self.0.len() - 2;
-            let j = self.0.len() - 1;
-            let k = self.0.len();
-            let area = Line2::triangle_area_squared_times_4(self.0[i], self.0[j], self.0[0]);
+            let i = self.len() - 2;
+            let j = self.len() - 1;
+            let k = self.len();
+            let area = Line2::triangle_area_squared_times_4(self[i], self[j], self[0]);
             search_tree.push(PriorityDistance {
                 key: area,
                 index: j,
@@ -964,7 +979,7 @@ impl<T: GenericVector2> LineString2<T> {
             let _ = link_tree.insert(j, (i, k, area));
         }
 
-        let self_points_len = self.0.len();
+        let self_points_len = self.len();
 
         let mut deleted_nodes: usize = 0;
         loop {
@@ -992,9 +1007,9 @@ impl<T: GenericVector2> LineString2<T> {
                     if let Some(next_next) = next_next {
                         if let Some(prev_prev) = prev_prev {
                             let area = Line2::triangle_area_squared_times_4(
-                                self.0[prev],
-                                self.0[next % self_points_len],
-                                self.0[next_next % self_points_len],
+                                self[prev],
+                                self[next % self_points_len],
+                                self[next_next % self_points_len],
                             );
                             search_tree.push(PriorityDistance {
                                 key: area,
@@ -1003,9 +1018,9 @@ impl<T: GenericVector2> LineString2<T> {
                             let _ = link_tree.insert(next, (prev, next_next, area));
 
                             let area = Line2::triangle_area_squared_times_4(
-                                self.0[prev_prev],
-                                self.0[prev],
-                                self.0[next % self_points_len],
+                                self[prev_prev],
+                                self[prev],
+                                self[next % self_points_len],
                             );
                             search_tree.push(PriorityDistance {
                                 key: area,
@@ -1018,9 +1033,9 @@ impl<T: GenericVector2> LineString2<T> {
 
                     if let Some(prev_prev) = prev_prev {
                         let area = Line2::triangle_area_squared_times_4(
-                            self.0[prev_prev],
-                            self.0[prev],
-                            self.0[next % self_points_len],
+                            self[prev_prev],
+                            self[prev],
+                            self[next % self_points_len],
                         );
                         search_tree.push(PriorityDistance {
                             key: area,
@@ -1032,9 +1047,9 @@ impl<T: GenericVector2> LineString2<T> {
 
                     if let Some(next_next) = next_next {
                         let area = Line2::triangle_area_squared_times_4(
-                            self.0[prev],
-                            self.0[next % self_points_len],
-                            self.0[next_next % self_points_len],
+                            self[prev],
+                            self[next % self_points_len],
+                            self[next_next % self_points_len],
                         );
                         search_tree.push(PriorityDistance {
                             key: area,
@@ -1062,16 +1077,16 @@ impl<T: GenericVector2> LineString2<T> {
                         .keys()
                         .sorted_unstable()
                         .copied()
-                        .chain([self.0.len() - 1].iter().copied()),
+                        .chain([self.len() - 1].iter().copied()),
                 )
-                .map(|x| self.0[x])
+                .map(|x| self[x])
                 .collect::<Self>()
         } else {
             [0_usize]
                 .iter()
                 .copied()
                 .chain(link_tree.keys().sorted_unstable().copied())
-                .map(|x| self.0[x])
+                .map(|x| self[x])
                 .collect::<Self>()
         }
     }
@@ -1080,7 +1095,7 @@ impl<T: GenericVector2> LineString2<T> {
     /// This function is single threaded.
     /// Will return unpredictable results if self is not a convex hull.
     #[inline(always)]
-    pub fn contains_point_inclusive(&self, p: T) -> bool {
+    fn contains_point_inclusive(&self, p: T) -> bool {
         self.is_connected() && convex_hull::contains_point_inclusive(self, p)
     }
 
@@ -1088,17 +1103,17 @@ impl<T: GenericVector2> LineString2<T> {
     /// This function is single threaded.
     /// Will return unpredictable results if self is not a convex hull.
     #[inline(always)]
-    pub fn contains_point_exclusive(&self, p: T) -> bool {
+    fn contains_point_exclusive(&self, p: T) -> bool {
         self.is_connected() && convex_hull::contains_point_exclusive(self, p)
     }
 
     /// Apply an operation over each coordinate.
     /// Useful when you want to round the values of the coordinates.
-    pub fn apply<F>(&mut self, f: &F)
+    fn apply<F>(&mut self, f: &F)
     where
         F: Fn(T) -> T,
     {
-        for v in self.0.iter_mut() {
+        for v in self.iter_mut() {
             *v = f(*v)
         }
     }
@@ -1115,19 +1130,17 @@ pub trait Matrix<T:GenericVector2> {
 /// This struct is intended to contain related shapes. E.g. outlines of letters with holes
 #[derive(Clone)]
 pub struct LineStringSet2<T: GenericVector2> {
-    set: Vec<LineString2<T>>,
+    set: Vec<Vec<T>>,
     aabb: Aabb2<T>,
-    convex_hull: Option<LineString2<T>>,
-    pub internals: Option<Vec<(Aabb2<T>, LineString2<T>)>>,
-    //#[doc(hidden)]
-    //_pd :PhantomData<M>
+    convex_hull: Option<Vec<T>>,
+    pub internals: Option<Vec<(Aabb2<T>, Vec<T>)>>,
 }
 
 impl<T: GenericVector2> LineStringSet2<T> {
     /// steal the content of 'other' leaving it empty
     pub fn steal_from(other: &mut LineStringSet2<T>) -> Self {
         //println!("stealing from other.aabb:{:?}", other.aabb);
-        let mut set = Vec::<LineString2<T>>::new();
+        let mut set = Vec::<Vec<T>>::new();
         set.append(&mut other.set);
         Self {
             set,
@@ -1138,13 +1151,13 @@ impl<T: GenericVector2> LineStringSet2<T> {
         }
     }
 
-    pub fn set(&self) -> &Vec<LineString2<T>> {
+    pub fn set(&self) -> &Vec<Vec<T>> {
         &self.set
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            set: Vec::<LineString2<T>>::with_capacity(capacity),
+            set: Vec::<Vec<T>>::with_capacity(capacity),
             aabb: Aabb2::default(),
             convex_hull: None,
             internals: None,
@@ -1152,7 +1165,7 @@ impl<T: GenericVector2> LineStringSet2<T> {
         }
     }
 
-    pub fn get_internals(&self) -> Option<&Vec<(Aabb2<T>, LineString2<T>)>> {
+    pub fn get_internals(&self) -> Option<&Vec<(Aabb2<T>, Vec<T>)>> {
         self.internals.as_ref()
     }
 
@@ -1160,24 +1173,25 @@ impl<T: GenericVector2> LineStringSet2<T> {
         self.set.is_empty()
     }
 
-    pub fn push(&mut self, ls: LineString2<T>) {
+    pub fn push(&mut self, ls: Vec<T>) {
         if !ls.is_empty() {
             self.set.push(ls);
 
-            for ls in self.set.last().unwrap().0.iter() {
+            for ls in self.set.last().unwrap().iter() {
                 self.aabb.update_with_point(*ls);
             }
         }
     }
 
     /// returns the combined convex hull of all the shapes in self.set
-    pub fn get_convex_hull(&self) -> &Option<LineString2<T>> {
+    pub fn get_convex_hull(&self) -> &Option<Vec<T>> {
         &self.convex_hull
     }
 
     /// calculates the combined convex hull of all the shapes in self.set
-    pub fn calculate_convex_hull(&mut self) -> Result<&LineString2<T>, LinestringError> {
-        let tmp: Vec<_> = self.set.iter().flat_map(|x| x.points()).cloned().collect();
+    pub fn calculate_convex_hull(&mut self) -> Result<&Vec<T>, LinestringError> {
+        // todo: this is sus
+        let tmp: Vec<_> = self.set.iter().flatten().cloned().collect();
         self.convex_hull = Some(convex_hull::graham_scan(&tmp)?);
         Ok(self.convex_hull.as_ref().unwrap())
     }
@@ -1259,7 +1273,7 @@ impl<T: GenericVector2> LineStringSet2<T> {
             ));
         }
         if self.internals.is_none() {
-            self.internals = Some(Vec::<(Aabb2<T>, LineString2<T>)>::new())
+            self.internals = Some(Vec::<(Aabb2<T>, Vec<T>)>::new())
         }
 
         self.set.append(&mut other.set);

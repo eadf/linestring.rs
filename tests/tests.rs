@@ -92,7 +92,7 @@ fn linestring2_1() {
     let points: Vec<[f32; 2]> = vec![[0., 0.], [1., 1.], [2., 2.], [3., 3.], [1., 10.]];
     let points_len = points.len();
 
-    let linestring: LineString2<Vec2> = points.into_iter().collect();
+    let linestring: Vec<Vec2> = points.into_iter().map(|v| v.into()).collect();
     assert_eq!(linestring.point_count(), points_len);
     assert_eq!(linestring.line_iter().len(), points_len - 1);
 }
@@ -136,24 +136,23 @@ fn line3_1() {
 
 #[test]
 fn aabb_1() {
-    let line = LineString2::with_vec(vec![vec2(0.0, 0.0), vec2(10.0, 1.0)]);
-    let aabb0 = Aabb2::from(line.points().iter());
-    let aabb1 = Aabb2::from(line.points().iter());
+    let line = vec![vec2(0.0, 0.0), vec2(10.0, 1.0)];
+    let aabb0 = Aabb2::from(line.iter());
+    let aabb1 = Aabb2::from(line.iter());
     assert_eq!(aabb0, aabb1);
     let line2: Vec<Vec2> = aabb0.convex_hull().unwrap();
     assert_eq!(line2.len(), 5);
     assert_eq!(line2[0], line2[4]);
-    let line3 = LineString2::from(aabb1);
-    assert_eq!(line3.points().len(), 5);
-    assert_eq!(line3.0[0], line3.0[4]);
+    let line3 = Vec::from(aabb1);
+    assert_eq!(line3.len(), 5);
+    assert_eq!(line3[0], line3[4]);
     for line in line3.line_iter() {
         assert!(line.abs_diff_eq(&line, f32::EPSILON));
         assert!(line.ulps_eq(&line, f32::EPSILON, f32::default_max_ulps()));
         assert_eq!(line, line);
     }
-    let empty = LineString2::<Vec2>::default();
+    let empty = Vec::<Vec2>::default();
     assert!(empty.is_empty());
-    assert!(empty.points().is_empty());
     let default_afffine = SimpleAffine::<Vec2>::default();
     assert_eq!(default_afffine.a_offset[0], 0.0);
     assert_eq!(default_afffine.a_offset[1], 0.0);
@@ -173,13 +172,13 @@ fn intersection_1() {
 
 #[test]
 fn ray_intersection_1() {
-    let l1 = LineString2::<Vec2>::with_vec(vec![[0., 200.].into(), [0., -200.].into()]);
+    let l1 = vec![[0., 200.].into(), [0., -200.].into()];
     let l2 = linestring_2d::Line2::<Vec2>::from([-400., 0., 1., 0.]);
     let mut ray = l2.end - l2.start;
     println!("origin={:?}", l2.start);
     let rv = l1.closest_ray_intersection(ray, l2.start).unwrap();
     almost_equal(rv.x, 0.0, rv.y, 0.0);
-    let l1 = LineString2::with_vec(vec![[0., 200.].into(), [0., -200.].into()]);
+    let l1 = vec![[0., 200.].into(), [0., -200.].into()];
     let rv = l1.closest_ray_intersection(ray, l2.start).unwrap();
     almost_equal(rv.x, 0.0, rv.y, 0.0);
     ray = ray.neg();
@@ -195,7 +194,7 @@ fn ray_intersection_2() {
         //println!("r:{}", r);
         let line1 = pivot(pivot_p.x, pivot_p.y, 50.0, 4.0, r as f32);
         //println!("line1:{:?}", line1);
-        let l1 = LineString2::with_vec(vec![line1.start, line1.end]);
+        let l1 = vec![line1.start, line1.end];
         let rv = l1.closest_ray_intersection(ray, ray_origin).unwrap();
         //println!("rv:{:?} l1:{:?}", rv, pivot_p);
         silly_assert_approx_eq(rv, pivot_p, 0.001);
@@ -354,18 +353,22 @@ fn intersection_11() {
 
 #[test]
 fn simplify_1() {
-    let linestring: LineString2<Vec2> = vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]
+    let linestring: Vec<Vec2> = vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]
         .into_iter()
+        .map(|v| v.into())
         .collect();
     assert_eq!(1, linestring.simplify_rdp(10.0).line_iter().len());
     println!("{:?}", linestring.simplify_rdp(0.1));
     assert_eq!(2, linestring.simplify_rdp(0.1).line_iter().len());
-    let linestring: LineString2<Vec2> = vec![[10f32, 10.], [20.0, 10.0]].into_iter().collect();
+    let linestring: Vec<Vec2> = vec![[10f32, 10.], [20.0, 10.0]]
+        .into_iter()
+        .map(|v| v.into())
+        .collect();
     assert_eq!(1, linestring.simplify_rdp(0.1).line_iter().len());
-    let linestring: LineString2<Vec2> =
-        vec![[10f32, 10.], [15.0, 12.0], [17.0, 13.0], [20.0, 10.0]]
-            .into_iter()
-            .collect();
+    let linestring: Vec<Vec2> = vec![[10f32, 10.], [15.0, 12.0], [17.0, 13.0], [20.0, 10.0]]
+        .into_iter()
+        .map(|v| v.into())
+        .collect();
     //
     assert_eq!(2, linestring.simplify_rdp(1.1).line_iter().len());
 
@@ -378,11 +381,11 @@ fn simplify_1() {
         [100., 100.],
         [77f32, 613.],
     ];
-    let line: LineString2<Vec2> = line.into_iter().collect();
+    let line: Vec<Vec2> = line.into_iter().map(|v| v.into()).collect();
     //line.connected = true;
     let result = line.simplify_rdp(1.0);
     println!("-----Result :{:?}", result);
-    assert_eq!(7, result.point_count());
+    assert_eq!(6, result.point_count());
     assert_eq!(6, result.line_iter().len());
 }
 
@@ -397,7 +400,7 @@ fn simplify_2() {
         [100., 100.],
         [77., 613.],
     ];
-    let line: LineString2<Vec2> = line.into_iter().collect();
+    let line: Vec<Vec2> = line.into_iter().map(|v| v.into()).collect();
     //line.connected = false;
     assert_eq!(6, line.simplify_rdp(1.0).line_iter().len());
 }
@@ -429,7 +432,7 @@ fn a_test() -> Result<(), linestring::LinestringError> {
         [250.0, 300.0],
     ];
 
-    let l: LineString2<Vec2> = _l.into_iter().collect();
+    let l: Vec<Vec2> = _l.into_iter().map(|v| v.into()).collect();
     //l.connected = true;
     let result = l.is_self_intersecting()?;
 
@@ -440,23 +443,25 @@ fn a_test() -> Result<(), linestring::LinestringError> {
 #[cfg(all(feature = "cgmath", feature = "glam"))]
 #[test]
 fn another_test() -> Result<(), linestring::LinestringError> {
-    let l: LineString2<vector_traits::glam::Vec2> = [[0.0, 10.], [5.0, 51.0], [15.0, 51.0]]
+    let l: Vec<vector_traits::glam::Vec2> = [[0.0, 10.], [5.0, 51.0], [15.0, 51.0]]
         .into_iter()
+        .map(|v| v.into())
         .collect();
     let glam_vec2 = l.is_self_intersecting()?;
-    let l: LineString2<vector_traits::glam::DVec2> = [[0.0, 10.], [5.0, 51.0], [15.0, 51.0]]
+    let l: Vec<vector_traits::glam::DVec2> = [[0.0, 10.], [5.0, 51.0], [15.0, 51.0]]
         .into_iter()
+        .map(|v| v.into())
         .collect();
     let glam_dvec2 = l.is_self_intersecting()?;
-    let l: LineString2<vector_traits::cgmath::Vector2<f32>> =
-        [[0.0, 10.], [5.0, 51.0], [15.0, 51.0]]
-            .into_iter()
-            .collect();
+    let l: Vec<vector_traits::cgmath::Vector2<f32>> = [[0.0, 10.], [5.0, 51.0], [15.0, 51.0]]
+        .into_iter()
+        .map(|v| v.into())
+        .collect();
     let cgmath_vector2_f32 = l.is_self_intersecting()?;
-    let l: LineString2<vector_traits::cgmath::Vector2<f64>> =
-        [[0.0, 10.], [5.0, 51.0], [15.0, 51.0]]
-            .into_iter()
-            .collect();
+    let l: Vec<vector_traits::cgmath::Vector2<f64>> = [[0.0, 10.], [5.0, 51.0], [15.0, 51.0]]
+        .into_iter()
+        .map(|v| v.into())
+        .collect();
     let cgmath_vector_f64 = l.is_self_intersecting()?;
     assert_eq!(glam_vec2, glam_dvec2);
     assert_eq!(cgmath_vector2_f32, cgmath_vector_f64);
@@ -476,8 +481,8 @@ fn simplify_vw_1() {
         [100., 100.],
         [77., 613.],
     ];
-    let line: LineString2<Vec2> = line.into_iter().collect();
-    assert_eq!(line.points().len() - 4, line.simplify_vw(4).points().len());
+    let line: Vec<Vec2> = line.into_iter().map(|v| v.into()).collect();
+    assert_eq!(line.len() - 4, line.simplify_vw(4).len());
 }
 
 #[test]
@@ -491,11 +496,11 @@ fn simplify_vw_2() {
         [0., 100.],
         [0f32, 0.],
     ];
-    let line: LineString2<Vec2> = line.into_iter().collect();
+    let line: Vec<Vec2> = line.into_iter().map(|v| v.into()).collect();
     println!("input:{:?}", line);
     let l = line.simplify_vw(2);
     println!("Result: {:?}", l);
-    assert_eq!(line.points().len() - 2, l.points().len());
+    assert_eq!(line.len() - 2, l.len());
     assert!(line.is_connected())
 }
 
@@ -511,12 +516,12 @@ fn simplify_vw_3() {
         [3., 1.],
         [0f32, 0.],
     ];
-    let line: LineString2<Vec2> = line.into_iter().collect();
+    let line: Vec<Vec2> = line.into_iter().map(|v| v.into()).collect();
     println!("input:{:?}", line);
 
     let l = line.simplify_vw(5);
     println!("Result: {:?}", l);
-    assert_eq!(line.points().len() - 5, l.points().len());
+    assert_eq!(line.len() - 5, l.len());
     assert!(line.is_connected())
 }
 
@@ -528,11 +533,11 @@ fn simplify_vw_4() {
         line.push([i.to_radians().cos() * 100f32, i.to_radians().sin() * 100f32])
     }
 
-    let line: LineString2<Vec2> = line.into_iter().collect();
+    let line: Vec<Vec2> = line.into_iter().map(|v| v.into()).collect();
     let is_connected = line.is_connected();
     let l = line.simplify_vw(6);
     println!("Result: {:?}", l);
-    assert_eq!(line.points().len() - 6, l.points().len());
+    assert_eq!(line.len() - 6, l.len());
     assert_eq!(line.is_connected(), is_connected)
 }
 
@@ -557,15 +562,15 @@ fn voronoi_parabolic_arc_1() {
     println!("result: {:?}", result);
     let epsilon = <Vec2 as HasXY>::Scalar::default_epsilon();
     let ulps = <Vec2 as HasXY>::Scalar::default_max_ulps();
-    assert!(result.points()[0].is_ulps_eq([100.0, 200.0].into(), epsilon, ulps));
-    assert!(result.points()[1].is_ulps_eq([125.0, 178.125].into(), epsilon, ulps));
-    assert!(result.points()[2].is_ulps_eq([150.0, 162.5].into(), epsilon, ulps));
-    assert!(result.points()[3].is_ulps_eq([175.0, 153.125].into(), epsilon, ulps));
-    assert!(result.points()[4].is_ulps_eq([200.0, 150.0].into(), epsilon, ulps));
-    assert!(result.points()[5].is_ulps_eq([225.0, 153.125].into(), epsilon, ulps));
-    assert!(result.points()[6].is_ulps_eq([250.0, 162.5].into(), epsilon, ulps));
-    assert!(result.points()[7].is_ulps_eq([275.0, 178.125].into(), epsilon, ulps));
-    assert!(result.points()[8].is_ulps_eq([300.0, 200.0].into(), epsilon, ulps));
+    assert!(result[0].is_ulps_eq([100.0, 200.0].into(), epsilon, ulps));
+    assert!(result[1].is_ulps_eq([125.0, 178.125].into(), epsilon, ulps));
+    assert!(result[2].is_ulps_eq([150.0, 162.5].into(), epsilon, ulps));
+    assert!(result[3].is_ulps_eq([175.0, 153.125].into(), epsilon, ulps));
+    assert!(result[4].is_ulps_eq([200.0, 150.0].into(), epsilon, ulps));
+    assert!(result[5].is_ulps_eq([225.0, 153.125].into(), epsilon, ulps));
+    assert!(result[6].is_ulps_eq([250.0, 162.5].into(), epsilon, ulps));
+    assert!(result[7].is_ulps_eq([275.0, 178.125].into(), epsilon, ulps));
+    assert!(result[8].is_ulps_eq([300.0, 200.0].into(), epsilon, ulps));
     println!("result: {:?}", result);
 }
 
@@ -657,7 +662,7 @@ fn convex_hull_0() -> Result<(), linestring::LinestringError> {
         .into_iter()
         .map(|i| line[i])
         .collect();
-    assert_eq!(gw.0, pch);
+    assert_eq!(gw, pch);
     Ok(())
 }
 
@@ -677,20 +682,20 @@ fn convex_hull_1() -> Result<(), linestring::LinestringError> {
     let gw = convex_hull::gift_wrap(&line)?;
     let gs = convex_hull::graham_scan(&line)?;
     let indices: Vec<usize> = (0..line.len()).collect();
-    let igs: LineString2<Vec2> = convex_hull::indexed_graham_scan(&line, &indices)?
+    let igs: Vec<Vec2> = convex_hull::indexed_graham_scan(&line, &indices)?
         .into_iter()
         .map(|i| line[i])
         .collect();
-    let igw: LineString2<Vec2> = convex_hull::indexed_gift_wrap(&line, &indices)?
+    let igw: Vec<Vec2> = convex_hull::indexed_gift_wrap(&line, &indices)?
         .into_iter()
         .map(|i| line[i])
         .collect();
-    let pch: LineString2<Vec2> = convex_hull::convex_hull_par(&line, &indices, 2)?
+    let pch: Vec<Vec2> = convex_hull::convex_hull_par(&line, &indices, 2)?
         .into_iter()
         .map(|i| line[i])
         .collect();
 
-    if gw.0 != gs.0 {
+    if gw != gs {
         println!("input:{:?}", line);
         println!("gw:{:?}", gw);
         println!("gs:{:?}", gs);
@@ -698,10 +703,10 @@ fn convex_hull_1() -> Result<(), linestring::LinestringError> {
     }
     assert!(convex_hull::contains_convex_hull(&gw, &gs,));
     assert!(convex_hull::contains_convex_hull(&gs, &gw,));
-    assert_eq!(gw.0, igs.0);
-    assert_eq!(gw.0, gs.0);
-    assert_eq!(gw.0, igw.0);
-    assert_eq!(gw.0, pch.0);
+    assert_eq!(gw, igs);
+    assert_eq!(gw, gs);
+    assert_eq!(gw, igw);
+    assert_eq!(gw, pch);
 
     Ok(())
 }
@@ -727,7 +732,7 @@ fn convex_hull_2() -> Result<(), LinestringError> {
     for l in gs.line_iter() {
         assert!(convex_hull::is_point_left(l.start, l.end, center));
     }
-    assert_eq!(igs.len(), gs.0.len());
+    assert_eq!(igs.len(), gs.len());
     assert_eq!(igs, igw);
     Ok(())
 }
@@ -756,12 +761,12 @@ fn convex_hull_3() -> Result<(), LinestringError> {
     let indices: Vec<usize> = (0..points_b.len()).collect();
     let igs = linestring_2d::convex_hull::indexed_graham_scan(&points_b, &indices)?;
 
-    assert_eq!(b.0.len(), igs.len());
+    assert_eq!(b.len(), igs.len());
 
     println!(
         "convex hull b: start:{}, end:{}",
-        b.0.first().unwrap(),
-        b.0.last().unwrap()
+        b.first().unwrap(),
+        b.last().unwrap()
     );
     assert!(convex_hull::contains_convex_hull(&a, &b));
     assert!(convex_hull::contains_convex_hull_par(&a, &b));
@@ -818,14 +823,14 @@ fn convex_hull_4() -> Result<(), linestring::LinestringError> {
         .into_iter()
         .map(|i| vertices[i])
         .collect();
-    if gw.0 != gs.0 {
+    if gw != gs {
         println!("input:{:?}", &vertices[7..]);
         println!("gift wrapping:{:?}", gw);
         println!("graham's scan:{:?}", gs);
         panic!("test failed")
     }
-    assert_eq!(igs, gs.0);
-    assert_eq!(igs, gw.0);
+    assert_eq!(igs, gs);
+    assert_eq!(igs, gw);
     assert_eq!(igs, igw);
     assert_eq!(igs, pch);
     Ok(())
@@ -849,14 +854,14 @@ fn convex_hull_5() -> Result<(), linestring::LinestringError> {
     let igs = convex_hull::indexed_graham_scan(&vertices, &indices)?;
     let igw = convex_hull::indexed_gift_wrap(&vertices, &indices)?;
     let pch = convex_hull::convex_hull_par(&vertices, &indices, 2)?;
-    if gw.0 != gs.0 {
+    if gw != gs {
         println!("input:{:?}", vertices);
         println!("gift wrapping:{:?}", gw);
         println!("graham's scan:{:?}", gs);
         panic!("test failed")
     }
-    assert_eq!(gs.0.len(), igs.len());
-    assert_eq!(gs.0.len(), igw.len());
+    assert_eq!(gs.len(), igs.len());
+    assert_eq!(gs.len(), igw.len());
     assert_eq!(igs, igw);
     assert_eq!(igs, pch);
 
@@ -897,9 +902,9 @@ fn convex_hull_6() -> Result<(), LinestringError> {
     let ghsw = convex_hull::graham_scan_wo_atan2(&points)?;
     let indices: Vec<usize> = (0..points.len()).collect();
     let igs = linestring_2d::convex_hull::indexed_graham_scan(&points, &indices)?;
-    println!("ghs.len():{:?}", ghs.0.len());
-    println!("gw.len():{:?}", gw.0.len());
-    println!("ghsw.len():{:?}", ghsw.0.len());
+    println!("ghs.len():{:?}", ghs.len());
+    println!("gw.len():{:?}", gw.len());
+    println!("ghsw.len():{:?}", ghsw.len());
     //println!("points:{:?}", points.iter().take(100).collect::<Vec<_>>());
 
     /*if false && ghs.0.len() != gw.0.len() {
@@ -922,7 +927,7 @@ fn convex_hull_6() -> Result<(), LinestringError> {
         fg.show();
     }*/
 
-    for chunks in ghs.0.windows(3) {
+    for chunks in ghs.windows(3) {
         // test f32
         let cross = convex_hull::cross_2d(chunks[0], chunks[1], chunks[2]);
         assert!(cross >= 0.0);
@@ -941,11 +946,11 @@ fn convex_hull_6() -> Result<(), LinestringError> {
         );
     }
 
-    assert_eq!(ghs.0.len(), gw.0.len());
-    assert_eq!(ghs.0.len(), igs.len());
-    assert_eq!(ghs.0.len(), ghsw.0.len());
-    assert_eq!(ghs.0, ghsw.0);
-    assert_eq!(ghs.0, gw.0);
+    assert_eq!(ghs.len(), gw.len());
+    assert_eq!(ghs.len(), igs.len());
+    assert_eq!(ghs.len(), ghsw.len());
+    assert_eq!(ghs, ghsw);
+    assert_eq!(ghs, gw);
     for p in points {
         assert!(convex_hull::contains_point_inclusive(&ghs, p));
         assert!(convex_hull::contains_point_inclusive(&gw, p));
@@ -970,7 +975,7 @@ fn distance_to_line_squared_01() {
 #[test]
 fn self_intersecting_1() {
     use vector_traits::glam::vec2;
-    let linestring = LineString2::with_vec(vec![
+    let linestring = vec![
         vec2(0.0, 0.0),
         vec2(1.0, 0.0),
         vec2(2.0, 0.0),
@@ -981,10 +986,10 @@ fn self_intersecting_1() {
         vec2(1.0, 10.0),
         vec2(0.0, 10.0),
         vec2(1.0, 0.5),
-    ]);
+    ];
     assert!(!linestring.is_self_intersecting().unwrap());
     // we must add 10 or more points, or the sweepline algorithm won't be run
-    let linestring = LineString2::with_vec(vec![
+    let linestring = vec![
         vec2(0.0, 0.0),
         vec2(1.0, 0.0),
         vec2(2.0, 0.0),
@@ -995,7 +1000,7 @@ fn self_intersecting_1() {
         vec2(1.0, 10.0),
         vec2(0.0, 10.0),
         vec2(1.0, -0.5),
-    ]);
+    ];
     let rv = linestring.is_self_intersecting();
     println!("{:?}", rv);
     assert!(rv.unwrap());
