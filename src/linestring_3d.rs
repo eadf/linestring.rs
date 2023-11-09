@@ -52,6 +52,9 @@ use vector_traits::{
     GenericScalar, GenericVector3, HasXY,
 };
 
+#[cfg(test)]
+mod tests;
+
 /// Placeholder for different 3d shapes
 pub enum Shape3d<T: GenericVector3> {
     Line(Line3<T>),
@@ -270,6 +273,29 @@ impl<T: GenericVector3> Ord for PriorityDistance<T> {
     }
 }
 
+pub struct WindowIterator<'a, T: GenericVector3>(std::slice::Windows<'a, T>);
+
+impl<'a, T: GenericVector3> WindowIterator<'a, T> {
+    #[allow(dead_code)]
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+pub struct ChunkIterator<'a, T: GenericVector3>(std::slice::ChunksExact<'a, T>);
+
+impl<'a, T: GenericVector3> ChunkIterator<'a, T> {
+    #[allow(dead_code)]
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    #[must_use]
+    pub fn remainder(&self) -> &'a [T] {
+        self.0.remainder()
+    }
+}
+
 impl<T: GenericVector3> PartialEq for PriorityDistance<T> {
     #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
@@ -338,24 +364,35 @@ impl<T: GenericVector3> LineString3<T> {
         self.points.is_empty()
     }
 
+    /// Returns `true` if the last and first points of the collection are exactly the same,
+    /// indicating a closed loop.
+    /// Note that an empty linestring is also "closed" since first() and last() object are the
+    /// same. I.e. None
+    #[allow(dead_code)]
+    fn is_connected(&self) -> bool {
+        self.is_empty() || self.points.first().unwrap() == self.points.last().unwrap()
+    }
+
     /// Returns the line string as a Vec of lines
     /// Will be deprecated at some time, use self.as_lines_iter().collect() instead
     #[deprecated(since="0.10.2", note="it will be removed")]
     #[inline(always)]
     pub fn as_lines(&self) -> Vec<Line3<T>> {
-        self.as_lines_iter().collect()
+        self.window_iter().collect()
     }
 
-    /// Returns the line string as a iterator of lines
-    /// TODO: Make window and chunk iterator types
+    //// Returns an iterator over consecutive pairs of points in the line string, forming continuous lines.
+    /// This iterator is created using `.windows(2)` on the underlying point collection.
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-    pub fn as_lines_iter(&self) -> Box<dyn Iterator<Item = Line3<T>> + '_> {
-            Box::new(
-                self.points
-                    .iter()
-                    .tuple_windows::<(_, _)>()
-                    .map(|(a, b)| Line3 { start: *a, end: *b }),
-            )
+    pub fn window_iter(&self) -> WindowIterator<'_, T> {
+        WindowIterator(self.points.windows(2))
+    }
+
+    /// Returns an iterator over pairs of points in the line string, forming disconnected edges.
+    /// This iterator is created using `.chunks_exact(2)` on the underlying point collection.
+    #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
+    pub fn chunk_iter(&self) -> ChunkIterator<'_, T> {
+        ChunkIterator(self.points.chunks_exact(2))
     }
 
     /// The iterator of as_lines_iter() does not implement ExactSizeIterator.

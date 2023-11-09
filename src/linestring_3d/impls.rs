@@ -41,7 +41,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::linestring_3d::{Aabb3, LineString3, LineStringSet3};
+use crate::linestring_3d::{Aabb3, ChunkIterator, Line3, LineString3, LineStringSet3, WindowIterator};
 use vector_traits::GenericVector3;
 
 impl<T: GenericVector3> Default for LineString3<T> {
@@ -64,5 +64,27 @@ impl<T: GenericVector3> Default for LineStringSet3<T> {
 impl<T: GenericVector3> Default for Aabb3<T> {
     fn default() -> Self {
         Self { min_max: None }
+    }
+}
+
+impl<'a, T: GenericVector3> Iterator for WindowIterator<'a, T> {
+    type Item = Line3<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|window| Line3 {
+            start: window[0],
+            end: window[1],
+        })
+    }
+}
+
+impl<'a, T: GenericVector3> Iterator for ChunkIterator<'a, T> {
+    type Item = Line3<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|window| Line3 {
+            start: window[0],
+            end: window[1],
+        })
     }
 }
