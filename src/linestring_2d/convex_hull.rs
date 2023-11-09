@@ -254,7 +254,7 @@ pub fn cross_2d<T: GenericVector2>(a: T, b: T, c: T) -> T::Scalar {
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
 /// for p in convex_hull.iter() {
-///   for l in convex_hull.line_iter() {
+///   for l in convex_hull.window_iter() {
 ///     // all segments should have the center point at the 'left' side
 ///     assert!(convex_hull::point_orientation(l.start, l.end, center).is_left());
 ///     assert!(convex_hull::is_point_left(l.start, l.end, center));
@@ -509,7 +509,7 @@ fn indexed_gift_wrap_no_loop<T: GenericVector2>(
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
 /// for p in convex_hull.iter() {
-///   for l in convex_hull.line_iter() {
+///   for l in convex_hull.window_iter() {
 ///     // all segments should have the center point at the 'left' side
 ///     assert!(convex_hull::is_point_left(l.start, l.end, center));
 ///     // all points on the hull should be 'left' of every segment in the hull
@@ -607,7 +607,7 @@ pub fn graham_scan_wo_atan2<T: GenericVector2>(
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
 /// for p in convex_hull.iter() {
-///   for l in convex_hull.line_iter() {
+///   for l in convex_hull.window_iter() {
 ///     // all segments should have the center point at the 'left' side
 ///     assert!(convex_hull::is_point_left(l.start, l.end, center));
 ///     // all points on the hull should be 'left' of every segment in the hull

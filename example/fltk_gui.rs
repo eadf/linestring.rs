@@ -207,7 +207,7 @@ fn main() {
                         set_draw_color(Color::Black);
                     }
 
-                    for a_line in l.line_iter() {
+                    for a_line in l.window_iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             false,
@@ -220,7 +220,7 @@ fn main() {
                     } else {
                         set_draw_color(Color::Green);
                     }
-                    for a_line in simplified_line.line_iter() {
+                    for a_line in simplified_line.window_iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             true,
@@ -252,7 +252,7 @@ fn main() {
                         set_draw_color(Color::Black);
                     }
 
-                    for a_line in l.line_iter() {
+                    for a_line in l.window_iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             false,
@@ -265,7 +265,7 @@ fn main() {
                     } else {
                         set_draw_color(Color::Blue);
                     }
-                    for a_line in simplified_line.line_iter() {
+                    for a_line in simplified_line.window_iter() {
                         make_line(
                             [a_line.start.x, a_line.start.y, a_line.end.x, a_line.end.y],
                             true,

@@ -62,6 +62,8 @@ pub mod impls;
 pub mod indexed_intersection;
 /// Module containing the intersection calculations
 pub mod intersection;
+#[cfg(test)]
+mod tests;
 
 /// A 2D polyline representation with rich geometric operations.
 ///
@@ -119,9 +121,15 @@ pub trait LineString2<T: GenericVector2> {
     /// float equality is determined by ulps_eq!()
     fn approx_eq(&self, other: &Self) -> bool;
 
-    /// Returns the line string as a iterator of Line2
+    /// Returns an iterator over consecutive pairs of points in the line string, forming continuous lines.
+    /// This iterator is created using `.windows(2)` on the underlying point collection.
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-    fn line_iter(&self) -> LineIterator<'_, T>;
+    fn window_iter(&self) -> WindowIterator<'_, T>;
+
+    /// Returns an iterator over pairs of points in the line string, forming disconnected edges.
+    /// This iterator is created using `.chunks_exact(2)` on the underlying point collection.
+    #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
+    fn chunk_iter(&self) -> ChunkIterator<'_, T>;
 
     /// Copy this Linestring2 into a Linestring3, populating the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
@@ -636,11 +644,25 @@ struct PriorityDistance<T: GenericVector2> {
     index: usize,
 }
 
-pub struct LineIterator<'a, T: GenericVector2>(std::slice::Windows<'a, T>);
+pub struct WindowIterator<'a, T: GenericVector2>(std::slice::Windows<'a, T>);
 
-impl<'a, T: GenericVector2> LineIterator<'a, T> {
+impl<'a, T: GenericVector2> WindowIterator<'a, T> {
     fn len(&self) -> usize {
         self.0.len()
+    }
+}
+
+pub struct ChunkIterator<'a, T: GenericVector2>(std::slice::ChunksExact<'a, T>);
+
+impl<'a, T: GenericVector2> ChunkIterator<'a, T> {
+    #[allow(dead_code)]
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    #[must_use]
+    pub fn remainder(&self) -> &'a [T] {
+        self.0.remainder()
     }
 }
 
@@ -671,10 +693,10 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
             Ok(false)
         } else if self.len() < 10 {
             //let lines = self.as_lines_iter();
-            let iter = self.line_iter();
+            let iter = self.window_iter();
             let iter_len = iter.len();
             for l0 in iter.enumerate().take(iter_len - 1) {
-                for l1 in self.line_iter().enumerate().skip(l0.0 + 1) {
+                for l1 in self.window_iter().enumerate().skip(l0.0 + 1) {
                     if l0.0 == l1.0 {
                         continue;
                     } else if l0.0 + 1 == l1.0 {
@@ -717,7 +739,7 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
             let result = intersection::IntersectionData::default()
                 .with_ignore_end_point_intersections(true)?
                 .with_stop_at_first_intersection(true)?
-                .with_lines(self.line_iter())?
+                .with_lines(self.window_iter())?
                 .compute()?;
             //print!("Lines rv={} [", result.is_empty());
             //for p in self.as_lines().iter() {
@@ -732,7 +754,7 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
 
     /// This intersection method returns the first intersection it finds.
     fn intersection(&self, other: &Line2<T>) -> Option<Intersection<T>> {
-        for l in self.line_iter() {
+        for l in self.window_iter() {
             let intersection = l.intersection_point(*other);
             if intersection.is_some() {
                 return intersection;
@@ -746,7 +768,7 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
     fn find_two_intersections(&self, other: &Line2<T>) -> (Option<T>, Option<T>) {
         let mut intersections: Vec<T> = Vec::new();
 
-        for edge in self.line_iter() {
+        for edge in self.window_iter() {
             let intersection = edge.intersection_point(*other);
             //println!(
             //    "find_two_intersections found: {:?} for {:?} vs {:?}",
@@ -785,7 +807,7 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
     fn find_all_intersections(&self, other: &Line2<T>) -> Vec<Intersection<T>> {
         let mut intersections: Vec<Intersection<T>> = Vec::new();
 
-        for edge in self.line_iter() {
+        for edge in self.window_iter() {
             if let Some(intersection) = edge.intersection_point(*other) {
                 intersections.push(intersection);
             }
@@ -854,13 +876,18 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
         true
     }
 
-    /// Returns the line string as a iterator of Line2
+    /// Returns an iterator over consecutive pairs of points in the line string, forming continuous lines.
+    /// This iterator is created using `.windows(2)` on the underlying point collection.
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-    fn line_iter(&self) -> LineIterator<'_, T> {
-        match self.len() {
-            0 | 1 => LineIterator([].windows(2)), // Empty iterator
-            _ => LineIterator(self.windows(2)),
-        }
+    fn window_iter(&self) -> WindowIterator<'_, T> {
+        WindowIterator(self.windows(2))
+    }
+
+    /// Returns an iterator over pairs of points in the line string, forming disconnected edges.
+    /// This iterator is created using `.chunks_exact(2)` on the underlying point collection.
+    #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
+    fn chunk_iter(&self) -> ChunkIterator<'_, T> {
+        ChunkIterator(self.chunks_exact(2))
     }
 
     /// Copy this Linestring2 into a Linestring3, populating the axes defined by 'plane'

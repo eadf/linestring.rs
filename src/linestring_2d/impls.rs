@@ -42,14 +42,14 @@ limitations under the License.
 */
 
 use super::{
-    Aabb2, Intersection, Line2, LineIterator, LineStringSet2, PriorityDistance, SimpleAffine,
+    Aabb2, ChunkIterator, Intersection, Line2, LineStringSet2, PriorityDistance, SimpleAffine,
+    WindowIterator,
 };
 use std::{
     cmp::Ordering,
     fmt,
     fmt::{Debug, Display},
 };
-//use std::marker::PhantomData;
 use vector_traits::{approx::*, num_traits::real::Real, GenericScalar, GenericVector2};
 
 fn format_float<G>(value: G) -> String
@@ -167,7 +167,7 @@ impl<T: GenericVector2> Default for SimpleAffine<T> {
     }
 }
 
-impl<'a, T: GenericVector2> Iterator for LineIterator<'a, T> {
+impl<'a, T: GenericVector2> Iterator for WindowIterator<'a, T> {
     type Item = Line2<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -178,7 +178,18 @@ impl<'a, T: GenericVector2> Iterator for LineIterator<'a, T> {
     }
 }
 
-impl<T: GenericVector2> ExactSizeIterator for LineIterator<'_, T> {
+impl<'a, T: GenericVector2> Iterator for ChunkIterator<'a, T> {
+    type Item = Line2<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|window| Line2 {
+            start: window[0],
+            end: window[1],
+        })
+    }
+}
+
+impl<T: GenericVector2> ExactSizeIterator for WindowIterator<'_, T> {
     fn len(&self) -> usize {
         self.len()
     }
