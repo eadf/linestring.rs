@@ -51,7 +51,7 @@ use itertools::Itertools;
 use std::{collections, fmt::Debug};
 use vector_traits::{
     approx::*,
-    num_traits::{real::Real, One, Zero},
+    num_traits::{Float, One, Zero},
     GenericScalar, GenericVector2, HasXY, HasXYZ,
 };
 
@@ -633,10 +633,10 @@ impl<T: GenericVector2> LineString2<T> {
             Ok(false)
         } else if self.0.len() < 10 {
             //let lines = self.as_lines_iter();
-            let iter = self.iter();
+            let iter = self.line_iter();
             let iter_len = iter.len();
             for l0 in iter.enumerate().take(iter_len - 1) {
-                for l1 in self.iter().enumerate().skip(l0.0 + 1) {
+                for l1 in self.line_iter().enumerate().skip(l0.0 + 1) {
                     if l0.0 == l1.0 {
                         continue;
                     } else if l0.0 + 1 == l1.0 {
@@ -679,7 +679,7 @@ impl<T: GenericVector2> LineString2<T> {
             let result = intersection::IntersectionData::default()
                 .with_ignore_end_point_intersections(true)?
                 .with_stop_at_first_intersection(true)?
-                .with_lines(self.iter())?
+                .with_lines(self.line_iter())?
                 .compute()?;
             //print!("Lines rv={} [", result.is_empty());
             //for p in self.as_lines().iter() {
@@ -694,7 +694,7 @@ impl<T: GenericVector2> LineString2<T> {
 
     /// This intersection method returns the first intersection it finds.
     pub fn intersection(&self, other: &Line2<T>) -> Option<Intersection<T>> {
-        for l in self.iter() {
+        for l in self.line_iter() {
             let intersection = l.intersection_point(*other);
             if intersection.is_some() {
                 return intersection;
@@ -708,7 +708,7 @@ impl<T: GenericVector2> LineString2<T> {
     pub fn find_two_intersections(&self, other: &Line2<T>) -> (Option<T>, Option<T>) {
         let mut intersections: Vec<T> = Vec::new();
 
-        for edge in self.iter() {
+        for edge in self.line_iter() {
             let intersection = edge.intersection_point(*other);
             //println!(
             //    "find_two_intersections found: {:?} for {:?} vs {:?}",
@@ -747,7 +747,7 @@ impl<T: GenericVector2> LineString2<T> {
     pub fn find_all_intersections(&self, other: &Line2<T>) -> Vec<Intersection<T>> {
         let mut intersections: Vec<Intersection<T>> = Vec::new();
 
-        for edge in self.iter() {
+        for edge in self.line_iter() {
             if let Some(intersection) = edge.intersection_point(*other) {
                 intersections.push(intersection);
             }
@@ -834,7 +834,7 @@ impl<T: GenericVector2> LineString2<T> {
 
     /// Returns the line string as a iterator of Line2
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-    pub fn iter(&self) -> LineIterator<'_, T> {
+    pub fn line_iter(&self) -> LineIterator<'_, T> {
         match self.0.len() {
             0 | 1 => LineIterator([].windows(2)), // Empty iterator
             _ => LineIterator(self.0.windows(2)),
@@ -1567,7 +1567,7 @@ pub fn distance_to_line_squared<T: GenericVector2>(l0: T, l1: T, p: T) -> T::Sca
     }
 }
 
-/// Same as distance_to_line_squared<T> but it can be called when a-b might be 0.
+/// Same as `distance_to_line_squared<T>` but it can be called when a-b might be 0.
 /// It's a little slower because it does the a==b test
 #[inline(always)]
 pub fn distance_to_line_squared_safe<T: GenericVector2>(l0: T, l1: T, p: T) -> T::Scalar {

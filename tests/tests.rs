@@ -94,7 +94,7 @@ fn linestring2_1() {
 
     let linestring: LineString2<Vec2> = points.into_iter().collect();
     assert_eq!(linestring.point_count(), points_len);
-    assert_eq!(linestring.iter().len(), points_len - 1);
+    assert_eq!(linestring.line_iter().len(), points_len - 1);
 }
 
 #[test]
@@ -146,7 +146,7 @@ fn aabb_1() {
     let line3 = LineString2::from(aabb1);
     assert_eq!(line3.points().len(), 5);
     assert_eq!(line3.0[0], line3.0[4]);
-    for line in line3.iter() {
+    for line in line3.line_iter() {
         assert!(line.abs_diff_eq(&line, f32::EPSILON));
         assert!(line.ulps_eq(&line, f32::EPSILON, f32::default_max_ulps()));
         assert_eq!(line, line);
@@ -357,17 +357,17 @@ fn simplify_1() {
     let linestring: LineString2<Vec2> = vec![[10f32, 10.], [13.0, 11.0], [20.0, 10.0]]
         .into_iter()
         .collect();
-    assert_eq!(1, linestring.simplify_rdp(10.0).iter().len());
+    assert_eq!(1, linestring.simplify_rdp(10.0).line_iter().len());
     println!("{:?}", linestring.simplify_rdp(0.1));
-    assert_eq!(2, linestring.simplify_rdp(0.1).iter().len());
+    assert_eq!(2, linestring.simplify_rdp(0.1).line_iter().len());
     let linestring: LineString2<Vec2> = vec![[10f32, 10.], [20.0, 10.0]].into_iter().collect();
-    assert_eq!(1, linestring.simplify_rdp(0.1).iter().len());
+    assert_eq!(1, linestring.simplify_rdp(0.1).line_iter().len());
     let linestring: LineString2<Vec2> =
         vec![[10f32, 10.], [15.0, 12.0], [17.0, 13.0], [20.0, 10.0]]
             .into_iter()
             .collect();
     //
-    assert_eq!(2, linestring.simplify_rdp(1.1).iter().len());
+    assert_eq!(2, linestring.simplify_rdp(1.1).line_iter().len());
 
     let line = vec![
         [77f32, 613.],
@@ -383,7 +383,7 @@ fn simplify_1() {
     let result = line.simplify_rdp(1.0);
     println!("-----Result :{:?}", result);
     assert_eq!(7, result.point_count());
-    assert_eq!(6, result.iter().len());
+    assert_eq!(6, result.line_iter().len());
 }
 
 #[test]
@@ -399,7 +399,7 @@ fn simplify_2() {
     ];
     let line: LineString2<Vec2> = line.into_iter().collect();
     //line.connected = false;
-    assert_eq!(6, line.simplify_rdp(1.0).iter().len());
+    assert_eq!(6, line.simplify_rdp(1.0).line_iter().len());
 }
 
 #[test]
@@ -724,7 +724,7 @@ fn convex_hull_2() -> Result<(), LinestringError> {
     let igw = convex_hull::indexed_gift_wrap(&points, &indices)?;
     let center = Vec2::new(2000.0, 2000.0);
 
-    for l in gs.iter() {
+    for l in gs.line_iter() {
         assert!(convex_hull::is_point_left(l.start, l.end, center));
     }
     assert_eq!(igs.len(), gs.0.len());

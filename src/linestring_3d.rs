@@ -864,7 +864,7 @@ pub fn distance_to_line_squared<T: GenericVector3>(l0: T, l1: T, p: T) -> T::Sca
             + l0_sub_l1.z() * l0_sub_l1.z())
 }
 
-/// Same as distance_to_line_squared<T> but it can be called when a-b might be 0.
+/// Same as `distance_to_line_squared<T>` but it can be called when a-b might be 0.
 /// It's a little slower because it does the a==b test
 #[inline(always)]
 pub fn distance_to_line_squared_safe<T: GenericVector3>(l0: T, l1: T, p: T) -> T::Scalar {

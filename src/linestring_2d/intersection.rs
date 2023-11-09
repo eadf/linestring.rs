@@ -44,7 +44,7 @@ limitations under the License.
 use crate::{linestring_2d, LinestringError};
 use ahash::AHashSet;
 use std::{cmp::Ordering, collections::BTreeMap, convert::identity, fmt, fmt::Debug};
-use vector_traits::{approx::*, num_traits::real::Real, GenericScalar, GenericVector2};
+use vector_traits::{approx::*, num_traits::float::FloatCore, GenericScalar, GenericVector2};
 
 #[derive(Clone, Copy)]
 pub struct SiteEventKey<T: GenericVector2> {

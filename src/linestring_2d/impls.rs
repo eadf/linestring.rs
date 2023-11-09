@@ -201,7 +201,7 @@ impl<'a, T: GenericVector2> IntoIterator for &'a LineString2<T> {
     type IntoIter = LineIterator<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.iter()
+        self.line_iter()
     }
 }
 

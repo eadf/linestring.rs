@@ -112,7 +112,7 @@ fn find_lowest_x<T: GenericVector2>(vertices: &[T]) -> Result<(usize, T), Linest
 }
 
 /// finds the point with lowest x, if x is equal -> find the point with lowest y value
-/// returns the index out of `indices` that, in turn indicate the lowest value vertex.
+/// returns the index out of `indices` that, in turn, indicate the lowest value vertex.
 /// i.e. `vertices[indices[lowest_index]]` -> lowest vertex of `vertices`
 fn indexed_find_lowest_x<T: GenericVector2>(
     vertices: &[T],
@@ -124,19 +124,19 @@ fn indexed_find_lowest_x<T: GenericVector2>(
         ));
     }
 
-    let mut min_idx = 0;
-    let mut min_val = vertices[indices[0]];
+    let mut min_idx_idx = 0;
+    let mut min_val = vertices[indices[min_idx_idx]];
 
-    for (idx, _) in indices.iter().enumerate().skip(1) {
-        let point = vertices[idx];
+    for (index_index, index) in indices.iter().enumerate().skip(1) {
+        let point = vertices[*index];
         match point.x().partial_cmp(&min_val.x()) {
             Some(Ordering::Less) => {
-                min_idx = idx;
+                min_idx_idx = index_index;
                 min_val = point;
             }
             Some(Ordering::Equal) => {
                 if point.y() < min_val.y() {
-                    min_idx = idx;
+                    min_idx_idx = index_index;
                     min_val = point;
                 }
             }
@@ -156,7 +156,7 @@ fn indexed_find_lowest_x<T: GenericVector2>(
         }
     }
 
-    Ok((min_idx, min_val))
+    Ok((min_idx_idx, min_val))
 }
 
 /// Returns an indication if the point 'c' lies to the 'left' of the line a->b
@@ -255,7 +255,7 @@ pub fn cross_2d<T: GenericVector2>(a: T, b: T, c: T) -> T::Scalar {
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
 /// for p in convex_hull.points().iter() {
-///   for l in convex_hull.iter() {
+///   for l in convex_hull.line_iter() {
 ///     // all segments should have the center point at the 'left' side
 ///     assert!(convex_hull::point_orientation(l.start, l.end, center).is_left());
 ///     assert!(convex_hull::is_point_left(l.start, l.end, center));
@@ -350,8 +350,24 @@ pub fn gift_wrap<T: GenericVector2>(
     Ok(LineString2::with_vec(hull))
 }
 
-/// finds the convex hull using Gift wrapping algorithm
-/// <https://en.wikipedia.org/wiki/Gift_wrapping_algorithm>
+/// finds the convex hull using the [Gift wrapping algorithm](https://en.wikipedia.org/wiki/Gift_wrapping_algorithm)
+///
+/// # Arguments
+///
+/// * `vertices` - The input vertices.
+/// * `indices` - The selected indices to the vertices. Not all vertices need to be mentioned here;
+/// only those in the indices list are used by the function.
+///
+/// # Returns
+///
+/// A list of indices pointing back into the vertices list, representing the convex hull.
+/// The list will be closed, i.e the first and last element will be the same.
+/// # Errors
+///
+/// Returns an error if any errors occur during computation.E.g. if any vertex component is NaN or infinite
+///
+/// # Example
+///
 ///```
 /// # use linestring::linestring_2d;
 /// # use linestring::linestring_2d::convex_hull;
@@ -394,11 +410,12 @@ pub fn indexed_gift_wrap<T: GenericVector2>(
     Ok(hull)
 }
 
+/// does the same as indexed_gift_wrap() but does not close the loop
 fn indexed_gift_wrap_no_loop<T: GenericVector2>(
     vertices: &[T],
     mut indices: &[usize],
 ) -> Result<Vec<usize>, LinestringError> {
-    if vertices.len() <= 1 {
+    if indices.len() <= 1 {
         return Ok(indices.to_vec());
     }
     if indices.first().unwrap() == indices.last().unwrap() {
@@ -421,7 +438,7 @@ fn indexed_gift_wrap_no_loop<T: GenericVector2>(
             Ok(vec![indices[0], indices[2], indices[1]])
         };
     }
-    let starting_index = indexed_find_lowest_x(vertices, &indices)?.0;
+    let starting_index = indexed_find_lowest_x(vertices, indices)?.0;
 
     let mut hull = Vec::with_capacity(indices.len() / 4);
     // To track visited points
@@ -500,7 +517,7 @@ fn indexed_gift_wrap_no_loop<T: GenericVector2>(
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
 /// for p in convex_hull.points().iter() {
-///   for l in convex_hull.iter() {
+///   for l in convex_hull.line_iter() {
 ///     // all segments should have the center point at the 'left' side
 ///     assert!(convex_hull::is_point_left(l.start, l.end, center));
 ///     // all points on the hull should be 'left' of every segment in the hull
@@ -603,7 +620,7 @@ pub fn graham_scan_wo_atan2<T: GenericVector2>(
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
 /// for p in convex_hull.points().iter() {
-///   for l in convex_hull.iter() {
+///   for l in convex_hull.line_iter() {
 ///     // all segments should have the center point at the 'left' side
 ///     assert!(convex_hull::is_point_left(l.start, l.end, center));
 ///     // all points on the hull should be 'left' of every segment in the hull
@@ -687,30 +704,45 @@ pub fn graham_scan<T: GenericVector2>(
     Ok(LineString2::with_vec(hull))
 }
 
-/// finds the convex hull using Grahams scan
-/// <https://en.wikipedia.org/wiki/Graham_scan>
+/// Finds the convex hull using [Graham's Scan](https://en.wikipedia.org/wiki/Graham_scan)
+///
+/// # Arguments
+///
+/// * `vertices` - The input vertices.
+/// * `indices` - The selected indices to the vertices. Not all vertices need to be mentioned here;
+/// only those in the indices list are used by the function.
+///
+/// # Returns
+///
+/// A list of indices pointing back into the vertices list, representing the convex hull.
+/// The list will be closed, i.e the first and last element will be the same.
+/// # Errors
+///
+/// Returns an error if any errors occur during computation.E.g. if any vertex component is NaN or infinite
+///
+/// # Example
+///
 ///```
-/// # use linestring::linestring_2d::{LineString2,convex_hull};
+/// # use linestring::linestring_2d::convex_hull;
 /// # use vector_traits::glam::Vec2;
 /// # use rand::{Rng, SeedableRng, rngs::StdRng};
 /// let mut rng:StdRng = SeedableRng::from_seed([42; 32]);
-/// let mut points = Vec::<Vec2>::new();
+/// let mut vertices = Vec::<Vec2>::new();
 /// for _i in 0..1023 {
-///   let p: [f32; 2] = [rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0)];
-///   points.push(p.into());
+///   let p: [f32; 2] = [rng.gen_range(0.0..4000.0), rng.gen_range(0.0..4000.0)];
+///   vertices.push(p.into());
 /// }
 ///
-/// let a = LineString2::with_vec(points);
-/// let indices:Vec<usize> = (0..a.0.len()).collect();
-/// let convex_hull = convex_hull::indexed_graham_scan(&a.points(), &indices)?;
+/// let indices:Vec<usize> = (0..vertices.len()).collect();
+/// let convex_hull = convex_hull::indexed_graham_scan(&vertices, &indices)?;
 /// let center = Vec2{x:2000_f32, y:2000.0};
 ///
-/// for point in convex_hull.iter() {
-///   for edge in convex_hull.chunks(2) {
+/// for i in convex_hull.iter() {
+///   for edge in convex_hull.chunks_exact(2) {
 ///     // all segments should have the center point at the 'left' side
-///     assert!(convex_hull::is_point_left(a.0[edge[0]], a.0[edge[1]], center));
+///     assert!(convex_hull::is_point_left(vertices[edge[0]], vertices[edge[1]], center));
 ///     // all points on the hull should be 'left' of every segment in the hull
-///     assert!(convex_hull::is_point_left_allow_collinear(a.0[edge[0]], a.0[edge[1]], a.0[*point]));
+///     assert!(convex_hull::is_point_left_allow_collinear(vertices[edge[0]], vertices[edge[1]], vertices[*i]));
 ///   }
 /// }
 /// # Ok::<(), linestring::LinestringError>(())
@@ -720,7 +752,7 @@ pub fn indexed_graham_scan<T: GenericVector2>(
     vertices: &[T],
     indices: &[usize],
 ) -> Result<Vec<usize>, LinestringError> {
-    let mut hull = indexed_graham_scan_no_loop(vertices, indices)?;
+    let mut hull = indexed_graham_scan_no_loop(vertices, indices, None)?;
     // complete the loop, `hull` now represents a closed loop of points.
     // Each edge can be iterated over by `rv.points.iter().window(2)`
     if hull.len() > 1 {
@@ -729,13 +761,26 @@ pub fn indexed_graham_scan<T: GenericVector2>(
     Ok(hull)
 }
 
+/*/// does the same as indexed_graham_scan() but does not close the loop
+pub fn indexed_graham_scan_no_loop<T: GenericVector2>(
+    vertices: &[T],
+    indices: &[usize],
+    start_index: Option<usize>
+) -> Result<Vec<usize>, LinestringError> {
+    let rv = indexed_graham_scan_no_loop_real(vertices, indices, start_index)?;
+    println!("indexed_graham_scan_no_loop: indices:{:?} start_index:{:?}, generated:{:?}", indices, start_index, rv);
+    Ok(rv)
+}*/
+
+/// does the same as indexed_graham_scan() but does not close the loop
 fn indexed_graham_scan_no_loop<T: GenericVector2>(
     vertices: &[T],
     mut indices: &[usize],
+    start_index: Option<usize>,
 ) -> Result<Vec<usize>, LinestringError> {
     //println!("indexed_graham_scan: input {:?}", indices);
 
-    if vertices.len() <= 1 {
+    if indices.len() <= 1 {
         return Ok(indices.to_vec());
     }
     if indices.first().unwrap() == indices.last().unwrap() {
@@ -758,17 +803,20 @@ fn indexed_graham_scan_no_loop<T: GenericVector2>(
             Ok(vec![indices[0], indices[2], indices[1]])
         };
     }
-
-    let (starting_index, starting_point) = indexed_find_lowest_x(vertices, &indices)?;
-    let starting_index = indices[starting_index];
+    let (start_index, start_point) = if let Some(start_index) = start_index {
+        (start_index, vertices[start_index])
+    } else {
+        let (start_index_index, start_point) = indexed_find_lowest_x(vertices, indices)?;
+        (indices[start_index_index], start_point)
+    };
     // sort all indices with regard to the angle to starting_point
     let sorted_indices: Vec<usize> = indices
         .iter()
         .map(|i| {
             let p = vertices[*i];
-            let diff = p - starting_point;
+            let diff = p - start_point;
             let angle = diff.y().atan2(diff.x());
-            let distance = starting_point.distance_sq(p);
+            let distance = start_point.distance_sq(p);
             (*i, angle, distance)
         })
         .sorted_unstable_by(|a, b| {
@@ -780,10 +828,10 @@ fn indexed_graham_scan_no_loop<T: GenericVector2>(
         .collect();
 
     let mut hull = Vec::<usize>::with_capacity(vertices.len());
-    hull.push(starting_index);
+    hull.push(start_index);
 
     for i in sorted_indices.iter() {
-        if *i == starting_index {
+        if *i == start_index {
             continue;
         }
         let p = vertices[*i];
@@ -803,27 +851,30 @@ fn indexed_graham_scan_no_loop<T: GenericVector2>(
         hull.push(*i);
     }
 
-    /*println!("indexed_graham_scan:");
-        println!("starting_index {:?}", starting_index);
-        println!("input {:?}", vertices);
-        println!("input indices {:?}", indices);
-        println!("result {:?}", hull);
-    */
     Ok(hull)
 }
 
-/// Combines two convex hulls together using `indexed_gift_wrap()` (for the moment)
-fn indexed_convex_hull_combiner<T: GenericVector2>(
+/*
+fn combine_indexed_convex_hull<T: GenericVector2>(
+    vertices: &[T],
+    indices_a: Result<Vec<usize>, LinestringError>,
+    indices_b: Result<Vec<usize>, LinestringError>,
+) -> Result<Vec<usize>, LinestringError> {
+    //let indices_a_txt = format!("{:?}", indices_a);
+    //let indices_b_txt = format!("{:?}", indices_b);
+    let rv = combine_indexed_convex_hull_lazy(vertices, indices_a, indices_b)?;
+    //println!("indexed_convex_hull_combiner: indices_a:{:?}, indices_b:{:?}, generated:{:?}", indices_a_txt, indices_b_txt, rv);
+    Ok(rv)
+}*/
+
+/// Combines two convex hulls together using `indexed_gift_wrap_no_loop()` (for the moment)
+fn combine_indexed_convex_hull<T: GenericVector2>(
     vertices: &[T],
     indices_a: Result<Vec<usize>, LinestringError>,
     indices_b: Result<Vec<usize>, LinestringError>,
 ) -> Result<Vec<usize>, LinestringError> {
     let mut indices_a = indices_a?;
     let indices_b = indices_b?;
-    /*println!(
-        "indexed_convex_hull_combiner: indices_a {:?} indices_b:{:?}",
-        indices_a, indices_b
-    );*/
 
     if indices_a.is_empty() {
         return Ok(indices_b);
@@ -831,24 +882,220 @@ fn indexed_convex_hull_combiner<T: GenericVector2>(
     if indices_b.is_empty() {
         return Ok(indices_a);
     }
-    /*
-    if indices_a.last().unwrap() == indices_a.first().unwrap() {
-       let _ = indices_a.pop();
+
+    if indices_a.first().unwrap() == indices_b.first().unwrap() {
+        indices_a.extend(indices_b.iter().skip(1));
+    } else {
+        indices_a.extend(indices_b.iter());
     }
-    if indices_b.last().unwrap() == indices_b.first().unwrap() {
-        let _ = indices_b.pop();
-    }*/
-    indices_a.extend(indices_b.iter());
-    //println!("indexed_convex_hull_combiner: combined {:?}", indices_a);
-    indexed_gift_wrap_no_loop(vertices, &indices_a)
+    indexed_graham_scan_no_loop(vertices, &indices_a, None)
 }
 
+#[allow(dead_code)]
+#[derive(Clone)]
+struct VertexIndex {
+    // was from indices_a if true, else indices_b
+    from_a: bool,
+    // the 'real' vertices index
+    index: usize,
+    // the index into the indices_a or indices_a
+    index_index: usize,
+}
+
+/// Combines two convex hulls together using `indexed_gift_wrap_no_loop()` (for the moment)
+#[allow(dead_code)]
+/// Combines two convex hulls together using `indexed_gift_wrap_no_loop()` (for the moment)
+pub fn combine_indexed_convex_hull_not_working<T: GenericVector2>(
+    vertices: &[T],
+    indices_a: Result<Vec<usize>, LinestringError>,
+    indices_b: Result<Vec<usize>, LinestringError>,
+) -> Result<Vec<usize>, LinestringError> {
+    let indices_a = indices_a?;
+    let indices_b = indices_b?;
+
+    if indices_a.is_empty() {
+        return Ok(indices_b);
+    }
+    if indices_b.is_empty() {
+        return Ok(indices_a);
+    }
+
+    let starting_index = VertexIndex {
+        from_a: true,
+        index: indices_a[0],
+        index_index: 0,
+    };
+
+    let mut hull = Vec::with_capacity((indices_a.len() + indices_b.len()) / 4);
+    // To track visited points, it contain index, not index_index
+    let mut visited = AHashSet::with_capacity(indices_a.len() + indices_b.len());
+    let mut point_on_hull = starting_index.clone();
+    //println!("starting point {:?}:{}", input_points[starting_point], starting_point);
+    loop {
+        hull.push(point_on_hull.index);
+        if point_on_hull.index != starting_index.index {
+            // don't mark the starting_point or we won't know where to stop
+            let _ = visited.insert(point_on_hull.index);
+        }
+        let mut end_point = {
+            if point_on_hull.from_a {
+                let index_index = (point_on_hull.index_index + 1) % indices_a.len();
+                VertexIndex {
+                    from_a: true,
+                    index: indices_a[index_index],
+                    index_index,
+                }
+            } else {
+                let index_index = (point_on_hull.index_index + 1) % indices_a.len();
+                VertexIndex {
+                    from_a: false,
+                    index: indices_b[index_index],
+                    index_index,
+                }
+            }
+        };
+        if point_on_hull.from_a {
+            for (jj, j) in indices_b.iter().enumerate() {
+                let j = *j;
+
+                if j == point_on_hull.index || j == end_point.index || visited.contains(&j) {
+                    continue;
+                }
+
+                let orient = point_orientation(
+                    vertices[point_on_hull.index],
+                    vertices[end_point.index],
+                    vertices[j],
+                );
+                if orient == Orientation::Right {
+                    // replace end_point with the candidate if candidate is to the right,
+                    end_point.index_index = jj;
+                    end_point.index = j;
+                    end_point.from_a = false;
+                } else if orient == Orientation::Collinear {
+                    let distance_sq_candidate =
+                        vertices[point_on_hull.index].distance_sq(vertices[j]);
+                    let distance_sq_end_point =
+                        vertices[point_on_hull.index].distance_sq(vertices[end_point.index]);
+
+                    if distance_sq_candidate > distance_sq_end_point {
+                        // if point_on_hull->end_point && point_on_hull->candidate are collinear and
+                        // the distance to the collinear is greater we also update end_point
+                        end_point.index_index = jj;
+                        end_point.index = j;
+                        end_point.from_a = false;
+                    } else if j != starting_index.index {
+                        // This is a collinear point that is closer to the current point, mark it as visited
+                        let _ = visited.insert(j);
+                    }
+                }
+            }
+        } else {
+            for (jj, j) in indices_a.iter().enumerate() {
+                let j = *j;
+
+                if j == point_on_hull.index || j == end_point.index || visited.contains(&j) {
+                    continue;
+                }
+
+                let orient = point_orientation(
+                    vertices[point_on_hull.index],
+                    vertices[end_point.index],
+                    vertices[j],
+                );
+                if orient == Orientation::Right {
+                    // replace end_point with the candidate if candidate is to the right,
+                    end_point.index_index = jj;
+                    end_point.index = j;
+                    end_point.from_a = true;
+                } else if orient == Orientation::Collinear {
+                    let distance_sq_candidate =
+                        vertices[point_on_hull.index].distance_sq(vertices[j]);
+                    let distance_sq_end_point =
+                        vertices[point_on_hull.index].distance_sq(vertices[end_point.index]);
+
+                    if distance_sq_candidate > distance_sq_end_point {
+                        // if point_on_hull->end_point && point_on_hull->candidate are collinear and
+                        // the distance to the collinear is greater we also update end_point
+                        end_point.index_index = jj;
+                        end_point.index = j;
+                        end_point.from_a = true;
+                    } else if j != starting_index.index {
+                        // This is a collinear point that is closer to the current point, mark it as visited
+                        let _ = visited.insert(j);
+                    }
+                }
+            }
+        }
+
+        point_on_hull = end_point.clone();
+        if end_point.index == starting_index.index {
+            break;
+        }
+    }
+    /*println!("indexed_gift_wrap:");
+    println!("starting_index {:?}", input_indices[starting_index]);
+    println!("input {:?}", input_vertices);
+    println!("input indices {:?}", input_indices);
+    println!("result {:?}", hull);*/
+
+    Ok(hull)
+}
+
+/// Finds the convex hull using a parallel version of Graham's scan, similar to Chan's
+/// algorithm.
+/// [Graham's Scan](https://en.wikipedia.org/wiki/Graham_scan)
+/// [Chan's Algorithm](https://en.wikipedia.org/wiki/Chan%27s_algorithm)
+///
+/// # Arguments
+///
+/// * `vertices` - The input vertices.
+/// * `indices` - The selected indices to the vertices. Not all vertices need to be mentioned here;
+/// only those in the indices list are used by the function.
+/// * `per_thread_chunk_size` - The size of the chunk that each thread should work on.
+///
+/// # Returns
+///
+/// A list of indices pointing back into the vertices list, representing the convex hull.
+/// The list will be closed, i.e the first and last element will be the same.
+/// # Errors
+///
+/// Returns an error if any errors occur during computation.E.g. if any vertex component is NaN or infinite
+///
+/// # Example
+///
+///```
+/// # use linestring::linestring_2d::{LineString2,convex_hull};
+/// # use vector_traits::glam::Vec2;
+/// # use rand::{Rng, SeedableRng, rngs::StdRng};
+/// let mut rng:StdRng = SeedableRng::from_seed([42; 32]);
+/// let mut points = Vec::<Vec2>::new();
+/// for _i in 0..1023 {
+///   let p: [f32; 2] = [rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0)];
+///   points.push(p.into());
+/// }
+///
+/// let a = LineString2::with_vec(points);
+/// let indices:Vec<usize> = (0..a.0.len()).collect();
+/// let convex_hull = convex_hull::convex_hull_par(&a.points(), &indices,250)?;
+/// let center = Vec2{x:2000_f32, y:2000.0};
+///
+/// for point in convex_hull.iter() {
+///   for edge in convex_hull.chunks_exact(2) {
+///     // all segments should have the center point at the 'left' side
+///     assert!(convex_hull::is_point_left(a.0[edge[0]], a.0[edge[1]], center));
+///     // all points on the hull should be 'left' of every segment in the hull
+///     assert!(convex_hull::is_point_left_allow_collinear(a.0[edge[0]], a.0[edge[1]], a.0[*point]));
+///   }
+/// }
+/// # Ok::<(), linestring::LinestringError>(())
+///```
 pub fn convex_hull_par<T: GenericVector2>(
     vertices: &[T],
     mut indices: &[usize],
-    chunk_size: usize,
+    per_thread_chunk_size: usize,
 ) -> Result<Vec<usize>, LinestringError> {
-    if vertices.len() <= 1 {
+    if indices.len() <= 1 {
         return Ok(indices.to_vec());
     }
     if indices.first().unwrap() == indices.last().unwrap() {
@@ -873,23 +1120,32 @@ pub fn convex_hull_par<T: GenericVector2>(
     }
 
     // Create chunks of indices
-    let chunks: Vec<_> = indices.chunks(chunk_size).collect();
+    let chunks: Vec<_> = indices.chunks(per_thread_chunk_size).collect();
+
+    let start_index = {
+        //println!("vertices:{:?}", vertices);
+        let start_indexes = chunks
+            .par_iter()
+            .map(|chunk| {
+                indexed_find_lowest_x(vertices, chunk).map(|(index_index, _)| chunk[index_index])
+            })
+            .collect::<Result<Vec<usize>, LinestringError>>()?;
+        //println!("start_indexes:{:?}", start_indexes);
+
+        start_indexes[indexed_find_lowest_x(vertices, &start_indexes)?.0]
+    };
+    //println!("start_index:{}", start_index);
 
     // Run indexed_graham_scan in parallel on each chunk
-    //let hulls: Vec<Result<Vec<usize>, LinestringError>> =
     let mut hull = chunks
         .into_par_iter()
-        .map(|chunk| indexed_graham_scan_no_loop(vertices, &chunk))
-        //.collect::<Result<Vec<_>, LinestringError>>();
+        .map(|chunk| indexed_graham_scan_no_loop(vertices, chunk, None))
         // Combine the partial convex hulls using indexed_convex_hull_combiner
-        //let final_hull = hulls.into_par_iter()
         .reduce(
-            || Ok(Vec::<usize>::default()),
+            || Ok(vec![start_index]),
             |result, partial_hull| {
                 match result {
-                    Ok(indices) => {
-                        indexed_convex_hull_combiner(vertices, Ok(indices), partial_hull)
-                    }
+                    Ok(indices) => combine_indexed_convex_hull(vertices, Ok(indices), partial_hull),
                     Err(some_err) => Err(some_err), // Pass through error
                 }
             },
