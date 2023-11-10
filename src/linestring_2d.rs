@@ -64,7 +64,7 @@ mod tests;
 /// A 2D polyline representation with some operations.
 ///
 /// The trait `LineString2` provides a number of utility function that allows us to treat a
-/// Vec<GenericVector2> as a connected line of points.
+/// `Vec<GenericVector2>` as a connected line of points.
 ///
 /// When the last and the first point of the line are identical, the line is considered 'connected' or closed.
 ///
@@ -646,6 +646,7 @@ struct PriorityDistance<T: GenericVector2> {
     index: usize,
 }
 
+/// An iterator that treats the Vec as a set of connected points, giving an iterator to each `Line2`.
 pub struct WindowIterator<'a, T: GenericVector2>(std::slice::Windows<'a, T>);
 
 impl<'a, T: GenericVector2> WindowIterator<'a, T> {
@@ -660,6 +661,7 @@ impl<'a, T: GenericVector2> WindowIterator<'a, T> {
     }
 }
 
+/// An iterator that treats the Vec as a set of disconnected points, giving an iterator to each `Line2`.
 pub struct ChunkIterator<'a, T: GenericVector2>(std::slice::ChunksExact<'a, T>);
 
 impl<'a, T: GenericVector2> ChunkIterator<'a, T> {

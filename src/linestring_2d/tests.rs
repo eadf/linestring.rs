@@ -1,6 +1,5 @@
-use crate::prelude::LineString2;
+use crate::{prelude::LineString2, LinestringError};
 use vector_traits::glam;
-use crate::LinestringError;
 
 #[test]
 fn test_linestring_iter_1() {
@@ -82,7 +81,7 @@ fn test_linestring_iter_3() {
 }
 
 #[test]
-fn readme_example() -> Result<(), LinestringError>{
+fn readme_example() -> Result<(), LinestringError> {
     use glam::vec2;
     // the vector type can just as well be glam::Dvec2, cgmath::Vector<f32>, cgmath::Vector<f64>,
     let some_points: Vec<glam::Vec2> = vec![
@@ -91,7 +90,7 @@ fn readme_example() -> Result<(), LinestringError>{
         vec2(710., 467.),
         vec2(220., 200.),
     ];
-    let convex_hull:Vec<glam::Vec2> = some_points.convex_hull()?;
+    let convex_hull: Vec<glam::Vec2> = some_points.convex_hull()?;
     for p in some_points {
         assert!(convex_hull.contains_point_inclusive(p));
     }
