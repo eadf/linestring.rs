@@ -40,6 +40,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+mod impls;
 #[cfg(test)]
 mod tests;
 
@@ -742,19 +743,8 @@ pub fn indexed_graham_scan<T: GenericVector2>(
     Ok(hull)
 }
 
-/*/// does the same as indexed_graham_scan() but does not close the loop
-pub fn indexed_graham_scan_no_loop<T: GenericVector2>(
-    vertices: &[T],
-    indices: &[usize],
-    start_index: Option<usize>
-) -> Result<Vec<usize>, LinestringError> {
-    let rv = indexed_graham_scan_no_loop_real(vertices, indices, start_index)?;
-    println!("indexed_graham_scan_no_loop: indices:{:?} start_index:{:?}, generated:{:?}", indices, start_index, rv);
-    Ok(rv)
-}*/
-
 /// does the same as indexed_graham_scan() but does not close the loop
-fn indexed_graham_scan_no_loop<T: GenericVector2>(
+pub fn indexed_graham_scan_no_loop<T: GenericVector2>(
     vertices: &[T],
     mut indices: &[usize],
     start_index: Option<usize>,
@@ -835,21 +825,9 @@ fn indexed_graham_scan_no_loop<T: GenericVector2>(
     Ok(hull)
 }
 
-/*
-fn combine_indexed_convex_hull<T: GenericVector2>(
-    vertices: &[T],
-    indices_a: Result<Vec<usize>, LinestringError>,
-    indices_b: Result<Vec<usize>, LinestringError>,
-) -> Result<Vec<usize>, LinestringError> {
-    //let indices_a_txt = format!("{:?}", indices_a);
-    //let indices_b_txt = format!("{:?}", indices_b);
-    let rv = combine_indexed_convex_hull_lazy(vertices, indices_a, indices_b)?;
-    //println!("indexed_convex_hull_combiner: indices_a:{:?}, indices_b:{:?}, generated:{:?}", indices_a_txt, indices_b_txt, rv);
-    Ok(rv)
-}*/
-
 /// Combines two convex hulls together using `indexed_gift_wrap_no_loop()` (for the moment)
-fn combine_indexed_convex_hull<T: GenericVector2>(
+#[allow(dead_code)]
+fn combine_indexed_convex_hull_lazy<T: GenericVector2>(
     vertices: &[T],
     indices_a: Result<Vec<usize>, LinestringError>,
     indices_b: Result<Vec<usize>, LinestringError>,
@@ -885,7 +863,7 @@ struct VertexIndex {
 
 /// Combines two convex hulls together using `indexed_gift_wrap_no_loop()` (for the moment)
 #[allow(dead_code)]
-fn combine_indexed_convex_hull_not_working<T: GenericVector2>(
+pub fn combine_indexed_convex_hull<T: GenericVector2>(
     vertices: &[T],
     indices_a: Result<Vec<usize>, LinestringError>,
     indices_b: Result<Vec<usize>, LinestringError>,
@@ -908,37 +886,70 @@ fn combine_indexed_convex_hull_not_working<T: GenericVector2>(
 
     let mut hull = Vec::with_capacity((indices_a.len() + indices_b.len()) / 4);
     // To track visited points, it contain index, not index_index
-    let mut visited = AHashSet::with_capacity(indices_a.len() + indices_b.len());
+    //let mut visited = AHashSet::with_capacity(indices_a.len() + indices_b.len());
     let mut point_on_hull = starting_index.clone();
-    //println!("starting point {:?}:{}", input_points[starting_point], starting_point);
+    /*println!(
+        "starting point {:?}:{:?}",
+        vertices[point_on_hull.index], point_on_hull
+    );*/
     loop {
+        /*println!(
+            "loop: point_on_hull {:?}:{:?}",
+            vertices[point_on_hull.index], point_on_hull
+        );*/
+
         hull.push(point_on_hull.index);
         if point_on_hull.index != starting_index.index {
             // don't mark the starting_point or we won't know where to stop
-            let _ = visited.insert(point_on_hull.index);
+            //let _ = visited.insert(point_on_hull.index);
         }
         let mut end_point = {
             if point_on_hull.from_a {
                 let index_index = (point_on_hull.index_index + 1) % indices_a.len();
-                VertexIndex {
-                    from_a: true,
-                    index: indices_a[index_index],
-                    index_index,
+                let index = indices_a[index_index];
+                if index != point_on_hull.index {
+                    VertexIndex {
+                        from_a: true,
+                        index: indices_a[index_index],
+                        index_index,
+                    }
+                } else {
+                    // this is sus, this is just the first point from hull B
+                    VertexIndex {
+                        from_a: false,
+                        index: indices_b[0],
+                        index_index: 0,
+                    }
                 }
             } else {
-                let index_index = (point_on_hull.index_index + 1) % indices_a.len();
-                VertexIndex {
-                    from_a: false,
-                    index: indices_b[index_index],
-                    index_index,
+                let index_index = (point_on_hull.index_index + 1) % indices_b.len();
+                let index = indices_b[index_index];
+                if index != point_on_hull.index {
+                    VertexIndex {
+                        from_a: false,
+                        index: indices_b[index_index],
+                        index_index,
+                    }
+                } else {
+                    // this is sus, this is just the first point from hull A
+                    VertexIndex {
+                        from_a: true,
+                        index: indices_a[0],
+                        index_index: 0,
+                    }
                 }
             }
         };
+        /*println!(
+            "loop: end_point  {:?}:{:?}",
+            vertices[end_point.index], end_point
+        );*/
+
         if point_on_hull.from_a {
             for (jj, j) in indices_b.iter().enumerate() {
                 let j = *j;
 
-                if j == point_on_hull.index || j == end_point.index || visited.contains(&j) {
+                if j == point_on_hull.index || j == end_point.index /*|| visited.contains(&j)*/ {
                     continue;
                 }
 
@@ -966,15 +977,18 @@ fn combine_indexed_convex_hull_not_working<T: GenericVector2>(
                         end_point.from_a = false;
                     } else if j != starting_index.index {
                         // This is a collinear point that is closer to the current point, mark it as visited
-                        let _ = visited.insert(j);
+                        //let _ = visited.insert(j);
                     }
+                } else {
+                    // we should have a test here to see if we can end the loop.
+                    // if we only knew that end_point was a legit point
                 }
             }
         } else {
             for (jj, j) in indices_a.iter().enumerate() {
                 let j = *j;
 
-                if j == point_on_hull.index || j == end_point.index || visited.contains(&j) {
+                if j == point_on_hull.index || j == end_point.index /*|| visited.contains(&j)*/ {
                     continue;
                 }
 
@@ -1002,17 +1016,26 @@ fn combine_indexed_convex_hull_not_working<T: GenericVector2>(
                         end_point.from_a = true;
                     } else if j != starting_index.index {
                         // This is a collinear point that is closer to the current point, mark it as visited
-                        let _ = visited.insert(j);
+                        //let _ = visited.insert(j);
                     }
+                } else {
+                    // we should have a test here to see if we can end the loop.
+                    // if we only knew that end_point was a legit point
                 }
             }
         }
-
+        /*println!(
+            "end of loop: end_point  {:?}:{:?}",
+            vertices[end_point.index], end_point
+        );
+        println!();
+         */
         point_on_hull = end_point.clone();
         if end_point.index == starting_index.index {
             break;
         }
     }
+    //println!("visited:{:?}", visited);
     /*println!("indexed_gift_wrap:");
     println!("starting_index {:?}", input_indices[starting_index]);
     println!("input {:?}", input_vertices);
@@ -1125,7 +1148,9 @@ pub fn convex_hull_par<T: GenericVector2>(
             || Ok(vec![start_index]),
             |result, partial_hull| {
                 match result {
-                    Ok(indices) => combine_indexed_convex_hull(vertices, Ok(indices), partial_hull),
+                    Ok(indices) => {
+                        combine_indexed_convex_hull(vertices, Ok(indices), partial_hull)
+                    }
                     Err(some_err) => Err(some_err), // Pass through error
                 }
             },

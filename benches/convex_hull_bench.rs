@@ -7,8 +7,8 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use linestring::linestring_2d::convex_hull;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use vector_traits::glam::Vec2;
-const SIZE: usize = 3000;
-
+const SIZE: usize = 10000;
+const CHUNK_SIZE: usize = 1000;
 #[cfg(test)]
 fn convex_hull_graham_scan_bench(c: &mut Criterion) {
     let mut rng: StdRng = SeedableRng::from_seed([42; 32]);
@@ -96,7 +96,7 @@ fn convex_hull_convex_hull_par(c: &mut Criterion) {
     c.bench_function("convex_hull_convex_hull_par", |b| {
         b.iter(|| {
             black_box({
-                let _a = convex_hull::convex_hull_par(&points, &indices, 250).unwrap();
+                let _a = convex_hull::convex_hull_par(&points, &indices, CHUNK_SIZE).unwrap();
             });
         })
     });
