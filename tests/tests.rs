@@ -99,19 +99,17 @@ fn linestring2_1() {
 
 #[test]
 fn linestring3_1() {
-    let points = vec![
-        [0_f32, 0., 0.],
-        [1., 1., 0.],
-        [2., 2., 0.],
-        [3., 3., 0.],
-        [1., 10., 0.],
+    let linestring: Vec<Vec3> = vec![
+        [0_f32, 0., 0.].into(),
+        [1., 1., 0.].into(),
+        [2., 2., 0.].into(),
+        [3., 3., 0.].into(),
+        [1., 10., 0.].into(),
     ];
-    let points_len = points.len();
 
-    let linestring: LineString3<Vec3> = points.into_iter().collect();
-    assert_eq!(linestring.len(), points_len);
-    #[allow(deprecated)]{
-        assert_eq!(linestring.as_lines().len(), points_len-1);
+    #[allow(deprecated)]
+    {
+        assert_eq!(linestring.window_iter().len(), linestring.len() - 1);
     }
 }
 
@@ -400,18 +398,18 @@ fn simplify_2() {
 
 #[test]
 fn simplify_3() {
-    let line = vec![
-        [77f32, 613., 0.],
-        [689., 650., 0.],
-        [710., 467., 0.],
-        [220., 200., 0.],
-        [120., 300., 0.],
-        [100., 100., 0.],
-        [77., 613., 0.],
+    let line: Vec<Vec3> = vec![
+        [77f32, 613., 0.].into(),
+        [689., 650., 0.].into(),
+        [710., 467., 0.].into(),
+        [220., 200., 0.].into(),
+        [120., 300., 0.].into(),
+        [100., 100., 0.].into(),
+        [77., 613., 0.].into(),
     ];
-    let line: LineString3<Vec3> = line.into_iter().collect();
-    #[allow(deprecated)]{
-        assert_eq!(6, line.simplify_rdp(1.0).as_lines().len());
+    #[allow(deprecated)]
+    {
+        assert_eq!(6, line.simplify_rdp(1.0).window_iter().len());
     }
 }
 
@@ -655,7 +653,13 @@ fn convex_hull_0() -> Result<(), linestring::LinestringError> {
         .into_iter()
         .map(|i| line[i])
         .collect();
+    let pch2 = line.convex_hull_par(2)?;
     assert_eq!(gw, pch);
+    assert_eq!(pch, pch2);
+    for v in &line {
+        // see if all points of `line` are contained within `pch`
+        assert!(pch.contains_point_inclusive(*v));
+    }
     Ok(())
 }
 

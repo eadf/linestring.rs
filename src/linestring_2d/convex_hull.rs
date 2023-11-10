@@ -885,8 +885,7 @@ struct VertexIndex {
 
 /// Combines two convex hulls together using `indexed_gift_wrap_no_loop()` (for the moment)
 #[allow(dead_code)]
-/// Combines two convex hulls together using `indexed_gift_wrap_no_loop()` (for the moment)
-pub fn combine_indexed_convex_hull_not_working<T: GenericVector2>(
+fn combine_indexed_convex_hull_not_working<T: GenericVector2>(
     vertices: &[T],
     indices_a: Result<Vec<usize>, LinestringError>,
     indices_b: Result<Vec<usize>, LinestringError>,

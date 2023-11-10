@@ -41,21 +41,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::linestring_3d::{Aabb3, ChunkIterator, Line3, LineString3, LineStringSet3, WindowIterator};
+use crate::linestring_3d::{Aabb3, ChunkIterator, Line3, LineStringSet3, WindowIterator};
 use vector_traits::GenericVector3;
-
-impl<T: GenericVector3> Default for LineString3<T> {
-    fn default() -> Self {
-        Self {
-            points: Vec::<T>::default(),
-        }
-    }
-}
 
 impl<T: GenericVector3> Default for LineStringSet3<T> {
     fn default() -> Self {
         Self {
-            set: Vec::<LineString3<T>>::default(),
+            set: Vec::<Vec<T>>::default(),
             aabb: Aabb3::default(),
         }
     }

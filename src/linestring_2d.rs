@@ -41,11 +41,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::{
-    linestring_3d,
-    linestring_3d::{LineString3, Plane},
-    LinestringError,
-};
+use crate::{linestring_3d, linestring_3d::Plane, LinestringError};
 use collections::binary_heap::BinaryHeap;
 use itertools::Itertools;
 use std::{collections, fmt::Debug};
@@ -65,10 +61,12 @@ pub mod intersection;
 #[cfg(test)]
 mod tests;
 
-/// A 2D polyline representation with rich geometric operations.
+/// A 2D polyline representation with some operations.
 ///
-/// `LineString2` provides a zero-cost abstraction over a series of 2D points. When the last
-/// and the first point of the line are identical, the line is considered 'connected' or closed.
+/// The trait `LineString2` provides a number of utility function that allows us to treat a
+/// Vec<GenericVector2> as a connected line of points.
+///
+/// When the last and the first point of the line are identical, the line is considered 'connected' or closed.
 ///
 /// **Features**:
 /// - **Intersections**:
@@ -79,7 +77,7 @@ mod tests;
 /// - **Simplification**:
 ///   - Line string simplification using both the Ramer-Douglas-Peucker (RDP) and Visvalingam-Whyatt (VW) methods.
 ///
-/// - **Convex Hulls** (When "connected"):
+/// - **Convex Hulls**:
 ///   - Generate convex hulls using both Gift Wrapping and Graham's Scan algorithms.
 ///   - Inclusion tests for points, AABBs, and other convex hulls, both in parallel and single-threaded versions.
 ///
@@ -103,7 +101,7 @@ pub trait LineString2<T: GenericVector2> {
     fn intersection(&self, other: &Line2<T>) -> Option<Intersection<T>>;
 
     /// intersection method that returns two possible intersection points
-    /// Use this when you know there can only be two intersection points (e.g. convex hulls)
+    /// Use this when you know there can only be two intersection points (e.g. a convex hulls)
     fn find_two_intersections(&self, other: &Line2<T>) -> (Option<T>, Option<T>);
 
     /// intersection method that returns all possible intersection points
@@ -134,12 +132,10 @@ pub trait LineString2<T: GenericVector2> {
     /// Copy this Linestring2 into a Linestring3, populating the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    fn copy_to_3d(&self, plane: Plane) -> LineString3<T::Vector3>;
+    fn copy_to_3d(&self, plane: Plane) -> Vec<T::Vector3>;
 
     /// Simplify using Ramer–Douglas–Peucker algorithm
     fn simplify_rdp(&self, distance_predicate: T::Scalar) -> Self;
-
-    fn simplify_rdp_recursive(rv: &mut Vec<T>, points: &[T], distance_predicate_sq: T::Scalar);
 
     /// Simplify using Visvalingam–Whyatt algorithm. This algorithm will delete 'points_to_delete'
     /// of points from the polyline with the smallest area defined by one point and it's neighbours.
@@ -155,8 +151,15 @@ pub trait LineString2<T: GenericVector2> {
     /// Will return unpredictable results if self is not a convex hull.
     fn contains_point_exclusive(&self, p: T) -> bool;
 
+    /// Generates the convex hull of the points contained within
+    fn convex_hull(&self) -> Result<Vec<T>, LinestringError>;
+
+    /// Generates the convex hull of the points contained within using a multi-threaded method.
+    /// `per_thread_chunk_size` is the number of vertices in each multi-threaded chunk
+    fn convex_hull_par(&self, per_thread_chunk_size: usize) -> Result<Vec<T>, LinestringError>;
+
     /// Apply an operation over each coordinate.
-    /// Useful when you want to round the values of the coordinates.
+    /// Useful when you, for example, want to round the values of the coordinates.
     fn apply<F>(&mut self, f: &F)
     where
         F: Fn(T) -> T;
@@ -488,18 +491,18 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
     }
 
     /// Convert this parable abstraction into a single straight line
-    pub fn discretize_3d_straight_line(&self) -> LineString3<T::Vector3> {
-        let mut rv = LineString3::default();
+    pub fn discretize_3d_straight_line(&self) -> Vec<T::Vector3> {
+        let mut rv = Vec::default();
         let distance =
             -distance_to_line_squared_safe(self.segment.start, self.segment.end, self.start_point)
                 .sqrt();
-        rv.points.push(T::Vector3::new_3d(
+        rv.push(T::Vector3::new_3d(
             self.start_point.x(),
             self.start_point.y(),
             distance,
         ));
         let distance = -self.end_point.distance(self.cell_point);
-        rv.points.push(T::Vector3::new_3d(
+        rv.push(T::Vector3::new_3d(
             self.end_point.x(),
             self.end_point.y(),
             distance,
@@ -513,10 +516,10 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
     ///
     /// All of this code is ported from C++ boost 1.75.0
     /// <https://www.boost.org/doc/libs/1_75_0/libs/polygon/doc/voronoi_main.htm>
-    pub fn discretize_3d(&self, max_dist: T::Scalar) -> LineString3<T::Vector3> {
-        let mut rv = LineString3::default();
+    pub fn discretize_3d(&self, max_dist: T::Scalar) -> Vec<T::Vector3> {
+        let mut rv = Vec::default();
         let z_comp = -self.start_point.distance(self.cell_point);
-        rv.points.push(T::Vector3::new_3d(
+        rv.push(T::Vector3::new_3d(
             self.start_point.x(),
             self.start_point.y(),
             z_comp,
@@ -524,7 +527,7 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
 
         let z_comp = -self.end_point.distance(self.cell_point);
         // todo, don't insert end_point and then pop it again a few lines later..
-        rv.points.push(T::Vector3::new_3d(
+        rv.push(T::Vector3::new_3d(
             self.end_point.x(),
             self.end_point.y(),
             z_comp,
@@ -540,9 +543,8 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
         // Compute x-coordinates of the endpoints of the edge
         // in the transformed space.
         let projection_start =
-            sqr_segment_length * Self::point_projection_3d(&rv.points[0], &self.segment);
-        let projection_end =
-            sqr_segment_length * Self::point_projection_3d(&rv.points[1], &self.segment);
+            sqr_segment_length * Self::point_projection_3d(&rv[0], &self.segment);
+        let projection_end = sqr_segment_length * Self::point_projection_3d(&rv[1], &self.segment);
 
         // Compute parabola parameters in the transformed space.
         // Parabola has next representation:
@@ -553,8 +555,8 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
         let rot_y = segm_vec_x * point_vec_y - segm_vec_y * point_vec_x;
 
         // Save the last point.
-        let last_point = (*rv.points)[1];
-        let _ = rv.points.pop();
+        let last_point = (*rv)[1];
+        let _ = rv.pop();
 
         // Use stack to avoid recursion.
         let mut point_stack = vec![projection_end];
@@ -588,7 +590,7 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
                 let inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) / sqr_segment_length
                     + self.segment.start.y();
                 let z_comp = -T::new_2d(inter_x, inter_y).distance(self.cell_point);
-                rv.points.push(T::Vector3::new_3d(inter_x, inter_y, z_comp));
+                rv.push(T::Vector3::new_3d(inter_x, inter_y, z_comp));
                 cur_x = new_x;
                 cur_y = new_y;
             } else {
@@ -597,8 +599,8 @@ impl<T: GenericVector2> VoronoiParabolicArc<T> {
         }
 
         // Update last point.
-        let last_position = rv.points.len() - 1;
-        rv.points[last_position] = last_point;
+        let last_position = rv.len() - 1;
+        rv[last_position] = last_point;
         rv
     }
 
@@ -647,7 +649,13 @@ struct PriorityDistance<T: GenericVector2> {
 pub struct WindowIterator<'a, T: GenericVector2>(std::slice::Windows<'a, T>);
 
 impl<'a, T: GenericVector2> WindowIterator<'a, T> {
-    fn len(&self) -> usize {
+    // TODO: add is_empty once the unstable feature "exact_size_is_empty" has transitioned
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.0.len() == 0
+    }
+
+    pub fn len(&self) -> usize {
         self.0.len()
     }
 }
@@ -655,8 +663,13 @@ impl<'a, T: GenericVector2> WindowIterator<'a, T> {
 pub struct ChunkIterator<'a, T: GenericVector2>(std::slice::ChunksExact<'a, T>);
 
 impl<'a, T: GenericVector2> ChunkIterator<'a, T> {
-    #[allow(dead_code)]
-    fn len(&self) -> usize {
+    // TODO: add is_empty once the unstable feature "exact_size_is_empty" has transitioned
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.0.len() == 0
+    }
+
+    pub fn len(&self) -> usize {
         self.0.len()
     }
 
@@ -725,10 +738,6 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
                         )) {
                             continue;
                         } else {
-                            /*println!(
-                                "intersection at {:?} {}:{:?}, {}:{:?}",
-                                point, l0.0, l0.1, l1.0, l1.1
-                            );*/
                             return Ok(true);
                         }
                     }
@@ -741,13 +750,6 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
                 .with_stop_at_first_intersection(true)?
                 .with_lines(self.window_iter())?
                 .compute()?;
-            //print!("Lines rv={} [", result.is_empty());
-            //for p in self.as_lines().iter() {
-            //print!("[{:?},{:?}]-[{:?},{:?}],", p.start.x, p.start.y, p.end.x, p.end.y);
-            //    print!("[{:?},{:?},{:?},{:?}],", p.start.x, p.start.y, p.end.x, p.end.y);
-            //print!("[{:?},{:?}],", p.x, p.y,);
-            //}
-            //println!("]");
             Ok(result.len() > 0)
         }
     }
@@ -893,12 +895,9 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
     /// Copy this Linestring2 into a Linestring3, populating the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    fn copy_to_3d(&self, plane: Plane) -> LineString3<T::Vector3> {
+    fn copy_to_3d(&self, plane: Plane) -> Vec<T::Vector3> {
         match plane {
-            Plane::XY => self
-                .iter()
-                .map(|p2d| T::Vector3::new_3d(p2d.x(), p2d.y(), T::Scalar::ZERO))
-                .collect(),
+            Plane::XY => self.iter().map(|p2d| p2d.to_3d(T::Scalar::ZERO)).collect(),
             Plane::XZ => self
                 .iter()
                 .map(|p2d| T::Vector3::new_3d(p2d.x(), T::Scalar::ZERO, p2d.y()))
@@ -910,6 +909,24 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
         }
     }
 
+    /// Generates the convex hull of the points contained within
+    fn convex_hull(&self) -> Result<Vec<T>, LinestringError> {
+        convex_hull::graham_scan(self)
+    }
+
+    /// Generates the convex hull of the points contained within using a multi-threaded method.
+    /// `per_thread_chunk_size` is the number of vertices in each multi-threaded chunk
+    fn convex_hull_par(&self, per_thread_chunk_size: usize) -> Result<Vec<T>, LinestringError> {
+        assert!(per_thread_chunk_size > 1);
+        let indices: Vec<usize> = (0..self.len()).collect();
+        Ok(
+            convex_hull::convex_hull_par(self, &indices, per_thread_chunk_size)?
+                .iter()
+                .map(|i| self[*i])
+                .collect(),
+        )
+    }
+
     /// Simplify using Ramer–Douglas–Peucker algorithm
     fn simplify_rdp(&self, distance_predicate: T::Scalar) -> Self {
         if self.len() <= 2 {
@@ -918,43 +935,8 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
 
         let mut rv: Vec<T> = Vec::with_capacity(self.len());
         rv.push(self[0]);
-        Self::simplify_rdp_recursive(&mut rv, self, distance_predicate * distance_predicate);
+        simplify_rdp_recursive(&mut rv, self, distance_predicate * distance_predicate);
         rv
-    }
-
-    fn simplify_rdp_recursive(rv: &mut Vec<T>, points: &[T], distance_predicate_sq: T::Scalar) {
-        if points.len() <= 2 {
-            rv.push(*points.last().unwrap());
-            return;
-        }
-
-        let start_point = points[0];
-        let end_point = points[points.len() - 1];
-
-        let (max_dist_sq, index) = points
-            .iter()
-            .enumerate()
-            .skip(1)
-            .take(points.len() - 2)
-            .map(|(i, &point)| {
-                (
-                    distance_to_line_squared_safe(start_point, end_point, point),
-                    i,
-                )
-            })
-            .max_by(|(dist1, _), (dist2, _)| {
-                dist1
-                    .partial_cmp(dist2)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            })
-            .unwrap_or((-T::Scalar::ONE, 0)); // default that's unlikely to be used
-
-        if max_dist_sq <= distance_predicate_sq {
-            rv.push(end_point);
-        } else {
-            Self::simplify_rdp_recursive(rv, &points[..index + 1], distance_predicate_sq);
-            Self::simplify_rdp_recursive(rv, &points[index..], distance_predicate_sq);
-        }
     }
 
     /// Simplify using Visvalingam–Whyatt algorithm. This algorithm will delete 'points_to_delete'
@@ -1145,10 +1127,46 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
         }
     }
 }
-/*
-pub trait Matrix<T:GenericVector2> {
-    fn transform(&self, v:T) -> T;
-}*/
+
+/// The actual implementation of rdp
+fn simplify_rdp_recursive<T: GenericVector2>(
+    rv: &mut Vec<T>,
+    points: &[T],
+    distance_predicate_sq: T::Scalar,
+) {
+    if points.len() <= 2 {
+        rv.push(*points.last().unwrap());
+        return;
+    }
+
+    let start_point = points[0];
+    let end_point = points[points.len() - 1];
+
+    let (max_dist_sq, index) = points
+        .iter()
+        .enumerate()
+        .skip(1)
+        .take(points.len() - 2)
+        .map(|(i, &point)| {
+            (
+                distance_to_line_squared_safe(start_point, end_point, point),
+                i,
+            )
+        })
+        .max_by(|(dist1, _), (dist2, _)| {
+            dist1
+                .partial_cmp(dist2)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .unwrap_or((-T::Scalar::ONE, 0)); // default that's unlikely to be used
+
+    if max_dist_sq <= distance_predicate_sq {
+        rv.push(end_point);
+    } else {
+        simplify_rdp_recursive(rv, &points[..index + 1], distance_predicate_sq);
+        simplify_rdp_recursive(rv, &points[index..], distance_predicate_sq);
+    }
+}
 
 /// A set of 2d LineString, an aabb + convex_hull.
 /// It also contains a list of aabb & convex_hulls of shapes this set has gobbled up.

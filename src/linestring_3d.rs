@@ -44,8 +44,9 @@ limitations under the License.
 mod impls;
 
 use crate::{linestring_2d::LineStringSet2, LinestringError};
+use ahash::AHashMap;
 use itertools::Itertools;
-use std::{collections, fmt, fs, hash::Hash, io, io::Write, path};
+use std::{collections, collections::BinaryHeap, fmt, fs, hash::Hash, io, io::Write, path};
 use vector_traits::{
     approx::{ulps_eq, AbsDiffEq, UlpsEq},
     num_traits::real::Real,
@@ -58,7 +59,7 @@ mod tests;
 /// Placeholder for different 3d shapes
 pub enum Shape3d<T: GenericVector3> {
     Line(Line3<T>),
-    Linestring(LineString3<T>),
+    Linestring(Vec<T>),
     ParabolicArc(crate::linestring_2d::VoronoiParabolicArc<T::Vector2>),
 }
 
@@ -146,7 +147,6 @@ impl Plane {
     /// `Plane::XZ`: `Point3(XYZ)` -> `Point2(XZ)`
     /// `Plane::YZ`: `Point3(XYZ)` -> `Point2(YZ)`
     /// That way the operation is reversible (with regards to axis positions).
-    //#[allow(dead_code)]
     #[inline(always)]
     pub fn point_to_2d<T: GenericVector3>(&self, point: T) -> T::Vector2 {
         match self {
@@ -220,20 +220,11 @@ impl<T: GenericVector3> From<[T::Scalar; 6]> for Line3<T> {
     }
 }
 
-/// A 3d line string, aka polyline.
-/// If the 'connected' field is set the 'as_lines()' method will connect start point with the
-/// end-point.
-/// Todo: The builder structure of this struct needs to be revisited
-#[derive(PartialEq, Eq, Clone, Hash, fmt::Debug)]
-pub struct LineString3<T: GenericVector3> {
-    pub(crate) points: Vec<T>,
-}
-
-/// A set of linestrings + an aabb
+/// A set of line-strings + an aabb
 /// Intended to contain related 3d shapes. E.g. outlines of letters with holes
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct LineStringSet3<T: GenericVector3> {
-    pub set: Vec<LineString3<T>>,
+    pub set: Vec<Vec<T>>,
     pub aabb: Aabb3<T>,
 }
 
@@ -246,11 +237,10 @@ pub struct Aabb3<T: GenericVector3> {
 
 impl<T: GenericVector3> Aabb3<T> {
     /// Apply an operation over each coordinate.
-    pub fn apply<F: Fn(T) -> T>(mut self, f: &F) -> Self {
+    pub fn apply<F: Fn(T) -> T>(&mut self, f: &F) {
         if let Some(ref mut min_max) = self.min_max {
             self.min_max = Some((f(min_max.0), f(min_max.1)))
         }
-        self
     }
 }
 
@@ -276,8 +266,14 @@ impl<T: GenericVector3> Ord for PriorityDistance<T> {
 pub struct WindowIterator<'a, T: GenericVector3>(std::slice::Windows<'a, T>);
 
 impl<'a, T: GenericVector3> WindowIterator<'a, T> {
-    #[allow(dead_code)]
-    fn len(&self) -> usize {
+    // TODO: add is_empty once the unstable feature "exact_size_is_empty" has transitioned
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.0.len() == 0
+    }
+
+    #[inline(always)]
+    pub fn len(&self) -> usize {
         self.0.len()
     }
 }
@@ -285,12 +281,19 @@ impl<'a, T: GenericVector3> WindowIterator<'a, T> {
 pub struct ChunkIterator<'a, T: GenericVector3>(std::slice::ChunksExact<'a, T>);
 
 impl<'a, T: GenericVector3> ChunkIterator<'a, T> {
-    #[allow(dead_code)]
-    fn len(&self) -> usize {
+    // TODO: add is_empty once the unstable feature "exact_size_is_empty" has transitioned
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.0.len() == 0
+    }
+
+    #[inline(always)]
+    pub fn len(&self) -> usize {
         self.0.len()
     }
 
     #[must_use]
+    #[inline(always)]
     pub fn remainder(&self) -> &'a [T] {
         self.0.remainder()
     }
@@ -305,175 +308,95 @@ impl<T: GenericVector3> PartialEq for PriorityDistance<T> {
 
 impl<T: GenericVector3> Eq for PriorityDistance<T> {}
 
-impl<T: GenericVector3> LineString3<T> {
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            points: Vec::<T>::with_capacity(capacity),
-        }
-    }
-
-    pub fn with_points(mut self, points: Vec<T>) -> Self {
-        self.points = points;
-        self
-    }
-
-    /// Copies the points of the iterator into the LineString2
-    /// from_iter is already claimed for into() objects.
-    pub fn with_iter<'a, I>(iter: I) -> Self
-    where
-        T: 'a,
-        I: Iterator<Item = &'a T>,
-    {
-        Self {
-            points: iter.into_iter().copied().collect(),
-        }
-    }
-
+pub trait LineString3<T: GenericVector3> {
     /// Copy this linestring3 into a linestring2, keeping the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_2d(&self, plane: Plane) -> Vec<T::Vector2> {
+    fn copy_to_2d(&self, plane: Plane) -> Vec<T::Vector2>;
+
+    /// Returns `true` if the last and first points of the collection are exactly the same,
+    /// indicating a closed loop.
+    /// Note that an empty linestring is also "closed" since first() and last() object are the
+    /// same. I.e. None
+    fn is_connected(&self) -> bool;
+
+    //// Returns an iterator over consecutive pairs of points in the line string, forming continuous lines.
+    /// This iterator is created using `.windows(2)` on the underlying point collection.
+    #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
+    fn window_iter(&self) -> WindowIterator<'_, T>;
+
+    /// Returns an iterator over pairs of points in the line string, forming disconnected edges.
+    /// This iterator is created using `.chunks_exact(2)` on the underlying point collection.
+    #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
+    fn chunk_iter(&self) -> ChunkIterator<'_, T>;
+
+    /// Simplify using Ramer–Douglas–Peucker algorithm adapted for 3d
+    fn simplify_rdp(&self, distance_predicate: T::Scalar) -> Self;
+
+    /// Simplify using Visvalingam–Whyatt algorithm adapted for 3d.
+    /// This algorithm will delete 'points_to_delete' of points from the polyline with the smallest
+    /// area defined by one point and it's neighbours.
+    fn simplify_vw(&self, points_to_delete: usize) -> Self;
+
+    /// Apply an operation over each coordinate.
+    /// Useful when you want to round the values of the coordinates.
+    fn apply<F>(&mut self, f: &F)
+    where
+        F: Fn(T) -> T;
+}
+
+impl<T: GenericVector3> LineString3<T> for Vec<T> {
+    /// Copy this linestring3 into a linestring2, keeping the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    fn copy_to_2d(&self, plane: Plane) -> Vec<T::Vector2> {
         match plane {
             Plane::XY => self
-                .points
                 .iter()
                 .map(|p3d| T::Vector2::new_2d(p3d.x(), p3d.y()))
                 .collect(),
             Plane::XZ => self
-                .points
                 .iter()
                 .map(|p3d| T::Vector2::new_2d(p3d.x(), p3d.z()))
                 .collect(),
             Plane::YZ => self
-                .points
                 .iter()
                 .map(|p3d| T::Vector2::new_2d(p3d.z(), p3d.y()))
                 .collect(),
         }
     }
 
-    pub fn points(&self) -> &Vec<T> {
-        &self.points
-    }
-
-    pub fn len(&self) -> usize {
-        self.points.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.points.is_empty()
-    }
-
     /// Returns `true` if the last and first points of the collection are exactly the same,
     /// indicating a closed loop.
     /// Note that an empty linestring is also "closed" since first() and last() object are the
     /// same. I.e. None
-    #[allow(dead_code)]
     fn is_connected(&self) -> bool {
-        self.is_empty() || self.points.first().unwrap() == self.points.last().unwrap()
-    }
-
-    /// Returns the line string as a Vec of lines
-    /// Will be deprecated at some time, use self.as_lines_iter().collect() instead
-    #[deprecated(since="0.10.2", note="it will be removed")]
-    #[inline(always)]
-    pub fn as_lines(&self) -> Vec<Line3<T>> {
-        self.window_iter().collect()
+        self.is_empty() || self.first().unwrap() == self.last().unwrap()
     }
 
     //// Returns an iterator over consecutive pairs of points in the line string, forming continuous lines.
     /// This iterator is created using `.windows(2)` on the underlying point collection.
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-    pub fn window_iter(&self) -> WindowIterator<'_, T> {
-        WindowIterator(self.points.windows(2))
+    fn window_iter(&self) -> WindowIterator<'_, T> {
+        WindowIterator(self.windows(2))
     }
 
     /// Returns an iterator over pairs of points in the line string, forming disconnected edges.
     /// This iterator is created using `.chunks_exact(2)` on the underlying point collection.
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-    pub fn chunk_iter(&self) -> ChunkIterator<'_, T> {
-        ChunkIterator(self.points.chunks_exact(2))
-    }
-
-    /// The iterator of as_lines_iter() does not implement ExactSizeIterator.
-    /// This can be used as a work around for that problem
-    #[deprecated(since="0.10.2", note="the new iterator will be ExactSizeIterator")]
-    pub fn as_lines_iter_len(&self) -> usize {
-        if self.points.len() < 2 {
-            return 0;
-        }
-        self.points.len()
-    }
-
-    pub fn push(&mut self, point: T) {
-        self.points.push(point);
-    }
-
-    /// Moves all the elements of `other` into `Self`, leaving `other` empty.
-    /// TODO: currently ignores if `other` is connected or not.
-    /// # Panics
-    /// Panics if the number of elements in the points vector overflows a `usize`.
-    pub fn append(&mut self, mut other: Self) {
-        self.points.append(&mut other.points);
+    fn chunk_iter(&self) -> ChunkIterator<'_, T> {
+        ChunkIterator(self.chunks_exact(2))
     }
 
     /// Simplify using Ramer–Douglas–Peucker algorithm adapted for 3d
-    pub fn simplify_rdp(&self, distance_predicate: T::Scalar) -> Self {
-        //println!("input dist:{:?} slice{:?}", distance_predicate, self.points);
-
-        if self.points.len() <= 2 {
+    fn simplify_rdp(&self, distance_predicate: T::Scalar) -> Self {
+        if self.len() <= 2 {
             return self.clone();
         }
 
-        let mut rv: Vec<T> = Vec::with_capacity(self.points.len());
-        // _simplify() always omits the the first point of the result, so we have to add that
-        rv.push(*self.points.first().unwrap());
-        rv.append(&mut Self::_simplify_rdp(
-            distance_predicate * distance_predicate,
-            self.points.as_slice(),
-        ));
-        Self {
-            points: rv,
-        }
-    }
-
-    /// A naïve implementation of Ramer–Douglas–Peucker algorithm
-    /// It spawns a lot of Vec, but it seems to work
-    fn _simplify_rdp(distance_predicate_sq: T::Scalar, slice: &[T]) -> Vec<T> {
-        //println!("input dist:{:?} slice{:?}", distance_predicate_sq, slice);
-        if slice.len() <= 2 {
-            return slice[1..].to_vec();
-        }
-        // unwrap is safe since we tested len()>2
-        let start_point = *slice.first().unwrap();
-        let end_point = *slice.last().unwrap();
-
-        let mut max_dist_sq = (-T::Scalar::ONE, 0_usize);
-        let mut found_something = false;
-        // find the point with largest distance to start_point<->endpoint line
-        for (i, point) in slice.iter().enumerate().take(slice.len() - 1).skip(1) {
-            let sq_d = distance_to_line_squared_safe(start_point, end_point, *point);
-
-            //println!("sq_d:{:?}", sq_d);
-            if sq_d > max_dist_sq.0 && sq_d > distance_predicate_sq {
-                max_dist_sq = (sq_d, i);
-                found_something = true;
-            }
-        }
-
-        //println!("max_dist_sq: {:?}", max_dist_sq);
-        if !found_something {
-            // no point was outside the distance limit, return a new list only containing the
-            // end point (start point is implicit)
-            //println!("return start-end");
-            return vec![end_point];
-        }
-
-        let mut rv = Self::_simplify_rdp(distance_predicate_sq, &slice[..max_dist_sq.1 + 1]);
-        rv.append(&mut Self::_simplify_rdp(
-            distance_predicate_sq,
-            &slice[max_dist_sq.1..],
-        ));
+        let mut rv: Vec<T> = Vec::with_capacity(self.len());
+        rv.push(self[0]);
+        simplify_rdp_recursive(&mut rv, self, distance_predicate * distance_predicate);
         rv
     }
 
@@ -482,8 +405,8 @@ impl<T: GenericVector3> LineString3<T> {
     /// area defined by one point and it's neighbours.
     /// Simplify using Visvalingam–Whyatt algorithm. This algorithm will delete 'points_to_delete'
     /// of points from the polyline with the smallest area defined by one point and it's neighbours.
-    pub fn simplify_vw(&self, points_to_delete: usize) -> Self {
-        if self.points.len() <= 2 {
+    fn simplify_vw(&self, points_to_delete: usize) -> Self {
+        if self.len() <= 2 {
             // Nothing to do here, we can't delete endpoints
             return self.clone();
         }
@@ -494,15 +417,15 @@ impl<T: GenericVector3> LineString3<T> {
         // If it is not in there or if the area doesn't match it will simply be ignored and a
         // new value pop():ed.
 
-        let mut search_tree = collections::binary_heap::BinaryHeap::<PriorityDistance<T>>::new();
+        let mut search_tree = BinaryHeap::<PriorityDistance<T>>::new();
         // map from node number to remaining neighbours of that node. All indices of self.points
         // AHashMap::<node_id:usize, (prev_node_id:usize, next_node_id:usize, area:T)>
-        let mut link_tree = ahash::AHashMap::<usize, (usize, usize, T::Scalar)>::default();
+        let mut link_tree = AHashMap::<usize, (usize, usize, T::Scalar)>::default();
         {
-            let mut iter_i = self.points.iter().enumerate();
-            let mut iter_j = self.points.iter().enumerate().skip(1);
+            let mut iter_i = self.iter().enumerate();
+            let mut iter_j = self.iter().enumerate().skip(1);
             // the k iterator will terminate before i & j, so the iter_i & iter_j unwrap()s are safe
-            for k in self.points.iter().enumerate().skip(2) {
+            for k in self.iter().enumerate().skip(2) {
                 let i = iter_i.next().unwrap();
                 let j = iter_j.next().unwrap();
                 // define the area between point i, j & k as search criteria
@@ -516,7 +439,7 @@ impl<T: GenericVector3> LineString3<T> {
             }
         }
 
-        let self_points_len = self.points.len();
+        let self_points_len = self.len();
 
         let mut deleted_nodes: usize = 0;
         loop {
@@ -543,9 +466,9 @@ impl<T: GenericVector3> LineString3<T> {
                     if let Some(next_next) = next_next {
                         if let Some(prev_prev) = prev_prev {
                             let area = Line3::triangle_area_squared_times_4(
-                                &self.points[prev],
-                                &self.points[next % self_points_len],
-                                &self.points[next_next % self_points_len],
+                                &self[prev],
+                                &self[next % self_points_len],
+                                &self[next_next % self_points_len],
                             );
                             search_tree.push(PriorityDistance {
                                 key: area,
@@ -554,9 +477,9 @@ impl<T: GenericVector3> LineString3<T> {
                             let _ = link_tree.insert(next, (prev, next_next, area));
 
                             let area = Line3::triangle_area_squared_times_4(
-                                &self.points[prev_prev],
-                                &self.points[prev],
-                                &self.points[next % self_points_len],
+                                &self[prev_prev],
+                                &self[prev],
+                                &self[next % self_points_len],
                             );
                             search_tree.push(PriorityDistance {
                                 key: area,
@@ -569,9 +492,9 @@ impl<T: GenericVector3> LineString3<T> {
 
                     if let Some(prev_prev) = prev_prev {
                         let area = Line3::triangle_area_squared_times_4(
-                            &self.points[prev_prev],
-                            &self.points[prev],
-                            &self.points[next % self_points_len],
+                            &self[prev_prev],
+                            &self[prev],
+                            &self[next % self_points_len],
                         );
                         search_tree.push(PriorityDistance {
                             key: area,
@@ -583,9 +506,9 @@ impl<T: GenericVector3> LineString3<T> {
 
                     if let Some(next_next) = next_next {
                         let area = Line3::triangle_area_squared_times_4(
-                            &self.points[prev],
-                            &self.points[next % self_points_len],
-                            &self.points[next_next % self_points_len],
+                            &self[prev],
+                            &self[next % self_points_len],
+                            &self[next_next % self_points_len],
                         );
                         search_tree.push(PriorityDistance {
                             key: area,
@@ -609,32 +532,24 @@ impl<T: GenericVector3> LineString3<T> {
             .iter()
             .copied()
             .chain(link_tree.keys().sorted_unstable().copied())
-            .map(|x| self.points[x])
+            .map(|x| self[x])
             .collect::<Self>()
     }
-    pub fn apply<F: Fn(T) -> T>(mut self, f: &F) -> Self {
-        self.points.iter_mut().for_each(|v| *v = f(*v));
-        self
-    }
-}
 
-impl<T: GenericVector3, IC: Into<T>> FromIterator<IC> for LineString3<T> {
-    fn from_iter<I: IntoIterator<Item = IC>>(iter: I) -> Self {
-        LineString3 {
-            points: iter.into_iter().map(|c| c.into()).collect(),
-        }
+    fn apply<F: Fn(T) -> T>(&mut self, f: &F) {
+        self.iter_mut().for_each(|v| *v = f(*v));
     }
 }
 
 impl<T: GenericVector3> LineStringSet3<T> {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            set: Vec::<LineString3<T>>::with_capacity(capacity),
+            set: Vec::<Vec<T>>::with_capacity(capacity),
             aabb: Aabb3::<T>::default(),
         }
     }
 
-    pub fn set(&self) -> &Vec<LineString3<T>> {
+    pub fn set(&self) -> &Vec<Vec<T>> {
         &self.set
     }
 
@@ -642,11 +557,11 @@ impl<T: GenericVector3> LineStringSet3<T> {
         self.set.is_empty()
     }
 
-    pub fn push(&mut self, ls: LineString3<T>) {
+    pub fn push(&mut self, ls: Vec<T>) {
         if !ls.is_empty() {
             self.set.push(ls);
 
-            for ls in self.set.last().unwrap().points.iter() {
+            for ls in self.set.last().unwrap().iter() {
                 self.aabb.update_point(*ls);
             }
         }
@@ -656,11 +571,9 @@ impl<T: GenericVector3> LineStringSet3<T> {
         self.aabb
     }
 
-    pub fn apply<F: Fn(T) -> T>(self, f: &F) -> Self {
-        Self {
-            set: self.set.into_iter().map(|x| x.apply(f)).collect(),
-            aabb: self.aabb.apply(f),
-        }
+    pub fn apply<F: Fn(T) -> T>(&mut self, f: &F) {
+        self.set.iter_mut().for_each(|x| x.apply(f));
+        self.aabb.apply(f);
     }
 
     /// Copy this linestringset3 into a linestringset2, populating the axes defined by 'plane'
@@ -678,6 +591,46 @@ impl<T: GenericVector3> LineStringSet3<T> {
     pub fn take_from(&mut self, other: &mut Self) {
         self.aabb.update_aabb(other.aabb);
         self.set.append(&mut other.set);
+    }
+}
+
+/// The actual implementation of rdp
+fn simplify_rdp_recursive<T: GenericVector3>(
+    rv: &mut Vec<T>,
+    points: &[T],
+    distance_predicate_sq: T::Scalar,
+) {
+    if points.len() <= 2 {
+        rv.push(*points.last().unwrap());
+        return;
+    }
+
+    let start_point = points[0];
+    let end_point = points[points.len() - 1];
+
+    let (max_dist_sq, index) = points
+        .iter()
+        .enumerate()
+        .skip(1)
+        .take(points.len() - 2)
+        .map(|(i, &point)| {
+            (
+                distance_to_line_squared_safe(start_point, end_point, point),
+                i,
+            )
+        })
+        .max_by(|(dist1, _), (dist2, _)| {
+            dist1
+                .partial_cmp(dist2)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .unwrap_or((-T::Scalar::ONE, 0)); // default that's unlikely to be used
+
+    if max_dist_sq <= distance_predicate_sq {
+        rv.push(end_point);
+    } else {
+        simplify_rdp_recursive(rv, &points[..index + 1], distance_predicate_sq);
+        simplify_rdp_recursive(rv, &points[index..], distance_predicate_sq);
     }
 }
 
