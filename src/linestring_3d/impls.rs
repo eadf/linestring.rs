@@ -40,7 +40,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
+//! A module containing boiler-plate implementations of standard traits such as Default, From etc etc
 use crate::linestring_3d::{Aabb3, ChunkIterator, Line3, LineStringSet3, WindowIterator};
 use vector_traits::GenericVector3;
 

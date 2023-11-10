@@ -21,7 +21,6 @@ transitions between vector libraries like `glam` and `cgmath` (for now).
 - **Convex Hull Calculation:** Gift wrapping & Graham scan algorithms.
 - **Intersection Tests:** Self-intersection tests for line strings, or groups of lines with O( n log n + i log n) complexity.
 - **Containment Test:** Convex hull containment test.
-- **Affine Transformations:** Simple affine transformations including pan and zoom.
 
 ## Usage
 
@@ -33,7 +32,7 @@ linestring = {version="0.11"}
 ## Example
 
 ```rust
-// the vector type can just as well be glam::Dvec2, cgmath::Vector<f32> or cgmath::Vector<f64>,
+// the vector type can just as well be glam::Dvec2, cgmath::Vector2<f32> or cgmath::Vector2<f64>,
 let some_points: Vec<glam::Vec2> = vec![
     vec2(77f32, 613.),
     vec2(689., 650.),

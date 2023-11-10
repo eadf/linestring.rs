@@ -40,6 +40,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+//! A module containing boiler-plate implementations of standard traits such as Default, From etc etc
 
 use super::{
     Aabb2, ChunkIterator, Intersection, Line2, LineStringSet2, PriorityDistance, SimpleAffine,
