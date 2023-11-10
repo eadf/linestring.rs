@@ -1,8 +1,10 @@
 use crate::prelude::LineString2;
-use vector_traits::glam::Vec2;
+use vector_traits::glam;
+use crate::LinestringError;
 
 #[test]
 fn test_linestring_iter_1() {
+    use vector_traits::glam::Vec2;
     let mut line: Vec<Vec2> = vec![
         [77f32, 613.].into(),
         [689., 650.].into(),
@@ -36,6 +38,7 @@ fn test_linestring_iter_1() {
 
 #[test]
 fn test_linestring_iter_2() {
+    use vector_traits::glam::Vec2;
     let line: Vec<Vec2> = vec![
         [77f32, 613.].into(), //0
         [689., 650.].into(),  //1
@@ -67,6 +70,7 @@ fn test_linestring_iter_2() {
 
 #[test]
 fn test_linestring_iter_3() {
+    use vector_traits::glam::Vec2;
     let line: Vec<Vec2> = vec![
         [77f32, 613.].into(), //0
     ];
@@ -75,4 +79,21 @@ fn test_linestring_iter_3() {
 
     assert!(line_iter.next().is_none());
     assert!(edge_iter.next().is_none());
+}
+
+#[test]
+fn readme_example() -> Result<(), LinestringError>{
+    use glam::vec2;
+    // the vector type can just as well be glam::Dvec2, cgmath::Vector<f32>, cgmath::Vector<f64>,
+    let some_points: Vec<glam::Vec2> = vec![
+        vec2(77f32, 613.),
+        vec2(689., 650.),
+        vec2(710., 467.),
+        vec2(220., 200.),
+    ];
+    let convex_hull:Vec<glam::Vec2> = some_points.convex_hull()?;
+    for p in some_points {
+        assert!(convex_hull.contains_point_inclusive(p));
+    }
+    Ok(())
 }
