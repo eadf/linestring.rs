@@ -898,31 +898,12 @@ fn convex_hull_6() -> Result<(), LinestringError> {
     #[allow(deprecated)]
     let ghsw = convex_hull::graham_scan_wo_atan2(&points)?;
     let indices: Vec<usize> = (0..points.len()).collect();
-    let igs = linestring_2d::convex_hull::indexed_graham_scan(&points, &indices)?;
-    println!("ghs.len():{:?}", ghs.len());
-    println!("gw.len():{:?}", gw.len());
-    println!("ghsw.len():{:?}", ghsw.len());
-    //println!("points:{:?}", points.iter().take(100).collect::<Vec<_>>());
-
-    /*if false && ghs.0.len() != gw.0.len() {
-        let mut fg = SimplePlot::default();
-        for window in ghs.0.windows(2) {
-            fg.draw_line(window[0].x, window[0].y, window[1].x, window[1].y)
-        }
-        for p in &points {
-            fg.draw_point(p.x, p.y);
-        }
-        fg.show();
-
-        let mut fg = SimplePlot::default();
-        for window in gw.0.windows(2) {
-            fg.draw_line(window[0].x, window[0].y, window[1].x, window[1].y)
-        }
-        for p in &points {
-            fg.draw_point(p.x, p.y);
-        }
-        fg.show();
-    }*/
+    let igs = convex_hull::indexed_graham_scan(&points, &indices)?;
+    let igw = convex_hull::indexed_gift_wrap(&points, &indices)?;
+    let chp = convex_hull::convex_hull_par(&points, &indices, 1000)?;
+    //println!("ghs.len():{:?}", ghs.len());
+    //println!("gw.len():{:?}", gw.len());
+    //println!("ghsw.len():{:?}", ghsw.len());
 
     for chunks in ghs.windows(3) {
         // test f32
@@ -948,6 +929,9 @@ fn convex_hull_6() -> Result<(), LinestringError> {
     assert_eq!(ghs.len(), ghsw.len());
     assert_eq!(ghs, ghsw);
     assert_eq!(ghs, gw);
+    assert_eq!(igs, chp);
+    assert_eq!(igs, igw);
+
     for p in points {
         assert!(convex_hull::contains_point_inclusive(&ghs, p));
         assert!(convex_hull::contains_point_inclusive(&gw, p));
@@ -955,6 +939,7 @@ fn convex_hull_6() -> Result<(), LinestringError> {
     }
     Ok(())
 }
+
 #[test]
 fn distance_to_line_squared_01() {
     let a = Vec2::new(0.0, 0.0);

@@ -825,7 +825,7 @@ pub fn indexed_graham_scan_no_loop<T: GenericVector2>(
     Ok(hull)
 }
 
-/// Combines two convex hulls together using `indexed_gift_wrap_no_loop()` (for the moment)
+/// Combines two convex hulls together as two point clouds using `indexed_gift_wrap_no_loop()`
 #[allow(dead_code)]
 fn combine_indexed_convex_hull_lazy<T: GenericVector2>(
     vertices: &[T],
@@ -850,20 +850,26 @@ fn combine_indexed_convex_hull_lazy<T: GenericVector2>(
     indexed_graham_scan_no_loop(vertices, &indices_a, None)
 }
 
-#[allow(dead_code)]
+/// a structure trying to keep track of from what list indices came from.
 #[derive(Clone)]
 struct VertexIndex {
-    // was from indices_a if true, else indices_b
+    /// `index_index` was from `indices_a` if true, else `indices_b`
     from_a: bool,
-    // the 'real' vertices index
+    /// the 'real' index into `vertices`
     index: usize,
-    // the index into the indices_a or indices_a
+    /// the index into `indices_a` or `indices_a`
     index_index: usize,
 }
 
-/// Combines two convex hulls together using `indexed_gift_wrap_no_loop()` (for the moment)
-#[allow(dead_code)]
-pub fn combine_indexed_convex_hull<T: GenericVector2>(
+/// Combines two convex hulls together using a modified gift wrapping algorithm.
+/// The algorithm goes like this.
+/// We keep track of from what list the start_point, point_on_hull and endpoint comes from.
+/// The algorithm is like gift-wrapping in that it keeps `point_on_hull` and `end_point` and iterates
+/// though a list of `j` candidates to try to find a better end-point.
+/// First it picks `end_point` to be from `ìndices_a`, then it iterates over `ìndices_b` trying to
+/// find a better `end_point`. If an end point is found in `ìndices_b` but another invalid one is
+/// found the inner loop ends.
+fn combine_indexed_convex_hull<T: GenericVector2>(
     vertices: &[T],
     indices_a: Result<Vec<usize>, LinestringError>,
     indices_b: Result<Vec<usize>, LinestringError>,
@@ -946,10 +952,15 @@ pub fn combine_indexed_convex_hull<T: GenericVector2>(
         );*/
 
         if point_on_hull.from_a {
+            // when we have found a good end_point from indices_b and we find a bad one, we can
+            // exit the loop
+            let mut found_a_legit_b_point = false;
             for (jj, j) in indices_b.iter().enumerate() {
                 let j = *j;
 
-                if j == point_on_hull.index || j == end_point.index /*|| visited.contains(&j)*/ {
+                if j == point_on_hull.index || j == end_point.index
+                /*|| visited.contains(&j)*/
+                {
                     continue;
                 }
 
@@ -963,6 +974,7 @@ pub fn combine_indexed_convex_hull<T: GenericVector2>(
                     end_point.index_index = jj;
                     end_point.index = j;
                     end_point.from_a = false;
+                    found_a_legit_b_point = true;
                 } else if orient == Orientation::Collinear {
                     let distance_sq_candidate =
                         vertices[point_on_hull.index].distance_sq(vertices[j]);
@@ -975,6 +987,7 @@ pub fn combine_indexed_convex_hull<T: GenericVector2>(
                         end_point.index_index = jj;
                         end_point.index = j;
                         end_point.from_a = false;
+                        found_a_legit_b_point = true;
                     } else if j != starting_index.index {
                         // This is a collinear point that is closer to the current point, mark it as visited
                         //let _ = visited.insert(j);
@@ -982,13 +995,21 @@ pub fn combine_indexed_convex_hull<T: GenericVector2>(
                 } else {
                     // we should have a test here to see if we can end the loop.
                     // if we only knew that end_point was a legit point
+                    if found_a_legit_b_point {
+                        break;
+                    }
                 }
             }
         } else {
+            // when we have found a good end_point from indices_a and we find a bad one, we can
+            // exit the loop
+            let mut found_a_legit_a_point = false;
             for (jj, j) in indices_a.iter().enumerate() {
                 let j = *j;
 
-                if j == point_on_hull.index || j == end_point.index /*|| visited.contains(&j)*/ {
+                if j == point_on_hull.index || j == end_point.index
+                /*|| visited.contains(&j)*/
+                {
                     continue;
                 }
 
@@ -1002,6 +1023,7 @@ pub fn combine_indexed_convex_hull<T: GenericVector2>(
                     end_point.index_index = jj;
                     end_point.index = j;
                     end_point.from_a = true;
+                    found_a_legit_a_point = true;
                 } else if orient == Orientation::Collinear {
                     let distance_sq_candidate =
                         vertices[point_on_hull.index].distance_sq(vertices[j]);
@@ -1014,6 +1036,7 @@ pub fn combine_indexed_convex_hull<T: GenericVector2>(
                         end_point.index_index = jj;
                         end_point.index = j;
                         end_point.from_a = true;
+                        found_a_legit_a_point = true;
                     } else if j != starting_index.index {
                         // This is a collinear point that is closer to the current point, mark it as visited
                         //let _ = visited.insert(j);
@@ -1021,6 +1044,9 @@ pub fn combine_indexed_convex_hull<T: GenericVector2>(
                 } else {
                     // we should have a test here to see if we can end the loop.
                     // if we only knew that end_point was a legit point
+                    if found_a_legit_a_point {
+                        break;
+                    }
                 }
             }
         }
@@ -1148,9 +1174,7 @@ pub fn convex_hull_par<T: GenericVector2>(
             || Ok(vec![start_index]),
             |result, partial_hull| {
                 match result {
-                    Ok(indices) => {
-                        combine_indexed_convex_hull(vertices, Ok(indices), partial_hull)
-                    }
+                    Ok(indices) => combine_indexed_convex_hull(vertices, Ok(indices), partial_hull),
                     Err(some_err) => Err(some_err), // Pass through error
                 }
             },
