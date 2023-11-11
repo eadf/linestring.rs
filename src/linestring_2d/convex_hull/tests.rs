@@ -41,8 +41,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::linestring_2d::convex_hull;
-use vector_traits::glam::DVec2;
+use crate::{linestring_2d::convex_hull, LinestringError};
+use vector_traits::glam::{vec2, DVec2, Vec2};
 
 #[test]
 fn contains_point_exclusive_1() {
@@ -130,4 +130,48 @@ fn contains_point_inclusive_1() {
         &hull,
         [10.0, 9.99999].into()
     ));
+}
+
+#[test]
+fn convex_hull_circle() -> Result<(), LinestringError> {
+    use std::f32::consts::PI;
+
+    // Define the circle parameters
+    let num_points = 1000; // Number of points on the circle
+    let radius = 1.0;
+
+    // Generate points in a circular pattern
+    let mut points: Vec<Vec2> = Vec::new();
+    for i in 0..num_points {
+        let theta = 2.0 * PI * (i as f32) / (num_points as f32);
+        let x = radius * theta.cos();
+        let y = radius * theta.sin();
+        points.push(vec2(x, y));
+    }
+    let indices: Vec<usize> = (0..points.len()).collect();
+
+    // Ensure that the last point is the same as the first to form a closed loop
+    points.push(points[0]);
+
+    // Calculate the convex hull using Graham's Scan
+    let ghs = convex_hull::graham_scan(&points)?;
+
+    // Calculate the convex hull using Gift Wrapping
+    let gw = convex_hull::gift_wrap(&points)?;
+
+    // Calculate the convex hull using convex_hull_par()
+    let chp = convex_hull::convex_hull_par(&points, &indices, num_points / 5)?;
+
+    // Calculate the convex hull using indexed Graham's Scan
+    let ighs = convex_hull::indexed_graham_scan(&points, &indices)?;
+
+    // Calculate the convex hull using indexed Gift Wrapping
+    let igw = convex_hull::indexed_gift_wrap(&points, &indices)?;
+
+    assert_eq!(ghs, gw);
+    assert_eq!(ghs.len(), chp.len());
+    assert_eq!(chp, ighs);
+    assert_eq!(chp, igw);
+
+    Ok(())
 }

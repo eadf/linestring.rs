@@ -238,6 +238,8 @@ pub fn cross_2d<T: GenericVector2>(a: T, b: T, c: T) -> T::Scalar {
 
 /// finds the convex hull using Gift wrapping algorithm
 /// <https://en.wikipedia.org/wiki/Gift_wrapping_algorithm>
+/// This implementation had a problem with never reaching the end condition under certain situations
+/// so i fixed it with a `visited` hashmap.
 ///```
 /// # use linestring::linestring_2d;
 /// # use linestring::linestring_2d::convex_hull;
@@ -345,7 +347,8 @@ pub fn gift_wrap<T: GenericVector2>(mut input_points: &[T]) -> Result<Vec<T>, Li
 }
 
 /// finds the convex hull using the [Gift wrapping algorithm](https://en.wikipedia.org/wiki/Gift_wrapping_algorithm)
-///
+/// This implementation had a problem with never reaching the end condition under certain situations
+/// so i fixed it with a `visited` hashmap.
 /// # Arguments
 ///
 /// * `vertices` - The input vertices.
@@ -389,7 +392,6 @@ pub fn gift_wrap<T: GenericVector2>(mut input_points: &[T]) -> Result<Vec<T>, Li
 /// }
 /// # Ok::<(), linestring::LinestringError>(())
 ///```
-#[inline]
 pub fn indexed_gift_wrap<T: GenericVector2>(
     vertices: &[T],
     indices: &[usize],
@@ -405,6 +407,7 @@ pub fn indexed_gift_wrap<T: GenericVector2>(
 }
 
 /// does the same as indexed_gift_wrap() but does not close the loop
+#[inline]
 fn indexed_gift_wrap_no_loop<T: GenericVector2>(
     vertices: &[T],
     mut indices: &[usize],
@@ -729,7 +732,6 @@ pub fn graham_scan<T: GenericVector2>(mut input_points: &[T]) -> Result<Vec<T>, 
 /// }
 /// # Ok::<(), linestring::LinestringError>(())
 ///```
-#[inline]
 pub fn indexed_graham_scan<T: GenericVector2>(
     vertices: &[T],
     indices: &[usize],
@@ -743,6 +745,7 @@ pub fn indexed_graham_scan<T: GenericVector2>(
     Ok(hull)
 }
 
+#[inline]
 /// does the same as indexed_graham_scan() but does not close the loop
 pub fn indexed_graham_scan_no_loop<T: GenericVector2>(
     vertices: &[T],
