@@ -15,12 +15,14 @@ glam = ["vector-traits/glam"] # this is only needed for the gui, tests and bench
 cgmath = ["vector-traits/cgmath"] # this is only needed for some tests
 
 [dependencies]
-vector-traits = "0.3"
+#vector-traits = "0.3"
+vector-traits = {git = "https://github.com/eadf/vector-traits.git"}
 rayon = "1.8.0"
 ahash = "0.8.6"
 thiserror = "1.0.50"
 itertools = "0.11.0"
 smallvec = "1.11.2"
+vob = "3.0.3"
 
 [[example]]
 name = "fltk_gui"
@@ -30,7 +32,8 @@ path = "example/fltk_gui.rs"
 fltk = "1.4.16"
 rand = "0.8.5"
 criterion = "0.5.1"
-vector-traits = { version = "0.3", features = ["glam"] }
+#vector-traits = { version = "0.3", features = ["glam"] }
+vector-traits = { git = "https://github.com/eadf/vector-traits.git", features = ["glam"] }
 
 [[bench]]
 name = "intersection_bench"

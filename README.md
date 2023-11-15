@@ -53,6 +53,8 @@ The minimum supported version of Rust for `linestring` is `1.66`.
 
 We welcome contributions from the community.
 Feel free to submit pull requests or report issues on our GitHub repository.
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, 
+as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
 
 ## License
 

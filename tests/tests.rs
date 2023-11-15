@@ -13,7 +13,7 @@ use linestring::{
 use std::ops::Neg;
 use vector_traits::{
     approx::{ulps_eq, AbsDiffEq, UlpsEq},
-    glam::{dvec2, vec2, Vec2, Vec3},
+    glam::{dvec2, vec2, Vec2, Vec3, Vec3A},
     Approx, HasXY,
 };
 
@@ -398,7 +398,7 @@ fn simplify_2() {
 
 #[test]
 fn simplify_3() {
-    let line: Vec<Vec3> = vec![
+    let line: Vec<Vec3A> = vec![
         [77f32, 613., 0.].into(),
         [689., 650., 0.].into(),
         [710., 467., 0.].into(),

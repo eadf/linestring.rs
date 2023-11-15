@@ -45,7 +45,6 @@ mod impls;
 mod tests;
 
 use crate::{linestring_2d::LineString2, LinestringError};
-use ahash::AHashSet;
 use itertools::Itertools;
 use rayon::prelude::*;
 use std::cmp::Ordering;
@@ -239,7 +238,7 @@ pub fn cross_2d<T: GenericVector2>(a: T, b: T, c: T) -> T::Scalar {
 /// finds the convex hull using Gift wrapping algorithm
 /// <https://en.wikipedia.org/wiki/Gift_wrapping_algorithm>
 /// This implementation had a problem with never reaching the end condition under certain situations
-/// so i fixed it with a `visited` hashmap.
+/// so i fixed it with a `visited` set.
 ///```
 /// # use linestring::linestring_2d;
 /// # use linestring::linestring_2d::convex_hull;
@@ -267,60 +266,58 @@ pub fn cross_2d<T: GenericVector2>(a: T, b: T, c: T) -> T::Scalar {
 /// }
 /// # Ok::<(), linestring::LinestringError>(())
 ///```
-pub fn gift_wrap<T: GenericVector2>(mut input_points: &[T]) -> Result<Vec<T>, LinestringError> {
-    if input_points.is_empty() {
+pub fn gift_wrap<T: GenericVector2>(mut vertices: &[T]) -> Result<Vec<T>, LinestringError> {
+    if vertices.is_empty() {
         return Ok(Vec::with_capacity(0));
     }
-    if input_points[0] == input_points[input_points.len() - 1] {
+    if vertices[0] == vertices[vertices.len() - 1] {
         // disregard the duplicated loop point if it exists
-        input_points = &input_points[1..];
+        vertices = &vertices[1..];
     }
-    if input_points.len() <= 2 {
-        return Ok(input_points.to_vec());
+    if vertices.len() <= 2 {
+        return Ok(vertices.to_vec());
     }
-    if input_points.len() == 3 {
-        return if is_point_left(input_points[0], input_points[1], input_points[2]) {
-            Ok(input_points.to_vec())
+    if vertices.len() == 3 {
+        return if is_point_left(vertices[0], vertices[1], vertices[2]) {
+            Ok(vertices.to_vec())
         } else {
-            Ok(vec![input_points[0], input_points[2], input_points[1]])
+            Ok(vec![vertices[0], vertices[2], vertices[1]])
         };
     }
 
-    let starting_point = find_lowest_x(input_points)?.0;
+    let starting_point = find_lowest_x(vertices)?.0;
 
-    let mut hull = Vec::with_capacity(input_points.len() / 2);
+    let mut hull = Vec::with_capacity(vertices.len() / 2);
     // To track visited points
-    let mut visited = AHashSet::with_capacity(input_points.len());
+    let mut visited: vob::Vob<u32> = vob::Vob::new_with_storage_type(vertices.len());
+    visited.resize(vertices.len(), false);
+
     let mut point_on_hull = starting_point;
     //println!("starting point {:?}:{}", input_points[starting_point], starting_point);
     loop {
-        hull.push(input_points[point_on_hull]);
+        hull.push(vertices[point_on_hull]);
         if point_on_hull != starting_point {
             // don't mark the starting_point or we won't know where to stop
             //println!("hull marking {:?}:{} as visited", input_points[point_on_hull], point_on_hull);
-            let _ = visited.insert(point_on_hull);
+            let _ = visited.set(point_on_hull, true);
         }
-        let mut end_point = (point_on_hull + 1) % input_points.len();
+        let mut end_point = (point_on_hull + 1) % vertices.len();
 
-        for j in 0..input_points.len() {
-            if j == point_on_hull || j == end_point || visited.contains(&j) {
+        for j in 0..vertices.len() {
+            if j == point_on_hull || j == end_point || visited[j] {
                 continue;
             }
 
-            let orient = point_orientation(
-                input_points[point_on_hull],
-                input_points[end_point],
-                input_points[j],
-            );
+            let orient =
+                point_orientation(vertices[point_on_hull], vertices[end_point], vertices[j]);
             if orient == Orientation::Right {
                 // replace end_point with the candidate if candidate is to the right,
                 end_point = j;
             } else if orient == Orientation::Collinear {
                 //println!("the points {:?}:{},{:?}:{},{:?}:{} were collinear", input_points[point_on_hull],point_on_hull, input_points[end_point], end_point, input_points[j],j );
-                let distance_sq_candidate =
-                    input_points[point_on_hull].distance_sq(input_points[j]);
+                let distance_sq_candidate = vertices[point_on_hull].distance_sq(vertices[j]);
                 let distance_sq_end_point =
-                    input_points[point_on_hull].distance_sq(input_points[end_point]);
+                    vertices[point_on_hull].distance_sq(vertices[end_point]);
 
                 if distance_sq_candidate > distance_sq_end_point {
                     // if point_on_hull->end_point && point_on_hull->candidate are collinear and
@@ -329,7 +326,7 @@ pub fn gift_wrap<T: GenericVector2>(mut input_points: &[T]) -> Result<Vec<T>, Li
                 } else if j != starting_point {
                     // This is a collinear point that is closer to the current point, mark it as visited
                     //println!("coll marking {:?}:{} as visited", input_points[j], j);
-                    let _ = visited.insert(j);
+                    let _ = visited.set(j, true);
                 }
             }
         }
@@ -338,7 +335,7 @@ pub fn gift_wrap<T: GenericVector2>(mut input_points: &[T]) -> Result<Vec<T>, Li
         if end_point == starting_point {
             // complete the loop, `hull` now represents a closed loop of points.
             // Each edge can be iterated over by `hull.iter().window(2)`
-            hull.push(input_points[end_point]);
+            hull.push(vertices[end_point]);
             break;
         }
     }
@@ -348,7 +345,7 @@ pub fn gift_wrap<T: GenericVector2>(mut input_points: &[T]) -> Result<Vec<T>, Li
 
 /// finds the convex hull using the [Gift wrapping algorithm](https://en.wikipedia.org/wiki/Gift_wrapping_algorithm)
 /// This implementation had a problem with never reaching the end condition under certain situations
-/// so i fixed it with a `visited` hashmap.
+/// so i fixed it with a `visited` set.
 /// # Arguments
 ///
 /// * `vertices` - The input vertices.
@@ -439,19 +436,21 @@ fn indexed_gift_wrap_no_loop<T: GenericVector2>(
 
     let mut hull = Vec::with_capacity(indices.len() / 4);
     // To track visited points
-    let mut visited = AHashSet::with_capacity(indices.len());
+    let mut visited: vob::Vob<u32> = vob::Vob::new_with_storage_type(indices.len());
+    visited.resize(indices.len(), false);
+
     let mut point_on_hull = starting_index;
     //println!("starting point {:?}:{}", input_points[starting_point], starting_point);
     loop {
         hull.push(indices[point_on_hull]);
         if point_on_hull != starting_index {
             // don't mark the starting_point or we won't know where to stop
-            let _ = visited.insert(point_on_hull);
+            let _ = visited.set(point_on_hull, true);
         }
         let mut end_point = (point_on_hull + 1) % indices.len();
 
         for j in 0..indices.len() {
-            if j == point_on_hull || j == end_point || visited.contains(&j) {
+            if j == point_on_hull || j == end_point || visited[j] {
                 continue;
             }
 
@@ -475,7 +474,7 @@ fn indexed_gift_wrap_no_loop<T: GenericVector2>(
                     end_point = j;
                 } else if j != starting_index {
                     // This is a collinear point that is closer to the current point, mark it as visited
-                    let _ = visited.insert(j);
+                    let _ = visited.set(j, true);
                 }
             }
         }
