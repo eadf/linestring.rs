@@ -4,6 +4,11 @@
 // This file is part of the linestring crate.
 
 #![deny(warnings)]
+// Emit a compilation error if the required features are not set
+#[cfg(not(all(feature = "glam", feature = "cgmath")))]
+compile_error!(
+    "All of the traits 'glam', 'cgmath' and 'vector-traits' features must be enabled for tests"
+);
 
 use linestring::{
     linestring_2d::{self, Aabb2, Intersection, Line2, LineString2, SimpleAffine},

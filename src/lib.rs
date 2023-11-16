@@ -103,7 +103,10 @@ pub enum LinestringError {
 
 pub mod linestring_2d;
 pub mod linestring_3d;
+pub mod shape;
 
 pub mod prelude {
-    pub use crate::linestring_2d::LineString2;
+    pub use crate::{
+        linestring_2d::LineString2, linestring_3d::LineString3, shape::divide_into_shapes,
+    };
 }
