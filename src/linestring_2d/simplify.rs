@@ -107,10 +107,9 @@ pub(super) fn simplify_rdp_recursive<T: GenericVector2>(
 ///
 /// ```
 /// # use vector_traits::glam;
-/// use linestring::prelude::indexed_simplify_rdp;
-/// use glam::Vec2;
+/// use linestring::prelude::indexed_simplify_rdp_2d;
 ///
-/// let line: Vec<Vec2> = vec![
+/// let line: Vec<glam::Vec2> = vec![
 ///     (0.0, 3.0).into(),
 ///     (1.0, 2.0).into(),
 ///     (4.0, 1.0).into(),
@@ -118,7 +117,7 @@ pub(super) fn simplify_rdp_recursive<T: GenericVector2>(
 /// ];
 /// let indices: Vec<usize> = vec![0, 1, 2, 3];
 /// // Simplify the polyline using the Ramer–Douglas–Peucker algorithm
-/// let simplified_line = indexed_simplify_rdp(&line, &indices, 1.0);
+/// let simplified_line = indexed_simplify_rdp_2d(&line, &indices, 1.0);
 /// // The result will have fewer points while preserving the overall shape
 /// assert_eq!(2, simplified_line.windows(2).len());
 /// ```

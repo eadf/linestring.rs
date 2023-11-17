@@ -44,15 +44,15 @@ limitations under the License.
 mod impls;
 
 use crate::{linestring_2d::LineStringSet2, LinestringError};
-use ahash::AHashMap;
 use itertools::Itertools;
-use std::{collections, collections::BinaryHeap, fmt, fs, hash::Hash, io, io::Write, path};
+use std::{collections, fmt, fs, hash::Hash, io, io::Write, path};
 use vector_traits::{
     approx::{ulps_eq, AbsDiffEq, UlpsEq},
     num_traits::real::Real,
     GenericScalar, GenericVector3, HasXY,
 };
 
+pub(crate) mod simplify;
 #[cfg(test)]
 mod tests;
 
@@ -389,15 +389,9 @@ impl<T: GenericVector3> LineString3<T> for Vec<T> {
     }
 
     /// Simplify using Ramer–Douglas–Peucker algorithm adapted for 3d
+    #[inline(always)]
     fn simplify_rdp(&self, distance_predicate: T::Scalar) -> Self {
-        if self.len() <= 2 {
-            return self.clone();
-        }
-
-        let mut rv: Vec<T> = Vec::with_capacity(self.len());
-        rv.push(self[0]);
-        simplify_rdp_recursive(&mut rv, self, distance_predicate * distance_predicate);
-        rv
+        simplify::simplify_rdp(self, distance_predicate)
     }
 
     /// Simplify using Visvalingam–Whyatt algorithm adapted for 3d.
@@ -405,135 +399,9 @@ impl<T: GenericVector3> LineString3<T> for Vec<T> {
     /// area defined by one point and it's neighbours.
     /// Simplify using Visvalingam–Whyatt algorithm. This algorithm will delete 'points_to_delete'
     /// of points from the polyline with the smallest area defined by one point and it's neighbours.
+    #[inline(always)]
     fn simplify_vw(&self, points_to_delete: usize) -> Self {
-        if self.len() <= 2 {
-            // Nothing to do here, we can't delete endpoints
-            return self.clone();
-        }
-        // priority queue key: area, value: indices of self.points + a copy of area.
-        // When a point is removed it's previously calculated area-to-neighbour value will not be
-        // removed. Instead new areas will simply be added to the priority queue.
-        // If a removed node is pop():ed it will be checked against the link_tree hash map.
-        // If it is not in there or if the area doesn't match it will simply be ignored and a
-        // new value pop():ed.
-
-        let mut search_tree = BinaryHeap::<PriorityDistance<T>>::new();
-        // map from node number to remaining neighbours of that node. All indices of self.points
-        // AHashMap::<node_id:usize, (prev_node_id:usize, next_node_id:usize, area:T)>
-        let mut link_tree = AHashMap::<usize, (usize, usize, T::Scalar)>::default();
-        {
-            let mut iter_i = self.iter().enumerate();
-            let mut iter_j = self.iter().enumerate().skip(1);
-            // the k iterator will terminate before i & j, so the iter_i & iter_j unwrap()s are safe
-            for k in self.iter().enumerate().skip(2) {
-                let i = iter_i.next().unwrap();
-                let j = iter_j.next().unwrap();
-                // define the area between point i, j & k as search criteria
-                let area = Line3::triangle_area_squared_times_4(i.1, j.1, k.1);
-                search_tree.push(PriorityDistance {
-                    key: area,
-                    index: j.0,
-                });
-                // point j is connected to point i and k
-                let _ = link_tree.insert(j.0, (i.0, k.0, area));
-            }
-        }
-
-        let self_points_len = self.len();
-
-        let mut deleted_nodes: usize = 0;
-        loop {
-            if search_tree.is_empty() || deleted_nodes >= points_to_delete {
-                break;
-            }
-            if let Some(smallest) = search_tree.pop() {
-                if let Some(old_links) = link_tree.get(&smallest.index).copied() {
-                    let area = old_links.2;
-                    if smallest.key != area {
-                        // we hit a lazily deleted node, try again
-                        continue;
-                    } else {
-                        let _ = link_tree.remove(&smallest.index);
-                    }
-                    deleted_nodes += 1;
-
-                    let prev = old_links.0;
-                    let next = old_links.1;
-
-                    let prev_prev: Option<usize> = link_tree.get(&prev).map(|link| link.0);
-                    let next_next: Option<usize> = link_tree.get(&next).map(|link| link.1);
-
-                    if let Some(next_next) = next_next {
-                        if let Some(prev_prev) = prev_prev {
-                            let area = Line3::triangle_area_squared_times_4(
-                                &self[prev],
-                                &self[next % self_points_len],
-                                &self[next_next % self_points_len],
-                            );
-                            search_tree.push(PriorityDistance {
-                                key: area,
-                                index: next,
-                            });
-                            let _ = link_tree.insert(next, (prev, next_next, area));
-
-                            let area = Line3::triangle_area_squared_times_4(
-                                &self[prev_prev],
-                                &self[prev],
-                                &self[next % self_points_len],
-                            );
-                            search_tree.push(PriorityDistance {
-                                key: area,
-                                index: prev,
-                            });
-                            let _ = link_tree.insert(prev, (prev_prev, next, area));
-                            continue;
-                        }
-                    }
-
-                    if let Some(prev_prev) = prev_prev {
-                        let area = Line3::triangle_area_squared_times_4(
-                            &self[prev_prev],
-                            &self[prev],
-                            &self[next % self_points_len],
-                        );
-                        search_tree.push(PriorityDistance {
-                            key: area,
-                            index: prev,
-                        });
-                        let _ = link_tree.insert(prev, (prev_prev, next, area));
-                        continue;
-                    };
-
-                    if let Some(next_next) = next_next {
-                        let area = Line3::triangle_area_squared_times_4(
-                            &self[prev],
-                            &self[next % self_points_len],
-                            &self[next_next % self_points_len],
-                        );
-                        search_tree.push(PriorityDistance {
-                            key: area,
-                            index: next,
-                        });
-                        let _ = link_tree.insert(next, (prev, next_next, area));
-
-                        continue;
-                    };
-                } else {
-                    // we hit a lazily deleted node, try again
-                    continue;
-                }
-            }
-        }
-
-        // Todo: we *know* the order of the points, remove sorted_unstable()
-        // we just don't know the first non-deleted point after start :/
-
-        [0_usize]
-            .iter()
-            .copied()
-            .chain(link_tree.keys().sorted_unstable().copied())
-            .map(|x| self[x])
-            .collect::<Self>()
+        simplify::simplify_vw(self, points_to_delete)
     }
 
     fn apply<F: Fn(T) -> T>(&mut self, f: &F) {
@@ -562,7 +430,7 @@ impl<T: GenericVector3> LineStringSet3<T> {
             self.set.push(ls);
 
             for ls in self.set.last().unwrap().iter() {
-                self.aabb.update_point(*ls);
+                self.aabb.update_with_point(*ls);
             }
         }
     }
@@ -594,46 +462,6 @@ impl<T: GenericVector3> LineStringSet3<T> {
     }
 }
 
-/// The actual implementation of rdp
-fn simplify_rdp_recursive<T: GenericVector3>(
-    rv: &mut Vec<T>,
-    points: &[T],
-    distance_predicate_sq: T::Scalar,
-) {
-    if points.len() <= 2 {
-        rv.push(*points.last().unwrap());
-        return;
-    }
-
-    let start_point = points[0];
-    let end_point = points[points.len() - 1];
-
-    let (max_dist_sq, index) = points
-        .iter()
-        .enumerate()
-        .skip(1)
-        .take(points.len() - 2)
-        .map(|(i, &point)| {
-            (
-                distance_to_line_squared_safe(start_point, end_point, point),
-                i,
-            )
-        })
-        .max_by(|(dist1, _), (dist2, _)| {
-            dist1
-                .partial_cmp(dist2)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        })
-        .unwrap_or((-T::Scalar::ONE, 0)); // default that's unlikely to be used
-
-    if max_dist_sq <= distance_predicate_sq {
-        rv.push(end_point);
-    } else {
-        simplify_rdp_recursive(rv, &points[..index + 1], distance_predicate_sq);
-        simplify_rdp_recursive(rv, &points[index..], distance_predicate_sq);
-    }
-}
-
 impl<T: GenericVector3, IT> From<[IT; 2]> for Aabb3<T>
 where
     IT: Copy + Into<T>,
@@ -659,12 +487,12 @@ impl<T: GenericVector3> From<[T::Scalar; 6]> for Aabb3<T> {
 impl<T: GenericVector3> Aabb3<T> {
     pub fn update_aabb(&mut self, aabb: Aabb3<T>) {
         if let Some((min, max)) = aabb.min_max {
-            self.update_point(min);
-            self.update_point(max);
+            self.update_with_point(min);
+            self.update_with_point(max);
         }
     }
 
-    pub fn update_point(&mut self, point: T) {
+    pub fn update_with_point(&mut self, point: T) {
         if self.min_max.is_none() {
             self.min_max = Some((point, point));
             return;
@@ -795,7 +623,6 @@ pub fn distance_to_line_squared_safe<T: GenericVector3>(l0: T, l1: T, p: T) -> T
 }
 
 /// Rudimentary save line strings to .obj file function
-/// It is extremely inefficient, but it works.
 pub fn save_to_obj_file<T: GenericVector3>(
     filename: &str,
     object_name: &str,

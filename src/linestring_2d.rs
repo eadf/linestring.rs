@@ -670,10 +670,12 @@ impl<'a, T: GenericVector2> ChunkIterator<'a, T> {
         self.0.len() == 0
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    #[inline(always)]
     #[must_use]
     pub fn remainder(&self) -> &'a [T] {
         self.0.remainder()
@@ -1030,6 +1032,7 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
     ///
     /// For more information on the Visvalingam–Whyatt algorithm, see:
     /// [Visvalingam–Whyatt algorithm](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm)
+    #[inline(always)]
     fn simplify_vw(&self, points_to_delete: usize) -> Self {
         simplify::simplify_vw(self, points_to_delete)
     }

@@ -11,7 +11,7 @@ compile_error!("All of the traits 'glam' and 'cgmath' features must be enabled f
 use linestring::{
     linestring_2d::{self, Aabb2, Intersection, Line2, LineString2, SimpleAffine},
     linestring_3d::{Line3, LineString3},
-    prelude::indexed_simplify_rdp,
+    prelude::{indexed_simplify_rdp_2d, indexed_simplify_rdp_3d},
     LinestringError,
 };
 use std::ops::Neg;
@@ -425,7 +425,27 @@ fn simplify_4() {
     let indices: Vec<usize> = vec![0, 1, 2, 3];
     assert_eq!(
         2,
-        indexed_simplify_rdp(&line, &indices, 1.0).windows(2).len()
+        indexed_simplify_rdp_2d(&line, &indices, 1.0)
+            .windows(2)
+            .len()
+    );
+    assert_eq!(2, line.simplify_rdp(1.0).window_iter().len());
+}
+
+#[test]
+fn simplify_5() {
+    let line: Vec<Vec3> = vec![
+        (0.0, 3.0, 0.0).into(),
+        (1.0, 2.0, 0.0).into(),
+        (4.0, 1.0, 0.0).into(),
+        (0.0, 0.0, 0.0).into(),
+    ];
+    let indices: Vec<usize> = vec![0, 1, 2, 3];
+    assert_eq!(
+        2,
+        indexed_simplify_rdp_3d(&line, &indices, 1.0)
+            .windows(2)
+            .len()
     );
     assert_eq!(2, line.simplify_rdp(1.0).window_iter().len());
 }
