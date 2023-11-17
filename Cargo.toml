@@ -20,7 +20,7 @@ vector-traits = {git = "https://github.com/eadf/vector-traits.git"}
 rayon = "1.8.0"
 ahash = "0.8.6"
 thiserror = "1.0.50"
-itertools = "0.11.0"
+itertools = "0.12.0"
 smallvec = "1.11.2"
 vob = "3.0.3"
 
@@ -29,7 +29,7 @@ name = "fltk_gui"
 path = "example/fltk_gui.rs"
 
 [dev-dependencies]
-fltk = "1.4.16"
+fltk = "1.4.17"
 rand = "0.8.5"
 criterion = "0.5.1"
 #vector-traits = { version = "0.3", features = ["glam"] }

@@ -412,10 +412,7 @@ fn simplify_3() {
         [100., 100., 0.].into(),
         [77., 613., 0.].into(),
     ];
-    #[allow(deprecated)]
-    {
-        assert_eq!(6, line.simplify_rdp(1.0).window_iter().len());
-    }
+    assert_eq!(6, line.simplify_rdp(1.0).window_iter().len());
 }
 
 #[test]

@@ -42,9 +42,7 @@ limitations under the License.
 */
 
 use crate::{linestring_3d, linestring_3d::Plane, LinestringError};
-use collections::binary_heap::BinaryHeap;
-use itertools::Itertools;
-use std::{collections, fmt::Debug};
+use std::fmt::Debug;
 use vector_traits::{
     approx::*,
     num_traits::{Float, One, Zero},
@@ -58,6 +56,7 @@ pub mod impls;
 pub mod indexed_intersection;
 /// Module containing the intersection calculations
 pub mod intersection;
+mod simplify;
 #[cfg(test)]
 mod tests;
 
@@ -929,7 +928,51 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
         )
     }
 
-    /// Simplify using Ramer–Douglas–Peucker algorithm
+    /// Simplify a polyline using the Ramer–Douglas–Peucker algorithm.
+    ///
+    /// The Ramer–Douglas–Peucker algorithm simplifies a polyline by recursively removing points
+    /// that are within a specified distance of the line segment connecting the start and end points.
+    /// This can be useful for reducing the number of points in a polyline while preserving its shape.
+    ///
+    /// # Parameters
+    ///
+    /// - `distance_predicate`: The squared distance threshold. Points within this squared distance
+    ///   of the line segment will be removed during simplification.
+    ///
+    /// # Returns
+    ///
+    /// A simplified polyline represented as a `Vec<T>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use vector_traits::glam;
+    /// use linestring::prelude::LineString2;
+    /// use glam::Vec2;
+    ///
+    /// let line: Vec<Vec2> = vec![
+    ///     [77.0, 613.0].into(),
+    ///     [689.0, 650.0].into(),
+    ///     [710.0, 467.0].into(),
+    ///     [220.0, 200.0].into(),
+    ///     [120.0, 300.0].into(),
+    ///     [100.0, 100.0].into(),
+    ///     [77.0, 613.0].into(),
+    /// ];
+    ///
+    /// // Simplify the polyline using the Ramer–Douglas–Peucker algorithm
+    /// let simplified_line = line.simplify_rdp(1.0);
+    ///
+    /// // The result will have fewer points while preserving the overall shape
+    /// assert_eq!(6, simplified_line.windows(2).len());
+    /// ```
+    ///
+    /// In this example, the original polyline `line` is simplified using the Ramer–Douglas–Peucker
+    /// algorithm with a squared distance threshold of 1.0. The resulting simplified polyline is then
+    /// checked for the expected number of points using `windows(2)`.
+    ///
+    /// For more information on the Ramer–Douglas–Peucker algorithm, see:
+    /// [Ramer–Douglas–Peucker algorithm](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm)
     fn simplify_rdp(&self, distance_predicate: T::Scalar) -> Self {
         if self.len() <= 2 {
             return self.clone();
@@ -937,169 +980,58 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
 
         let mut rv: Vec<T> = Vec::with_capacity(self.len());
         rv.push(self[0]);
-        simplify_rdp_recursive(&mut rv, self, distance_predicate * distance_predicate);
+        simplify::simplify_rdp_recursive(&mut rv, self, distance_predicate * distance_predicate);
         rv
     }
 
-    /// Simplify using Visvalingam–Whyatt algorithm. This algorithm will delete 'points_to_delete'
-    /// of points from the polyline with the smallest area defined by one point and it's neighbours.
+    /// Simplify a polyline using the Visvalingam–Whyatt algorithm.
+    ///
+    /// The Visvalingam–Whyatt algorithm simplifies a polyline by iteratively removing a specified
+    /// number of points with the smallest area defined by one point and its neighbors. This can be
+    /// useful for reducing the number of points in a polyline while preserving its overall shape.
+    ///
+    /// # Parameters
+    ///
+    /// - `points_to_delete`: The number of points to delete during simplification. This parameter
+    ///   controls the aggressiveness of the simplification process.
+    ///
+    /// # Returns
+    ///
+    /// A simplified polyline represented as a `Vec<T>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use vector_traits::glam;
+    /// use linestring::prelude::LineString2;
+    /// use glam::Vec2;
+    ///
+    ///
+    /// let line: Vec<Vec2> = vec![
+    ///     [77.0, 613.0].into(),
+    ///     [689.0, 650.0].into(),
+    ///     [710.0, 467.0].into(),
+    ///     [220.0, 200.0].into(),
+    ///     [120.0, 300.0].into(),
+    ///     [100.0, 100.0].into(),
+    ///     [77.0, 613.0].into(),
+    /// ];
+    ///
+    /// // Simplify the polyline using the Visvalingam–Whyatt algorithm, deleting 4 points
+    /// let simplified_line = line.simplify_vw(4);
+    ///
+    /// // The result will have fewer points while preserving the overall shape
+    /// assert_eq!(line.len() - 4, simplified_line.len());
+    /// ```
+    ///
+    /// In this example, the original polyline `line` is simplified using the Visvalingam–Whyatt
+    /// algorithm with the deletion of 4 points. The resulting simplified polyline is then checked
+    /// for the expected number of points using `len()`.
+    ///
+    /// For more information on the Visvalingam–Whyatt algorithm, see:
+    /// [Visvalingam–Whyatt algorithm](https://en.wikipedia.org/wiki/Visvalingam–Whyatt_algorithm)
     fn simplify_vw(&self, points_to_delete: usize) -> Self {
-        let connected = self.is_connected();
-        if self.len() <= 2 {
-            // Nothing to do here, we can't delete endpoints
-            return self.clone();
-        }
-        // priority queue key: area, value: indices of self.points + a copy of area.
-        // When a point is removed it's previously calculated area-to-neighbour value will not be
-        // removed. Instead new areas will simply be added to the priority queue.
-        // If a removed node is pop():ed it will be checked against the link_tree hash map.
-        // If it is not in there or if the area doesn't match it will simply be ignored and a
-        // new value pop():ed.
-
-        let mut search_tree = BinaryHeap::<PriorityDistance<T>>::new();
-        // map from node number to remaining neighbours of that node. All indices of self.points
-        // AHashMap::<node_id:usize, (prev_node_id:usize, next_node_id:usize, area:T)>
-        let mut link_tree = ahash::AHashMap::<usize, (usize, usize, T::Scalar)>::default();
-        {
-            let mut iter_i = self.iter().enumerate();
-            let mut iter_j = self.iter().enumerate().skip(1);
-            // the k iterator will terminate before i & j, so the iter_i & iter_j unwrap()s are safe
-            for k in self.iter().enumerate().skip(2) {
-                let i = iter_i.next().unwrap();
-                let j = iter_j.next().unwrap();
-                // define the area between point i, j & k as search criteria
-                let area = Line2::triangle_area_squared_times_4(*i.1, *j.1, *k.1);
-                search_tree.push(PriorityDistance {
-                    key: area,
-                    index: j.0,
-                });
-                // point j is connected to point i and k
-                let _ = link_tree.insert(j.0, (i.0, k.0, area));
-            }
-        }
-        if connected {
-            // add an extra point at the end, faking the loop
-            let i = self.len() - 2;
-            let j = self.len() - 1;
-            let k = self.len();
-            let area = Line2::triangle_area_squared_times_4(self[i], self[j], self[0]);
-            search_tree.push(PriorityDistance {
-                key: area,
-                index: j,
-            });
-            let _ = link_tree.insert(j, (i, k, area));
-        }
-
-        let self_points_len = self.len();
-
-        let mut deleted_nodes: usize = 0;
-        loop {
-            if search_tree.is_empty() || link_tree.len() == 2 || deleted_nodes >= points_to_delete {
-                break;
-            }
-
-            if let Some(smallest) = search_tree.pop() {
-                if let Some(old_links) = link_tree.get(&smallest.index).copied() {
-                    let area = old_links.2;
-                    if smallest.key != area {
-                        // we hit a lazily deleted node, try again
-                        continue;
-                    } else {
-                        let _ = link_tree.remove(&smallest.index);
-                    }
-                    deleted_nodes += 1;
-
-                    let prev = old_links.0;
-                    let next = old_links.1;
-
-                    let prev_prev: Option<usize> = link_tree.get(&prev).map(|link| link.0);
-                    let next_next: Option<usize> = link_tree.get(&next).map(|link| link.1);
-
-                    if let Some(next_next) = next_next {
-                        if let Some(prev_prev) = prev_prev {
-                            let area = Line2::triangle_area_squared_times_4(
-                                self[prev],
-                                self[next % self_points_len],
-                                self[next_next % self_points_len],
-                            );
-                            search_tree.push(PriorityDistance {
-                                key: area,
-                                index: next,
-                            });
-                            let _ = link_tree.insert(next, (prev, next_next, area));
-
-                            let area = Line2::triangle_area_squared_times_4(
-                                self[prev_prev],
-                                self[prev],
-                                self[next % self_points_len],
-                            );
-                            search_tree.push(PriorityDistance {
-                                key: area,
-                                index: prev,
-                            });
-                            let _ = link_tree.insert(prev, (prev_prev, next, area));
-                            continue;
-                        }
-                    }
-
-                    if let Some(prev_prev) = prev_prev {
-                        let area = Line2::triangle_area_squared_times_4(
-                            self[prev_prev],
-                            self[prev],
-                            self[next % self_points_len],
-                        );
-                        search_tree.push(PriorityDistance {
-                            key: area,
-                            index: prev,
-                        });
-                        let _ = link_tree.insert(prev, (prev_prev, next, area));
-                        continue;
-                    };
-
-                    if let Some(next_next) = next_next {
-                        let area = Line2::triangle_area_squared_times_4(
-                            self[prev],
-                            self[next % self_points_len],
-                            self[next_next % self_points_len],
-                        );
-                        search_tree.push(PriorityDistance {
-                            key: area,
-                            index: next,
-                        });
-                        let _ = link_tree.insert(next, (prev, next_next, area));
-
-                        continue;
-                    };
-                } else {
-                    // we hit a lazily deleted node, try again
-                    continue;
-                }
-            }
-        }
-
-        // Todo: we *know* the order of the points, remove sorted_unstable()
-        // we just don't know the first non-deleted point after start :/
-        if !connected {
-            [0_usize]
-                .iter()
-                .copied()
-                .chain(
-                    link_tree
-                        .keys()
-                        .sorted_unstable()
-                        .copied()
-                        .chain([self.len() - 1].iter().copied()),
-                )
-                .map(|x| self[x])
-                .collect::<Self>()
-        } else {
-            [0_usize]
-                .iter()
-                .copied()
-                .chain(link_tree.keys().sorted_unstable().copied())
-                .map(|x| self[x])
-                .collect::<Self>()
-        }
+        simplify::simplify_vw(self, points_to_delete)
     }
 
     /// Returns true if self is a convex hull and it contains the 'b' point (inclusive)
@@ -1127,46 +1059,6 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
         for v in self.iter_mut() {
             *v = f(*v)
         }
-    }
-}
-
-/// The actual implementation of rdp
-fn simplify_rdp_recursive<T: GenericVector2>(
-    rv: &mut Vec<T>,
-    points: &[T],
-    distance_predicate_sq: T::Scalar,
-) {
-    if points.len() <= 2 {
-        rv.push(*points.last().unwrap());
-        return;
-    }
-
-    let start_point = points[0];
-    let end_point = points[points.len() - 1];
-
-    let (max_dist_sq, index) = points
-        .iter()
-        .enumerate()
-        .skip(1)
-        .take(points.len() - 2)
-        .map(|(i, &point)| {
-            (
-                distance_to_line_squared_safe(start_point, end_point, point),
-                i,
-            )
-        })
-        .max_by(|(dist1, _), (dist2, _)| {
-            dist1
-                .partial_cmp(dist2)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        })
-        .unwrap_or((-T::Scalar::ONE, 0)); // default that's unlikely to be used
-
-    if max_dist_sq <= distance_predicate_sq {
-        rv.push(end_point);
-    } else {
-        simplify_rdp_recursive(rv, &points[..index + 1], distance_predicate_sq);
-        simplify_rdp_recursive(rv, &points[index..], distance_predicate_sq);
     }
 }
 
