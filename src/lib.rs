@@ -107,6 +107,8 @@ pub mod shape;
 
 pub mod prelude {
     pub use crate::{
-        linestring_2d::LineString2, linestring_3d::LineString3, shape::divide_into_shapes,
+        linestring_2d::{simplify::indexed_simplify_rdp, LineString2},
+        linestring_3d::LineString3,
+        shape::divide_into_shapes,
     };
 }

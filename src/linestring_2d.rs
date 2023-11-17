@@ -56,7 +56,7 @@ pub mod impls;
 pub mod indexed_intersection;
 /// Module containing the intersection calculations
 pub mod intersection;
-mod simplify;
+pub(crate) mod simplify;
 #[cfg(test)]
 mod tests;
 

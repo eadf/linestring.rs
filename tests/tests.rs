@@ -6,13 +6,12 @@
 #![deny(warnings)]
 // Emit a compilation error if the required features are not set
 #[cfg(not(all(feature = "glam", feature = "cgmath")))]
-compile_error!(
-    "All of the traits 'glam', 'cgmath' and 'vector-traits' features must be enabled for tests"
-);
+compile_error!("All of the traits 'glam' and 'cgmath' features must be enabled for tests");
 
 use linestring::{
     linestring_2d::{self, Aabb2, Intersection, Line2, LineString2, SimpleAffine},
     linestring_3d::{Line3, LineString3},
+    prelude::indexed_simplify_rdp,
     LinestringError,
 };
 use std::ops::Neg;
@@ -413,6 +412,22 @@ fn simplify_3() {
         [77., 613., 0.].into(),
     ];
     assert_eq!(6, line.simplify_rdp(1.0).window_iter().len());
+}
+
+#[test]
+fn simplify_4() {
+    let line: Vec<Vec2> = vec![
+        (0.0, 3.0).into(),
+        (1.0, 2.0).into(),
+        (4.0, 1.0).into(),
+        (0.0, 0.0).into(),
+    ];
+    let indices: Vec<usize> = vec![0, 1, 2, 3];
+    assert_eq!(
+        2,
+        indexed_simplify_rdp(&line, &indices, 1.0).windows(2).len()
+    );
+    assert_eq!(2, line.simplify_rdp(1.0).window_iter().len());
 }
 
 #[test]

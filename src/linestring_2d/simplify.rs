@@ -86,6 +86,129 @@ pub(super) fn simplify_rdp_recursive<T: GenericVector2>(
     }
 }
 
+/// Simplify a polyline using the Ramer–Douglas–Peucker algorithm.
+///
+/// The Ramer–Douglas–Peucker algorithm simplifies a polyline by recursively removing points
+/// that are within a specified distance of the line segment connecting the start and end points.
+/// This can be useful for reducing the number of points in a polyline while preserving its shape.
+///
+/// # Parameters
+///
+/// - `vertices`: A slice of generic vectors representing the points in the polyline.
+/// - `indices`: An index slice representing the indices of the points in the polyline.
+/// - `distance_predicate`: The squared distance threshold. Points within this squared distance
+///   of the line segment will be removed during simplification.
+///
+/// # Returns
+///
+/// A `Vec<usize>` containing the indices of the simplified polyline.
+///
+/// # Examples
+///
+/// ```
+/// # use vector_traits::glam;
+/// use linestring::prelude::indexed_simplify_rdp;
+/// use glam::Vec2;
+///
+/// let line: Vec<Vec2> = vec![
+///     (0.0, 3.0).into(),
+///     (1.0, 2.0).into(),
+///     (4.0, 1.0).into(),
+///     (0.0, 0.0).into(),
+/// ];
+/// let indices: Vec<usize> = vec![0, 1, 2, 3];
+/// // Simplify the polyline using the Ramer–Douglas–Peucker algorithm
+/// let simplified_line = indexed_simplify_rdp(&line, &indices, 1.0);
+/// // The result will have fewer points while preserving the overall shape
+/// assert_eq!(2, simplified_line.windows(2).len());
+/// ```
+///
+/// In this example, the original polyline `line` is simplified using the Ramer–Douglas–Peucker
+/// algorithm with a squared distance threshold of 1.0. The resulting simplified polyline is then
+/// checked for the expected number of points using `windows(2)`.
+///
+/// For more information on the Ramer–Douglas–Peucker algorithm, see:
+/// [Ramer–Douglas–Peucker algorithm](https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm)
+pub fn indexed_simplify_rdp<T: GenericVector2>(
+    vertices: &[T],
+    indices: &[usize],
+    distance_predicate: T::Scalar,
+) -> Vec<usize> {
+    if vertices.len() <= 2 {
+        return indices.to_vec();
+    }
+
+    let mut simplified_indices = Vec::new();
+    simplified_indices.push(indices[0]);
+
+    indexed_simplify_rdp_recursive(
+        &mut simplified_indices,
+        vertices,
+        indices,
+        distance_predicate * distance_predicate,
+    );
+
+    simplified_indices
+}
+
+/// The actual implementation of the indexed rdp
+fn indexed_simplify_rdp_recursive<T: GenericVector2>(
+    simplified_indices: &mut Vec<usize>,
+    vertices: &[T],
+    indices: &[usize],
+    distance_predicate_sq: T::Scalar,
+) {
+    //println!(">indices:{:?} len:{}", indices, indices.len());
+    if indices.len() <= 2 {
+        simplified_indices.push(*indices.last().unwrap());
+        return;
+    }
+
+    let start_index = indices[0];
+    let end_index = indices[indices.len() - 1];
+
+    let (max_dist_sq, index_index) = indices
+        .iter()
+        .enumerate()
+        .skip(1)
+        .take(indices.len() - 2)
+        .map(|(i, &point_i)| {
+            //assert_eq!(point_i, indices[i]);
+            (
+                super::distance_to_line_squared_safe(
+                    vertices[start_index],
+                    vertices[end_index],
+                    vertices[point_i],
+                ),
+                i,
+            )
+        })
+        .max_by(|(dist1, _), (dist2, _)| {
+            dist1
+                .partial_cmp(dist2)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .unwrap_or((-T::Scalar::ONE, 0)); // default that's unlikely to be used
+                                          //println!("max dist:{:?}, index_index:{}, simplified_indices:{:?}", max_dist_sq, index_index, simplified_indices);
+    if max_dist_sq <= distance_predicate_sq {
+        simplified_indices.push(end_index);
+    } else {
+        indexed_simplify_rdp_recursive(
+            simplified_indices,
+            vertices,
+            &indices[..=index_index],
+            distance_predicate_sq,
+        );
+        indexed_simplify_rdp_recursive(
+            simplified_indices,
+            vertices,
+            &indices[index_index..],
+            distance_predicate_sq,
+        );
+    }
+    //println!("<");
+}
+
 /// Simplify using Visvalingam–Whyatt algorithm. This algorithm will delete 'points_to_delete'
 /// of points from the polyline with the smallest area defined by one point and it's neighbours.
 pub(super) fn simplify_vw<T: GenericVector2>(line: &Vec<T>, points_to_delete: usize) -> Vec<T> {
