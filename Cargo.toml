@@ -1,9 +1,9 @@
 [package]
 name = "linestring"
-version = "0.11.0"
+version = "0.12.0"
 authors = ["eadf"]
 edition = "2021"
-description = "2d line strings"
+description = "line string toolbox"
 readme = "README.md"
 repository = "https://github.com/eadf/linestring.rs"
 license = "MIT OR Apache-2.0"
@@ -15,8 +15,7 @@ glam = ["vector-traits/glam"] # this is only needed for the gui, tests and bench
 cgmath = ["vector-traits/cgmath"] # this is only needed for some tests
 
 [dependencies]
-#vector-traits = "0.3"
-vector-traits = {git = "https://github.com/eadf/vector-traits.git"}
+vector-traits = "0.3.2"
 rayon = "1.8.0"
 ahash = "0.8.6"
 thiserror = "1.0.50"
@@ -29,11 +28,10 @@ name = "fltk_gui"
 path = "example/fltk_gui.rs"
 
 [dev-dependencies]
-fltk = "1.4.17"
+fltk = "1.4.18"
 rand = "0.8.5"
 criterion = "0.5.1"
-#vector-traits = { version = "0.3", features = ["glam"] }
-vector-traits = { git = "https://github.com/eadf/vector-traits.git", features = ["glam"] }
+vector-traits = { version = "0.3.2", features = ["glam"] }
 
 [[bench]]
 name = "intersection_bench"
