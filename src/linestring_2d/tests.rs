@@ -1,5 +1,12 @@
-use crate::{prelude::LineString2, LinestringError};
-use vector_traits::glam;
+use crate::{
+    linestring_2d::{Aabb2, Line2, VoronoiParabolicArc},
+    prelude::LineString2,
+    LinestringError,
+};
+use vector_traits::{
+    approx::{AbsDiffEq, UlpsEq},
+    glam, Approx,
+};
 
 #[test]
 fn test_linestring_iter_1() {
@@ -94,5 +101,33 @@ fn readme_example() -> Result<(), LinestringError> {
     for p in some_points {
         assert!(convex_hull.contains_point_inclusive(p));
     }
+    Ok(())
+}
+
+#[test]
+fn test_discretize_2d_1() -> Result<(), LinestringError> {
+    let l = VoronoiParabolicArc::<glam::Vec2>::new(
+        Line2::new((0.0, 0.0).into(), (10.0, 0.0).into()),
+        (0.5, 0.5).into(),
+        (0.0, 0.0).into(),
+        (10.0, 0.0).into(),
+    );
+    let d = l.discretize_2d(0.1.into());
+    assert_eq!(d.len(), 10);
+    Ok(())
+}
+
+#[test]
+fn test_aabb2_1() -> Result<(), LinestringError> {
+    let aabb2 = Aabb2::<glam::DVec2>::with_points(&[(0.0, 0.0).into(), (10.0, 10.0).into()]);
+    assert!(aabb2.center().unwrap().is_ulps_eq(
+        (5.0, 5.0).into(),
+        f64::default_epsilon(),
+        f64::default_max_ulps()
+    ));
+    assert!(aabb2.contains_point_inclusive((0.0, 0.0).into()));
+    assert!(aabb2.contains_point_inclusive((10.0, 10.0).into()));
+    assert!(aabb2.contains_point_inclusive((0.0, 10.0).into()));
+    assert!(aabb2.contains_point_inclusive((10.0, 0.0).into()));
     Ok(())
 }

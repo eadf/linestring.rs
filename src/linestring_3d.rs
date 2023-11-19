@@ -236,6 +236,63 @@ pub struct Aabb3<T: GenericVector3> {
 }
 
 impl<T: GenericVector3> Aabb3<T> {
+    /// updates the aabb with points
+    pub fn with_points(points: &[T]) -> Self {
+        let mut rv = Self { min_max: None };
+        if !points.is_empty() {
+            rv.update_with_points(points)
+        }
+        rv
+    }
+
+    /// update the aabb with several points
+    pub fn update_with_points(&mut self, points: &[T]) {
+        if points.is_empty() {
+            return;
+        }
+        if self.min_max.is_none() {
+            self.update_with_point(points[0]);
+        }
+        let (mut aabb_min, mut aabb_max) = self.min_max.unwrap();
+        for point in points.iter() {
+            aabb_min.set_x(aabb_min.x().min(point.x()));
+            aabb_min.set_y(aabb_min.y().min(point.y()));
+            aabb_min.set_z(aabb_min.z().min(point.z()));
+            aabb_max.set_x(aabb_max.x().max(point.x()));
+            aabb_max.set_y(aabb_max.y().max(point.y()));
+            aabb_max.set_z(aabb_max.z().max(point.z()));
+        }
+        self.min_max = Some((aabb_min, aabb_max));
+    }
+
+    /// returns the center point of the AABB if it exists
+    pub fn center(&self) -> Option<T> {
+        if let Some((low, high)) = self.min_max {
+            return Some((low + high) / T::Scalar::TWO);
+        }
+        None
+    }
+
+    /// returns true if this aabb contains a point (inclusive)
+    #[inline(always)]
+    pub fn contains_point_inclusive(&self, point: T) -> bool {
+        if let Some(self_aabb) = self.min_max {
+            return Self::contains_point_inclusive_(self_aabb, point);
+        }
+        false
+    }
+
+    /// Returns true if the AABB inclusively contains the given point.
+    #[inline(always)]
+    fn contains_point_inclusive_(aabb: (T, T), point: T) -> bool {
+        (aabb.0.x() < point.x() || ulps_eq!(&aabb.0.x(), &point.x()))
+            && (aabb.0.y() < point.y() || ulps_eq!(&aabb.0.y(), &point.y()))
+            && (aabb.0.z() < point.z() || ulps_eq!(&aabb.0.z(), &point.z()))
+            && (aabb.1.x() > point.x() || ulps_eq!(&aabb.1.x(), &point.x()))
+            && (aabb.1.y() > point.y() || ulps_eq!(&aabb.1.y(), &point.y()))
+            && (aabb.1.z() > point.z() || ulps_eq!(&aabb.1.z(), &point.z()))
+    }
+
     /// Apply an operation over each coordinate.
     pub fn apply<F: Fn(T) -> T>(&mut self, f: &F) {
         if let Some(ref mut min_max) = self.min_max {

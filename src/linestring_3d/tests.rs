@@ -1,5 +1,14 @@
-use crate::linestring_3d::LineString3;
-use vector_traits::glam::Vec3;
+use crate::{
+    linestring_2d::{Line2, VoronoiParabolicArc},
+    linestring_3d::{Aabb3, LineString3},
+    LinestringError,
+};
+use vector_traits::{
+    approx::{AbsDiffEq, UlpsEq},
+    glam,
+    glam::Vec3,
+    Approx,
+};
 
 #[test]
 fn test_linestring_iter_1() {
@@ -76,4 +85,41 @@ fn test_linestring_iter_3() {
 
     assert!(line_iter.next().is_none());
     assert!(edge_iter.next().is_none());
+}
+
+#[test]
+fn test_discretize_3d_1() -> Result<(), LinestringError> {
+    let l = VoronoiParabolicArc::<glam::Vec2>::new(
+        Line2::new((0.0, 0.0).into(), (10.0, 0.0).into()),
+        (0.5, 0.5).into(),
+        (0.0, 0.0).into(),
+        (10.0, 0.0).into(),
+    );
+    let d = l.discretize_3d(0.1.into());
+    assert_eq!(d.len(), 10);
+    Ok(())
+}
+
+#[test]
+fn test_aabb3_1() -> Result<(), LinestringError> {
+    let aabb3 =
+        Aabb3::<glam::DVec3>::with_points(&[(0.0, 0.0, 0.0).into(), (10.0, 10.0, 10.0).into()]);
+    assert!(
+        aabb3.center().unwrap().is_ulps_eq(
+            (5.0, 5.0, 5.0).into(),
+            f64::default_epsilon(),
+            f64::default_max_ulps()
+        ),
+        "{:?}",
+        aabb3.center().unwrap()
+    );
+    assert!(aabb3.contains_point_inclusive((0.0, 0.0, 0.0).into()));
+    assert!(aabb3.contains_point_inclusive((10.0, 10.0, 0.0).into()));
+    assert!(aabb3.contains_point_inclusive((0.0, 10.0, 0.0).into()));
+    assert!(aabb3.contains_point_inclusive((10.0, 0.0, 0.0).into()));
+    assert!(aabb3.contains_point_inclusive((0.0, 0.0, 10.0).into()));
+    assert!(aabb3.contains_point_inclusive((10.0, 10.0, 10.0).into()));
+    assert!(aabb3.contains_point_inclusive((0.0, 10.0, 10.0).into()));
+    assert!(aabb3.contains_point_inclusive((10.0, 0.0, 10.0).into()));
+    Ok(())
 }
