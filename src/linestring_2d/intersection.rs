@@ -74,6 +74,7 @@ impl<T: BaseFloat + Sync> std::fmt::Debug for SiteEventKey<T> {
     }
 }
 
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl<T: BaseFloat + Sync> PartialOrd for SiteEventKey<T> {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
@@ -476,7 +477,7 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
             let key_end = SiteEventKey { pos: aline.end };
 
             // start points goes into the site_event::add list
-            if let Some(mut event) = site_events.get_mut(&key_start) {
+            if let Some(event) = site_events.get_mut(&key_start) {
                 let mut lower = event.add.take().map_or(Vec::<usize>::new(), identity);
                 lower.push(index);
                 event.add = Some(lower);
@@ -486,7 +487,7 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
             }
 
             // end points goes into the site_event::drop list
-            if let Some(mut event) = site_events.get_mut(&key_end) {
+            if let Some(event) = site_events.get_mut(&key_end) {
                 let mut upper = event.drop.take().map_or(Vec::<usize>::new(), identity);
                 upper.push(index);
                 event.drop = Some(upper);
@@ -566,29 +567,7 @@ impl<T: BaseFloat + Sync> IntersectionData<T> {
         let mut connected_priority = MinMaxSlope::<T>::new();
 
         loop {
-            if let Some((key, event)) = {
-                #[cfg(feature = "map_first_last")]
-                {
-                    site_events.pop_first()
-                }
-                #[cfg(not(feature = "map_first_last"))]
-                {
-                    // emulate pop_first
-                    if let Some((first_key, _)) = site_events.iter().next() {
-                        let first_key = *first_key;
-                        let v = site_events.remove(&first_key).ok_or_else(|| {
-                            LinestringError::InternalError(format!(
-                                "Found a key to pop but could not remove the value. {}:{}",
-                                file!(),
-                                line!()
-                            ))
-                        })?;
-                        Some((first_key, v))
-                    } else {
-                        None
-                    }
-                }
-            } {
+            if let Some((key, event)) = { site_events.pop_first() } {
                 self.handle_event(
                     &key,
                     &event,

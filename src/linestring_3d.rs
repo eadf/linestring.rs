@@ -305,14 +305,16 @@ impl<T: PartialOrd + PartialEq + cgmath::UlpsEq> PartialEq for PriorityDistance<
 
 impl<T> Eq for PriorityDistance<T> where T: PartialOrd + PartialEq + cgmath::UlpsEq {}
 
-impl<T: cgmath::BaseFloat + Sync> LineString3<T> {
-    pub fn default() -> Self {
+impl<T: cgmath::BaseFloat + Sync> Default for LineString3<T> {
+    fn default() -> Self {
         Self {
             points: Vec::<Point3<T>>::new(),
             connected: false,
         }
     }
+}
 
+impl<T: cgmath::BaseFloat + Sync> LineString3<T> {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             points: Vec::<Point3<T>>::with_capacity(capacity),
@@ -557,7 +559,7 @@ impl<T: cgmath::BaseFloat + Sync> LineString3<T> {
                 let j = iter_j.next().unwrap();
                 // define the area between point i, j & k as search criteria
                 let area = Line3::triangle_area_squared_times_4(i.1, j.1, k.1);
-                let _ = search_tree.push(PriorityDistance {
+                search_tree.push(PriorityDistance {
                     key: area,
                     index: j.0,
                 });
@@ -575,7 +577,7 @@ impl<T: cgmath::BaseFloat + Sync> LineString3<T> {
                 &self.points[j],
                 &self.points[0],
             );
-            let _ = search_tree.push(PriorityDistance {
+            search_tree.push(PriorityDistance {
                 key: area,
                 index: j,
             });
@@ -613,7 +615,7 @@ impl<T: cgmath::BaseFloat + Sync> LineString3<T> {
                                 &self.points[next % self_points_len],
                                 &self.points[next_next % self_points_len],
                             );
-                            let _ = search_tree.push(PriorityDistance {
+                            search_tree.push(PriorityDistance {
                                 key: area,
                                 index: next,
                             });
@@ -624,7 +626,7 @@ impl<T: cgmath::BaseFloat + Sync> LineString3<T> {
                                 &self.points[prev],
                                 &self.points[next % self_points_len],
                             );
-                            let _ = search_tree.push(PriorityDistance {
+                            search_tree.push(PriorityDistance {
                                 key: area,
                                 index: prev,
                             });
@@ -639,7 +641,7 @@ impl<T: cgmath::BaseFloat + Sync> LineString3<T> {
                             &self.points[prev],
                             &self.points[next % self_points_len],
                         );
-                        let _ = search_tree.push(PriorityDistance {
+                        search_tree.push(PriorityDistance {
                             key: area,
                             index: prev,
                         });
@@ -653,7 +655,7 @@ impl<T: cgmath::BaseFloat + Sync> LineString3<T> {
                             &self.points[next % self_points_len],
                             &self.points[next_next % self_points_len],
                         );
-                        let _ = search_tree.push(PriorityDistance {
+                        search_tree.push(PriorityDistance {
                             key: area,
                             index: next,
                         });
@@ -705,14 +707,16 @@ impl<T: cgmath::BaseFloat + Sync, IC: Into<Point3<T>>> FromIterator<IC> for Line
     }
 }
 
-impl<T: cgmath::BaseFloat + Sync> LineStringSet3<T> {
-    pub fn default() -> Self {
+impl<T: cgmath::BaseFloat + Sync> Default for LineStringSet3<T> {
+    fn default() -> Self {
         Self {
             set: Vec::<LineString3<T>>::new(),
             aabb: Aabb3::default(),
         }
     }
+}
 
+impl<T: cgmath::BaseFloat + Sync> LineStringSet3<T> {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             set: Vec::<LineString3<T>>::with_capacity(capacity),
@@ -798,11 +802,13 @@ impl<T: cgmath::BaseFloat + Sync> From<[T; 6]> for Aabb3<T> {
     }
 }
 
-impl<T: cgmath::BaseFloat + Sync> Aabb3<T> {
-    pub fn default() -> Self {
+impl<T: cgmath::BaseFloat + Sync> Default for Aabb3<T> {
+    fn default() -> Self {
         Self { min_max: None }
     }
+}
 
+impl<T: cgmath::BaseFloat + Sync> Aabb3<T> {
     pub fn update_aabb(&mut self, aabb: Aabb3<T>) {
         if let Some((min, max)) = aabb.min_max {
             self.update_point(min);
@@ -985,7 +991,7 @@ where
         }
     }
     let path = path::Path::new(filename);
-    let mut file = io::BufWriter::new(fs::File::create(&path)?);
+    let mut file = io::BufWriter::new(fs::File::create(path)?);
     writeln!(file, "o {}", object_name)?;
     for (k, v) in point_set.iter().sorted_unstable_by(|a, b| a.1.cmp(b.1)) {
         writeln!(file, "{} #{}", k, v + 1)?;

@@ -1,7 +1,7 @@
 [![crates.io](https://img.shields.io/crates/v/linestring.svg)](https://crates.io/crates/linestring)
 [![Documentation](https://docs.rs/linestring/badge.svg)](https://docs.rs/linestring)
 [![Workflow](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)](https://github.com/eadf/linestring.rs/workflows/Rust/badge.svg)
-[![dependency status](https://deps.rs/crate/linestring/0.8.0/status.svg)](https://deps.rs/crate/linestring/0.8.0)
+[![dependency status](https://deps.rs/crate/linestring/0.8.1/status.svg)](https://deps.rs/crate/linestring/0.8.1)
 ![license](https://img.shields.io/crates/l/linestring)
 
 # Lackadaisical 2d and 3d polylines for cgmath
@@ -27,10 +27,6 @@ If you want to use this library in your cgmath project you add this to your Carg
 ```cargo
 linestring = {version="0.8"}
 ```
-
-## Rust toolchains
-
-This crate uses `#![feature(map_first_last)]` if compiled by +nightly. This is functionality is only emulated when run on +stable.
 
 ## Demo GUI
 Run the line simplification example with :

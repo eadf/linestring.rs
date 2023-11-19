@@ -1,6 +1,6 @@
 [package]
 name = "linestring"
-version = "0.8.0"
+version = "0.8.1"
 authors = ["eadf"]
 edition = "2021"
 description = "Lackadaisical 2d and 3d polylines for cgmath"
@@ -14,28 +14,28 @@ keywords = ["geometry", "intersection", "douglas-peucker", "visvalingam-whyatt",
 console_trace = []
 
 [dependencies]
-cgmath = "~0.18"
-rayon = "~1.5"
+cgmath = "0.18"
+rayon = "1.8"
 # we always use this approx, despite cgmath exporting it's own version
-approx = "~0.5"
-num-traits = "~0.2"
-ahash = "~0.7"
-thiserror = "~1.0"
-itertools = "~0.10"
-vob="~3.0"
+approx = "0.5"
+num-traits = "0.2"
+ahash = "0.8"
+thiserror = "1.0"
+itertools = "0.12"
+vob="3.0"
 
 [[example]]
 name = "fltk_gui"
 path = "example/fltk_gui.rs"
 
 [build-dependencies]
-version_check = "~0.9"
+version_check = "0.9"
 
 [dev-dependencies]
-fltk = "~1.2"
-rand = "~0.8"
-rand_chacha = "~0.3"
-criterion = "~0.3"
+fltk = "1.2"
+rand = "0.8"
+rand_chacha = "0.3"
+criterion = "0.3"
 
 [[bench]]
 name = "intersection_bench"

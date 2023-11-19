@@ -891,7 +891,7 @@ where
                 let j = iter_j.next().unwrap();
                 // define the area between point i, j & k as search criteria
                 let area = Line2::triangle_area_squared_times_4(*i.1, *j.1, *k.1);
-                let _ = search_tree.push(PriorityDistance {
+                search_tree.push(PriorityDistance {
                     key: area,
                     index: j.0,
                 });
@@ -909,7 +909,7 @@ where
                 self.points[j],
                 self.points[0],
             );
-            let _ = search_tree.push(PriorityDistance {
+            search_tree.push(PriorityDistance {
                 key: area,
                 index: j,
             });
@@ -947,7 +947,7 @@ where
                                 self.points[next % self_points_len],
                                 self.points[next_next % self_points_len],
                             );
-                            let _ = search_tree.push(PriorityDistance {
+                            search_tree.push(PriorityDistance {
                                 key: area,
                                 index: next,
                             });
@@ -958,7 +958,7 @@ where
                                 self.points[prev],
                                 self.points[next % self_points_len],
                             );
-                            let _ = search_tree.push(PriorityDistance {
+                            search_tree.push(PriorityDistance {
                                 key: area,
                                 index: prev,
                             });
@@ -973,7 +973,7 @@ where
                             self.points[prev],
                             self.points[next % self_points_len],
                         );
-                        let _ = search_tree.push(PriorityDistance {
+                        search_tree.push(PriorityDistance {
                             key: area,
                             index: prev,
                         });
@@ -987,7 +987,7 @@ where
                             self.points[next % self_points_len],
                             self.points[next_next % self_points_len],
                         );
-                        let _ = search_tree.push(PriorityDistance {
+                        search_tree.push(PriorityDistance {
                             key: area,
                             index: next,
                         });
@@ -1169,7 +1169,7 @@ impl<T: cgmath::BaseFloat + Sync> LineStringSet2<T> {
     /// calculates the combined convex hull of all the shapes in self.set
     pub fn calculate_convex_hull(&mut self) -> &LineString2<T> {
         self.convex_hull = Some(convex_hull::ConvexHull::graham_scan(
-            self.set.iter().map(|x| x.points()).flatten(),
+            self.set.iter().flat_map(|x| x.points()),
         ));
         self.convex_hull.as_ref().unwrap()
     }
