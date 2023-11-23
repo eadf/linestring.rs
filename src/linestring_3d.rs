@@ -43,9 +43,9 @@ limitations under the License.
 
 mod impls;
 
-use crate::{linestring_2d::LineStringSet2, LinestringError};
+use crate::LinestringError;
 use itertools::Itertools;
-use std::{collections, fmt, fs, hash::Hash, io, io::Write, path};
+use std::{collections, fmt, fs, hash::Hash, io, io::Write, path::Path};
 use vector_traits::{
     approx::{ulps_eq, AbsDiffEq, UlpsEq},
     num_traits::real::Real,
@@ -218,14 +218,6 @@ impl<T: GenericVector3> From<[T::Scalar; 6]> for Line3<T> {
     fn from(l: [T::Scalar; 6]) -> Line3<T> {
         Line3::<T>::new(T::new_3d(l[0], l[1], l[2]), T::new_3d(l[3], l[4], l[5]))
     }
-}
-
-/// A set of line-strings + an aabb
-/// Intended to contain related 3d shapes. E.g. outlines of letters with holes
-#[derive(PartialEq, Eq, Clone, Hash)]
-pub struct LineStringSet3<T: GenericVector3> {
-    pub set: Vec<Vec<T>>,
-    pub aabb: Aabb3<T>,
 }
 
 /// A simple 3d AABB
@@ -466,59 +458,6 @@ impl<T: GenericVector3> LineString3<T> for Vec<T> {
     }
 }
 
-impl<T: GenericVector3> LineStringSet3<T> {
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            set: Vec::<Vec<T>>::with_capacity(capacity),
-            aabb: Aabb3::<T>::default(),
-        }
-    }
-
-    pub fn set(&self) -> &Vec<Vec<T>> {
-        &self.set
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.set.is_empty()
-    }
-
-    pub fn push(&mut self, ls: Vec<T>) {
-        if !ls.is_empty() {
-            self.set.push(ls);
-
-            for ls in self.set.last().unwrap().iter() {
-                self.aabb.update_with_point(*ls);
-            }
-        }
-    }
-
-    pub fn get_aabb(&self) -> Aabb3<T> {
-        self.aabb
-    }
-
-    pub fn apply<F: Fn(T) -> T>(&mut self, f: &F) {
-        self.set.iter_mut().for_each(|x| x.apply(f));
-        self.aabb.apply(f);
-    }
-
-    /// Copy this linestringset3 into a linestringset2, populating the axes defined by 'plane'
-    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
-    /// That way the operation is reversible (with regards to axis positions).
-    pub fn copy_to_2d(&self, plane: Plane) -> LineStringSet2<T::Vector2> {
-        let mut rv = LineStringSet2::with_capacity(self.set.len());
-        for ls in self.set.iter() {
-            rv.push(ls.copy_to_2d(plane));
-        }
-        rv
-    }
-
-    /// drains the 'other' container of all shapes and put them into 'self'
-    pub fn take_from(&mut self, other: &mut Self) {
-        self.aabb.update_aabb(other.aabb);
-        self.set.append(&mut other.set);
-    }
-}
-
 impl<T: GenericVector3, IT> From<[IT; 2]> for Aabb3<T>
 where
     IT: Copy + Into<T>,
@@ -681,7 +620,7 @@ pub fn distance_to_line_squared_safe<T: GenericVector3>(l0: T, l1: T, p: T) -> T
 
 /// Rudimentary save line strings to .obj file function
 pub fn save_to_obj_file<T: GenericVector3>(
-    filename: &str,
+    filename: impl AsRef<Path>,
     object_name: &str,
     lines: Vec<Vec<Line3<T>>>,
 ) -> Result<(), LinestringError> {
@@ -697,8 +636,7 @@ pub fn save_to_obj_file<T: GenericVector3>(
             let _ = point_set.entry(a_str).or_insert(len);
         }
     }
-    let path = path::Path::new(filename);
-    let mut file = io::BufWriter::new(fs::File::create(path)?);
+    let mut file = io::BufWriter::new(fs::File::create(filename)?);
     writeln!(file, "o {}", object_name)?;
     for (k, v) in point_set.iter().sorted_unstable_by(|a, b| a.1.cmp(b.1)) {
         writeln!(file, "{} #{}", k, v + 1)?;

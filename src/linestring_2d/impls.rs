@@ -43,8 +43,7 @@ limitations under the License.
 //! A module containing boiler-plate implementations of standard traits such as Default, From etc etc
 
 use super::{
-    Aabb2, ChunkIterator, Intersection, Line2, LineStringSet2, PriorityDistance, SimpleAffine,
-    WindowIterator,
+    Aabb2, ChunkIterator, Intersection, Line2, PriorityDistance, SimpleAffine, WindowIterator,
 };
 use std::{
     cmp::Ordering,
@@ -264,18 +263,5 @@ impl<'a, T: GenericVector2 + 'a, I: IntoIterator<Item = &'a T>> From<I> for Aabb
             aabb.update_with_point(*p);
         }
         aabb
-    }
-}
-
-impl<T: GenericVector2> Default for LineStringSet2<T> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            set: Vec::<_>::default(),
-            aabb: Aabb2::default(),
-            convex_hull: None,
-            internals: None,
-            //_pd:PhantomData,
-        }
     }
 }
