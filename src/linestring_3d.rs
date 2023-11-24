@@ -48,7 +48,7 @@ use itertools::Itertools;
 use std::{collections, fmt, fs, hash::Hash, io, io::Write, path::Path};
 use vector_traits::{
     approx::{ulps_eq, AbsDiffEq, UlpsEq},
-    num_traits::real::Real,
+    num_traits::{real::Real, AsPrimitive},
     GenericScalar, GenericVector3, HasXY,
 };
 
@@ -170,7 +170,7 @@ impl<T: GenericVector3> Line3<T> {
     }
 
     /// returns (area of a triangle)²*4
-    pub fn triangle_area_squared_times_4(p1: &T, p2: &T, p3: &T) -> T::Scalar {
+    fn triangle_area_squared_times_4(p1: &T, p2: &T, p3: &T) -> T::Scalar {
         let v1_x = p1.x() - p2.x();
         let v1_y = p1.y() - p2.y();
         let v1_z = p1.z() - p2.z();
@@ -191,32 +191,6 @@ impl<T: GenericVector3> Line3<T> {
             start: f(self.start),
             end: f(self.end),
         }
-    }
-}
-
-#[allow(clippy::from_over_into)]
-impl<T: GenericVector3> Into<[T::Scalar; 6]> for Line3<T> {
-    fn into(self) -> [T::Scalar; 6] {
-        [
-            self.start.x(),
-            self.start.y(),
-            self.start.z(),
-            self.end.x(),
-            self.end.y(),
-            self.end.z(),
-        ]
-    }
-}
-
-impl<T: GenericVector3, IT: Copy + Into<T>> From<[IT; 2]> for Line3<T> {
-    fn from(pos: [IT; 2]) -> Line3<T> {
-        Line3::<T>::new(pos[0].into(), pos[1].into())
-    }
-}
-
-impl<T: GenericVector3> From<[T::Scalar; 6]> for Line3<T> {
-    fn from(l: [T::Scalar; 6]) -> Line3<T> {
-        Line3::<T>::new(T::new_3d(l[0], l[1], l[2]), T::new_3d(l[3], l[4], l[5]))
     }
 }
 
@@ -268,21 +242,16 @@ impl<T: GenericVector3> Aabb3<T> {
     /// returns true if this aabb contains a point (inclusive)
     #[inline(always)]
     pub fn contains_point_inclusive(&self, point: T) -> bool {
-        if let Some(self_aabb) = self.min_max {
-            return Self::contains_point_inclusive_(self_aabb, point);
+        if let Some(aabb) = self.min_max {
+            (aabb.0.x() < point.x() || ulps_eq!(&aabb.0.x(), &point.x()))
+                && (aabb.0.y() < point.y() || ulps_eq!(&aabb.0.y(), &point.y()))
+                && (aabb.0.z() < point.z() || ulps_eq!(&aabb.0.z(), &point.z()))
+                && (aabb.1.x() > point.x() || ulps_eq!(&aabb.1.x(), &point.x()))
+                && (aabb.1.y() > point.y() || ulps_eq!(&aabb.1.y(), &point.y()))
+                && (aabb.1.z() > point.z() || ulps_eq!(&aabb.1.z(), &point.z()))
+        } else {
+            false
         }
-        false
-    }
-
-    /// Returns true if the AABB inclusively contains the given point.
-    #[inline(always)]
-    fn contains_point_inclusive_(aabb: (T, T), point: T) -> bool {
-        (aabb.0.x() < point.x() || ulps_eq!(&aabb.0.x(), &point.x()))
-            && (aabb.0.y() < point.y() || ulps_eq!(&aabb.0.y(), &point.y()))
-            && (aabb.0.z() < point.z() || ulps_eq!(&aabb.0.z(), &point.z()))
-            && (aabb.1.x() > point.x() || ulps_eq!(&aabb.1.x(), &point.x()))
-            && (aabb.1.y() > point.y() || ulps_eq!(&aabb.1.y(), &point.y()))
-            && (aabb.1.z() > point.z() || ulps_eq!(&aabb.1.z(), &point.z()))
     }
 
     /// Apply an operation over each coordinate.
@@ -296,20 +265,6 @@ impl<T: GenericVector3> Aabb3<T> {
 struct PriorityDistance<T: GenericVector3> {
     key: T::Scalar,
     index: usize,
-}
-
-impl<T: GenericVector3> PartialOrd for PriorityDistance<T> {
-    #[inline(always)]
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<T: GenericVector3> Ord for PriorityDistance<T> {
-    #[inline(always)]
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.key.partial_cmp(&other.key).unwrap().reverse()
-    }
 }
 
 pub struct WindowIterator<'a, T: GenericVector3>(std::slice::Windows<'a, T>);
@@ -348,15 +303,6 @@ impl<'a, T: GenericVector3> ChunkIterator<'a, T> {
     }
 }
 
-impl<T: GenericVector3> PartialEq for PriorityDistance<T> {
-    #[inline(always)]
-    fn eq(&self, other: &Self) -> bool {
-        ulps_eq!(self.key, other.key)
-    }
-}
-
-impl<T: GenericVector3> Eq for PriorityDistance<T> {}
-
 pub trait LineString3<T: GenericVector3> {
     /// Copy this linestring3 into a linestring2, keeping the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
@@ -392,6 +338,21 @@ pub trait LineString3<T: GenericVector3> {
     fn apply<F>(&mut self, f: &F)
     where
         F: Fn(T) -> T;
+
+    /// Creates an iterator that generates intermediate points on a line segment
+    /// with steps shorter or equal to the specified distance.
+    ///
+    /// The iterator ensures that the original points from the line segment are always included.
+    /// Each step along the line segment is of equal or shorter length than the specified distance.
+    ///
+    /// # Parameters
+    ///
+    /// - `distance`: The desired maximum distance between generated points.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `DiscreteLineSegmentIterator` that iterates over the generated points.
+    fn discretize(&self, distance: T::Scalar) -> DiscreteLineSegmentIterator<'_, T>;
 }
 
 impl<T: GenericVector3> LineString3<T> for Vec<T> {
@@ -455,6 +416,53 @@ impl<T: GenericVector3> LineString3<T> for Vec<T> {
 
     fn apply<F: Fn(T) -> T>(&mut self, f: &F) {
         self.iter_mut().for_each(|v| *v = f(*v));
+    }
+
+    /// Creates an iterator that generates intermediate points on a line segment
+    /// with steps shorter or equal to the specified distance.
+    ///
+    /// The iterator ensures that the original points from the line segment are always included.
+    /// Each step along the line segment is of equal or shorter length than the specified distance.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use vector_traits::glam::Vec3;
+    /// use linestring::prelude::LineString3;
+    ///
+    /// let points = vec![
+    ///     Vec3::new(0.0, 0.0, 0.0),
+    ///     Vec3::new(1.0, 0.0, 0.0),
+    ///     Vec3::new(2.0, 0.0, 0.0),
+    ///     Vec3::new(3.0, 0.0, 0.0),
+    /// ];
+    ///
+    /// let distance = 0.8;
+    /// let iterator = points.discretize(distance);
+    ///
+    /// let result: Vec<Vec3> = iterator.collect();
+    ///
+    /// // Ensure that the result contains the original points and intermediate steps
+    /// assert_eq!(result, vec![
+    ///     Vec3::new(0.0, 0.0, 0.0),
+    ///     Vec3::new(0.5, 0.0, 0.0),
+    ///     Vec3::new(1.0, 0.0, 0.0),
+    ///     Vec3::new(1.5, 0.0, 0.0),
+    ///     Vec3::new(2.0, 0.0, 0.0),
+    ///     Vec3::new(2.5, 0.0, 0.0),
+    ///     Vec3::new(3.0, 0.0, 0.0),
+    /// ]);
+    /// ```
+    ///
+    /// # Parameters
+    ///
+    /// - `distance`: The desired maximum distance between generated points.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `DiscreteLineSegmentIterator` that iterates over the generated points.
+    fn discretize(&self, distance: T::Scalar) -> DiscreteLineSegmentIterator<'_, T> {
+        DiscreteLineSegmentIterator::new(self, distance)
     }
 }
 
@@ -664,4 +672,80 @@ pub fn save_to_obj_file<T: GenericVector3>(
     }
     file.flush()?;
     Ok(())
+}
+
+pub struct DiscreteLineSegmentIterator<'a, T: GenericVector3> {
+    points: &'a Vec<T>,
+    distance: T::Scalar,
+    current_index: usize,
+    substep_index: usize,
+    num_substeps: usize,
+    step: T,
+}
+
+impl<'a, T: GenericVector3> DiscreteLineSegmentIterator<'a, T> {
+    fn new(points: &'a Vec<T>, distance: T::Scalar) -> Self {
+        DiscreteLineSegmentIterator {
+            points,
+            distance,
+            current_index: 0,
+            substep_index: 0,
+            num_substeps: 0,
+            step: T::new_3d(T::Scalar::ZERO, T::Scalar::ZERO, T::Scalar::ZERO),
+        }
+    }
+
+    fn initialize_step(&mut self) {
+        let start_point = self.points[self.current_index];
+        let end_point = self.points[self.current_index + 1];
+        let direction = end_point - start_point;
+        let segment_length = direction.magnitude();
+        if segment_length > T::Scalar::ZERO {
+            let num_substeps = (segment_length / self.distance).ceil();
+            self.num_substeps = num_substeps.as_();
+            self.step = direction / num_substeps;
+        } else {
+            // Handle the case when segment_length is exactly 0.0
+            self.num_substeps = 1;
+            self.step = T::new_3d(T::Scalar::ZERO, T::Scalar::ZERO, T::Scalar::ZERO);
+        }
+    }
+}
+
+impl<'a, T: GenericVector3> Iterator for DiscreteLineSegmentIterator<'a, T>
+where
+    usize: AsPrimitive<<T as HasXY>::Scalar>,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.points.is_empty() {
+            return None;
+        }
+        if self.current_index < self.points.len() - 1 {
+            if self.substep_index == 0 {
+                // Initialize step on a new line segment
+                self.initialize_step();
+            }
+
+            if self.substep_index < self.num_substeps {
+                let start_point = self.points[self.current_index];
+                let result = start_point + self.step * (self.substep_index.as_());
+                self.substep_index += 1;
+                return Some(result);
+            }
+
+            // Move to the next line segment
+            self.current_index += 1;
+            self.substep_index = 0;
+            return self.next();
+        } else if self.current_index < self.points.len() {
+            // return the very last point of the list
+            self.current_index += 1;
+            self.substep_index = 0;
+            return self.points.last().copied();
+        }
+
+        None
+    }
 }

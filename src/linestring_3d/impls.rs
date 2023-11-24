@@ -41,8 +41,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 //! A module containing boiler-plate implementations of standard traits such as Default, From etc etc
-use crate::linestring_3d::{Aabb3, ChunkIterator, Line3, WindowIterator};
-use vector_traits::GenericVector3;
+use crate::linestring_3d::{Aabb3, ChunkIterator, Line3, PriorityDistance, WindowIterator};
+use vector_traits::{approx::ulps_eq, GenericVector3};
 
 impl<T: GenericVector3> Default for Aabb3<T> {
     fn default() -> Self {
@@ -71,3 +71,52 @@ impl<'a, T: GenericVector3> Iterator for ChunkIterator<'a, T> {
         })
     }
 }
+
+#[allow(clippy::from_over_into)]
+impl<T: GenericVector3> Into<[T::Scalar; 6]> for Line3<T> {
+    fn into(self) -> [T::Scalar; 6] {
+        [
+            self.start.x(),
+            self.start.y(),
+            self.start.z(),
+            self.end.x(),
+            self.end.y(),
+            self.end.z(),
+        ]
+    }
+}
+
+impl<T: GenericVector3, IT: Copy + Into<T>> From<[IT; 2]> for Line3<T> {
+    fn from(pos: [IT; 2]) -> Line3<T> {
+        Line3::<T>::new(pos[0].into(), pos[1].into())
+    }
+}
+
+impl<T: GenericVector3> From<[T::Scalar; 6]> for Line3<T> {
+    fn from(l: [T::Scalar; 6]) -> Line3<T> {
+        Line3::<T>::new(T::new_3d(l[0], l[1], l[2]), T::new_3d(l[3], l[4], l[5]))
+    }
+}
+
+impl<T: GenericVector3> PartialOrd for PriorityDistance<T> {
+    #[inline(always)]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T: GenericVector3> Ord for PriorityDistance<T> {
+    #[inline(always)]
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.key.partial_cmp(&other.key).unwrap().reverse()
+    }
+}
+
+impl<T: GenericVector3> PartialEq for PriorityDistance<T> {
+    #[inline(always)]
+    fn eq(&self, other: &Self) -> bool {
+        ulps_eq!(self.key, other.key)
+    }
+}
+
+impl<T: GenericVector3> Eq for PriorityDistance<T> {}

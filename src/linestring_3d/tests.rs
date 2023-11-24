@@ -6,7 +6,7 @@ use crate::{
 use vector_traits::{
     approx::{AbsDiffEq, UlpsEq},
     glam,
-    glam::Vec3,
+    glam::{Vec3, Vec3A},
     Approx,
 };
 
@@ -122,4 +122,158 @@ fn test_aabb3_1() -> Result<(), LinestringError> {
     assert!(aabb3.contains_point_inclusive((0.0, 10.0, 10.0).into()));
     assert!(aabb3.contains_point_inclusive((10.0, 0.0, 10.0).into()));
     Ok(())
+}
+
+#[test]
+fn test_line_segment_iterator_1() {
+    let points = vec![
+        Vec3A::new(0.0, 0.0, 0.0),
+        Vec3A::new(1.0, 0.0, 0.0),
+        Vec3A::new(2.0, 0.0, 0.0),
+        Vec3A::new(3.0, 0.0, 0.0),
+    ];
+
+    let distance = 1.5;
+    let result: Vec<Vec3A> = points.discretize(distance).collect();
+
+    let expected_result = vec![
+        Vec3A::new(0.0, 0.0, 0.0),
+        Vec3A::new(1.0, 0.0, 0.0),
+        Vec3A::new(2.0, 0.0, 0.0),
+        Vec3A::new(3.0, 0.0, 0.0),
+    ];
+
+    assert_eq!(result.len(), expected_result.len());
+    for (result, expected) in result.iter().zip(expected_result) {
+        assert!(
+            result.is_abs_diff_eq(expected, 1e-6.into()),
+            "{:?}!={:?}",
+            result,
+            expected
+        );
+        println!("ok: {:?}=={:?}", result, expected)
+    }
+}
+
+#[test]
+fn test_line_segment_iterator_2() {
+    let points = vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(3.0, 0.0, 0.0),
+    ];
+
+    let distance = 0.8;
+    let result: Vec<Vec3> = points.discretize(distance).collect();
+
+    let expected_result = vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.5, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.5, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(2.5, 0.0, 0.0),
+        Vec3::new(3.0, 0.0, 0.0),
+    ];
+    assert_eq!(result.len(), expected_result.len());
+    for (result, expected) in result.iter().zip(expected_result) {
+        assert!(
+            result.is_abs_diff_eq(expected, 1e-6.into()),
+            "{:?}!={:?}",
+            result,
+            expected
+        );
+        println!("ok: {:?}=={:?}", result, expected)
+    }
+}
+
+#[test]
+fn test_line_segment_iterator_3() {
+    let points = vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(3.0, 0.0, 0.0),
+    ];
+
+    let distance = 0.99;
+    let result: Vec<Vec3> = points.discretize(distance).collect();
+
+    let expected_result = vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.5, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(1.5, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(2.5, 0.0, 0.0),
+        Vec3::new(3.0, 0.0, 0.0),
+    ];
+    assert_eq!(result.len(), expected_result.len());
+    for (result, expected) in result.iter().zip(expected_result) {
+        assert!(
+            result.is_abs_diff_eq(expected, 1e-6.into()),
+            "{:?}!={:?}",
+            result,
+            expected
+        );
+        println!("ok: {:?}=={:?}", result, expected)
+    }
+}
+
+#[test]
+fn test_line_segment_iterator_4() {
+    let points = vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
+    ];
+
+    let distance = 0.8;
+    let iterator = points.discretize(distance);
+
+    let expected_result = vec![
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
+    ];
+
+    for (result, expected) in iterator.zip(expected_result) {
+        assert!(
+            result.is_abs_diff_eq(expected, 1e-6.into()),
+            "{:?}!={:?}",
+            result,
+            expected
+        );
+        println!("ok: {:?}=={:?}", result, expected)
+    }
+}
+
+#[test]
+fn test_line_segment_iterator_single_point() {
+    // Test when there's only one point in the input
+    let points = vec![Vec3::new(0.0, 0.0, 0.0)];
+    let distance = 1.5;
+    let iterator = points.discretize(distance);
+
+    let expected_result = vec![Vec3::new(0.0, 0.0, 0.0)];
+
+    for (result, expected) in iterator.zip(expected_result) {
+        assert!(
+            result.is_abs_diff_eq(expected, 1e-6.into()),
+            "{:?}=={:?}",
+            result,
+            expected
+        );
+    }
+}
+
+#[test]
+fn test_line_segment_iterator_empty() {
+    // Test when the input points vector is empty
+    let points: Vec<glam::DVec3> = vec![];
+    let distance = 1.5;
+    let iterator = points.discretize(distance);
+
+    assert_eq!(iterator.count(), 0);
 }
