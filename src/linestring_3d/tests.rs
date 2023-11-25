@@ -250,6 +250,46 @@ fn test_line_segment_iterator_4() {
 }
 
 #[test]
+fn test_line_segment_iterator_5() {
+    let points = vec![Vec3::new(0.0, 0.0, 0.0)];
+
+    let distance = 0.8;
+    let iterator = points.discretize(distance);
+
+    let expected_result = vec![Vec3::new(0.0, 0.0, 0.0)];
+
+    for (result, expected) in iterator.zip(expected_result) {
+        assert!(
+            result.is_abs_diff_eq(expected, 1e-6.into()),
+            "{:?}!={:?}",
+            result,
+            expected
+        );
+        println!("ok: {:?}=={:?}", result, expected)
+    }
+}
+
+#[test]
+fn test_line_segment_iterator_6() {
+    let points = vec![Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 1.0)];
+
+    let distance = 1.0;
+    let iterator = points.discretize(distance);
+
+    let expected_result = vec![Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 1.0)];
+
+    for (result, expected) in iterator.zip(expected_result) {
+        assert!(
+            result.is_abs_diff_eq(expected, 1e-6.into()),
+            "{:?}!={:?}",
+            result,
+            expected
+        );
+        println!("ok: {:?}=={:?}", result, expected)
+    }
+}
+
+#[test]
 fn test_line_segment_iterator_single_point() {
     // Test when there's only one point in the input
     let points = vec![Vec3::new(0.0, 0.0, 0.0)];

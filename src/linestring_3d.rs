@@ -431,7 +431,7 @@ impl<T: GenericVector3> LineString3<T> for Vec<T> {
     /// use linestring::prelude::LineString3;
     ///
     /// let points = vec![
-    ///     Vec3::new(0.0, 0.0, 0.0),
+    ///     Vec3::new(0.5, 0.0, 0.0),
     ///     Vec3::new(1.0, 0.0, 0.0),
     ///     Vec3::new(2.0, 0.0, 0.0),
     ///     Vec3::new(3.0, 0.0, 0.0),
@@ -444,7 +444,6 @@ impl<T: GenericVector3> LineString3<T> for Vec<T> {
     ///
     /// // Ensure that the result contains the original points and intermediate steps
     /// assert_eq!(result, vec![
-    ///     Vec3::new(0.0, 0.0, 0.0),
     ///     Vec3::new(0.5, 0.0, 0.0),
     ///     Vec3::new(1.0, 0.0, 0.0),
     ///     Vec3::new(1.5, 0.0, 0.0),
@@ -722,30 +721,32 @@ where
         if self.points.is_empty() {
             return None;
         }
-        if self.current_index < self.points.len() - 1 {
-            if self.substep_index == 0 {
-                // Initialize step on a new line segment
-                self.initialize_step();
-            }
+        match self.points.len() - 1 {
+            n if self.current_index < n => {
+                if self.substep_index == 0 {
+                    // Initialize step on a new line segment
+                    self.initialize_step();
+                }
 
-            if self.substep_index < self.num_substeps {
-                let start_point = self.points[self.current_index];
-                let result = start_point + self.step * (self.substep_index.as_());
-                self.substep_index += 1;
-                return Some(result);
-            }
+                if self.substep_index < self.num_substeps {
+                    let start_point = self.points[self.current_index];
+                    let result = start_point + self.step * (self.substep_index.as_());
+                    self.substep_index += 1;
+                    return Some(result);
+                }
 
-            // Move to the next line segment
-            self.current_index += 1;
-            self.substep_index = 0;
-            return self.next();
-        } else if self.current_index < self.points.len() {
-            // return the very last point of the list
-            self.current_index += 1;
-            self.substep_index = 0;
-            return self.points.last().copied();
+                // Move to the next line segment
+                self.current_index += 1;
+                self.substep_index = 0;
+                self.next()
+            }
+            n if self.current_index == n => {
+                // return the very last point of the list
+                self.current_index += 1;
+                self.substep_index = 0;
+                return self.points.last().copied();
+            }
+            _ => None,
         }
-
-        None
     }
 }

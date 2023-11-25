@@ -45,7 +45,7 @@ use crate::{linestring_3d, linestring_3d::Plane, LinestringError};
 use std::fmt::Debug;
 use vector_traits::{
     approx::*,
-    num_traits::{Float, One, Zero},
+    num_traits::{AsPrimitive, Float, One, Zero},
     GenericScalar, GenericVector2, HasXY, HasXYZ,
 };
 
@@ -162,6 +162,21 @@ pub trait LineString2<T: GenericVector2> {
     fn apply<F>(&mut self, f: &F)
     where
         F: Fn(T) -> T;
+
+    /// Creates an iterator that generates intermediate points on a line segment
+    /// with steps shorter or equal to the specified distance.
+    ///
+    /// The iterator ensures that the original points from the line segment are always included.
+    /// Each step along the line segment is of equal or shorter length than the specified distance.
+    ///
+    /// # Parameters
+    ///
+    /// - `distance`: The desired maximum distance between generated points.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `DiscreteLineSegmentIterator` that iterates over the generated points.
+    fn discretize(&self, distance: T::Scalar) -> DiscreteLineSegmentIterator<'_, T>;
 }
 
 /// A 2d line
@@ -1063,6 +1078,52 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
             *v = f(*v)
         }
     }
+
+    /// Creates an iterator that generates intermediate points on a line segment
+    /// with steps shorter or equal to the specified distance.
+    ///
+    /// The iterator ensures that the original points from the line segment are always included.
+    /// Each step along the line segment is of equal or shorter length than the specified distance.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use vector_traits::glam::Vec2;
+    /// use linestring::prelude::LineString2;
+    ///
+    /// let points = vec![
+    ///     Vec2::new(0.5, 0.0),
+    ///     Vec2::new(1.0, 0.0),
+    ///     Vec2::new(2.0, 0.0),
+    ///     Vec2::new(3.0, 0.0),
+    /// ];
+    ///
+    /// let distance = 0.8;
+    /// let iterator = points.discretize(distance);
+    ///
+    /// let result: Vec<Vec2> = iterator.collect();
+    ///
+    /// // Ensure that the result contains the original points and intermediate steps
+    /// assert_eq!(result, vec![
+    ///     Vec2::new(0.5, 0.0),
+    ///     Vec2::new(1.0, 0.0),
+    ///     Vec2::new(1.5, 0.0),
+    ///     Vec2::new(2.0, 0.0),
+    ///     Vec2::new(2.5, 0.0),
+    ///     Vec2::new(3.0, 0.0),
+    /// ]);
+    /// ```
+    ///
+    /// # Parameters
+    ///
+    /// - `distance`: The desired maximum distance between generated points.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `DiscreteLineSegmentIterator` that iterates over the generated points.
+    fn discretize(&self, distance: T::Scalar) -> DiscreteLineSegmentIterator<'_, T> {
+        DiscreteLineSegmentIterator::new(self, distance)
+    }
 }
 
 /// A simple 2d AABB
@@ -1479,6 +1540,84 @@ impl<T: GenericVector2> SimpleAffine<T> {
             Err(LinestringError::TransformError(
                 "Transformation out of bounds".to_string(),
             ))
+        }
+    }
+}
+
+pub struct DiscreteLineSegmentIterator<'a, T: GenericVector2> {
+    points: &'a Vec<T>,
+    distance: T::Scalar,
+    current_index: usize,
+    substep_index: usize,
+    num_substeps: usize,
+    step: T,
+}
+
+impl<'a, T: GenericVector2> DiscreteLineSegmentIterator<'a, T> {
+    fn new(points: &'a Vec<T>, distance: T::Scalar) -> Self {
+        DiscreteLineSegmentIterator {
+            points,
+            distance,
+            current_index: 0,
+            substep_index: 0,
+            num_substeps: 0,
+            step: T::new_2d(T::Scalar::ZERO, T::Scalar::ZERO),
+        }
+    }
+
+    fn initialize_step(&mut self) {
+        let start_point = self.points[self.current_index];
+        let end_point = self.points[self.current_index + 1];
+        let direction = end_point - start_point;
+        let segment_length = direction.magnitude();
+        if segment_length > T::Scalar::ZERO {
+            let num_substeps = (segment_length / self.distance).ceil();
+            self.num_substeps = num_substeps.as_();
+            self.step = direction / num_substeps;
+        } else {
+            // Handle the case when segment_length is exactly 0.0
+            self.num_substeps = 1;
+            self.step = T::new_2d(T::Scalar::ZERO, T::Scalar::ZERO);
+        }
+    }
+}
+
+impl<'a, T: GenericVector2> Iterator for DiscreteLineSegmentIterator<'a, T>
+where
+    usize: AsPrimitive<<T as HasXY>::Scalar>,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.points.is_empty() {
+            return None;
+        }
+        match self.points.len() - 1 {
+            n if self.current_index < n => {
+                if self.substep_index == 0 {
+                    // Initialize step on a new line segment
+                    self.initialize_step();
+                }
+
+                if self.substep_index < self.num_substeps {
+                    let start_point = self.points[self.current_index];
+                    let result = start_point + self.step * (self.substep_index.as_());
+                    self.substep_index += 1;
+                    return Some(result);
+                }
+
+                // Move to the next line segment
+                self.current_index += 1;
+                self.substep_index = 0;
+                self.next()
+            }
+            n if self.current_index == n => {
+                // return the very last point of the list
+                self.current_index += 1;
+                self.substep_index = 0;
+                return self.points.last().copied();
+            }
+            _ => None,
         }
     }
 }
