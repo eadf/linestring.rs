@@ -922,7 +922,7 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
                 .collect(),
             Plane::YZ => self
                 .iter()
-                .map(|p2d| T::Vector3::new_3d(T::Scalar::ZERO, p2d.x(), p2d.y()))
+                .map(|p2d| T::Vector3::new_3d(T::Scalar::ZERO, p2d.y(), p2d.x()))
                 .collect(),
         }
     }
@@ -1123,6 +1123,58 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
     /// Returns a `DiscreteLineSegmentIterator` that iterates over the generated points.
     fn discretize(&self, distance: T::Scalar) -> DiscreteLineSegmentIterator<'_, T> {
         DiscreteLineSegmentIterator::new(self, distance)
+    }
+}
+
+/// A workaround for Rust's limitations where external traits cannot be implemented for external types.
+///
+/// The `Approx` trait provides methods for performing approximate equality comparisons on types.
+/// It serves as a workaround for Rust's limitations, allowing you to implement approximate
+/// equality checks for types not originally designed with this capability.
+///
+/// This trait leverages the `approx` crate and its traits to perform approximate equality
+/// comparisons. The methods in this trait are wrappers around the corresponding methods provided
+/// by the `approx` crate.
+///
+pub trait Approx<T: GenericVector2> {
+    /// Checks if two instances are nearly equal within a specified tolerance in ULPs (Units in the Last Place).
+    ///
+    /// This method delegates to the `approx::UlpsEq::ulps_eq` method, performing approximate equality checks
+    /// one time per coordinate axis.
+    fn is_ulps_eq(
+        &self,
+        other: &Self,
+        epsilon: <T::Scalar as AbsDiffEq>::Epsilon,
+        max_ulps: u32,
+    ) -> bool;
+
+    /// Checks if two instances are nearly equal within a specified absolute difference tolerance.
+    ///
+    /// This method delegates to the `approx::AbsDiffEq::abs_diff_eq` method, performing approximate equality checks
+    /// one time per coordinate axis.
+    fn is_abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool;
+}
+
+impl<T: GenericVector2> Approx<T> for Vec<T> {
+    fn is_ulps_eq(
+        &self,
+        other: &Self,
+        epsilon: <T::Scalar as AbsDiffEq>::Epsilon,
+        max_ulps: u32,
+    ) -> bool {
+        self.len() == other.len()
+            && self
+                .iter()
+                .zip(other.iter())
+                .all(|(a, b)| a.is_ulps_eq(*b, epsilon, max_ulps))
+    }
+
+    fn is_abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool {
+        self.len() == other.len()
+            && self
+                .iter()
+                .zip(other.iter())
+                .all(|(a, b)| a.is_abs_diff_eq(*b, epsilon))
     }
 }
 

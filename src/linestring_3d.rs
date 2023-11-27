@@ -465,6 +465,58 @@ impl<T: GenericVector3> LineString3<T> for Vec<T> {
     }
 }
 
+/// A workaround for Rust's limitations where external traits cannot be implemented for external types.
+///
+/// The `Approx` trait provides methods for performing approximate equality comparisons on types.
+/// It serves as a workaround for Rust's limitations, allowing you to implement approximate
+/// equality checks for types not originally designed with this capability.
+///
+/// This trait leverages the `approx` crate and its traits to perform approximate equality
+/// comparisons. The methods in this trait are wrappers around the corresponding methods provided
+/// by the `approx` crate.
+///
+pub trait Approx<T: GenericVector3> {
+    /// Checks if two instances are nearly equal within a specified tolerance in ULPs (Units in the Last Place).
+    ///
+    /// This method delegates to the `approx::UlpsEq::ulps_eq` method, performing approximate equality checks
+    /// one time per coordinate axis.
+    fn is_ulps_eq(
+        &self,
+        other: &Self,
+        epsilon: <T::Scalar as AbsDiffEq>::Epsilon,
+        max_ulps: u32,
+    ) -> bool;
+
+    /// Checks if two instances are nearly equal within a specified absolute difference tolerance.
+    ///
+    /// This method delegates to the `approx::AbsDiffEq::abs_diff_eq` method, performing approximate equality checks
+    /// one time per coordinate axis.
+    fn is_abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool;
+}
+
+impl<T: GenericVector3> Approx<T> for Vec<T> {
+    fn is_ulps_eq(
+        &self,
+        other: &Self,
+        epsilon: <T::Scalar as AbsDiffEq>::Epsilon,
+        max_ulps: u32,
+    ) -> bool {
+        self.len() == other.len()
+            && self
+                .iter()
+                .zip(other.iter())
+                .all(|(a, b)| a.is_ulps_eq(*b, epsilon, max_ulps))
+    }
+
+    fn is_abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool {
+        self.len() == other.len()
+            && self
+                .iter()
+                .zip(other.iter())
+                .all(|(a, b)| a.is_abs_diff_eq(*b, epsilon))
+    }
+}
+
 impl<T: GenericVector3, IT> From<[IT; 2]> for Aabb3<T>
 where
     IT: Copy + Into<T>,

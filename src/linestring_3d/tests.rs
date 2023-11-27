@@ -1,6 +1,7 @@
 use crate::{
     linestring_2d::{Line2, VoronoiParabolicArc},
-    linestring_3d::{Aabb3, LineString3},
+    linestring_3d::{Aabb3, Approx as Approx3, LineString3, Plane},
+    prelude::LineString2,
     LinestringError,
 };
 use vector_traits::{
@@ -316,4 +317,68 @@ fn test_line_segment_iterator_empty() {
     let iterator = points.discretize(distance);
 
     assert_eq!(iterator.count(), 0);
+}
+
+#[test]
+fn test_get_plane_xy() {
+    let points = vec![
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(0.0, 1.0, 0.0),
+        Vec3::new(1.0, 1.0, 0.0),
+    ];
+    let aabb = Aabb3::with_points(&points);
+    let plane = Plane::get_plane(aabb).unwrap();
+    assert_eq!(plane, Plane::XY);
+    let p3d = Vec3::new(10.0, 1.0, 0.0);
+    let p2d = plane.point_to_2d(p3d);
+    let p3d_2 = plane.point_to_3d(p2d);
+    assert!(p3d.is_ulps_eq(p3d_2, f32::default_epsilon(), f32::default_max_ulps()));
+    let points_2d = points.copy_to_2d(plane);
+    let points_3d = points_2d.copy_to_3d(plane);
+    assert!(points_3d.is_ulps_eq(&points, f32::default_epsilon(), f32::default_max_ulps()));
+}
+
+#[test]
+fn test_get_plane_xz() {
+    let points = vec![
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 2.0),
+        Vec3::new(1.0, 0.0, 1.0),
+    ];
+    let aabb = Aabb3::with_points(&points);
+    let plane = Plane::get_plane(aabb).unwrap();
+    assert_eq!(plane, Plane::XZ);
+    let p3d = Vec3::new(10.0, 0.0, 1.0);
+    let p2d = plane.point_to_2d(p3d);
+    let p3d_2 = plane.point_to_3d(p2d);
+
+    assert!(p3d.is_ulps_eq(p3d_2, f32::default_epsilon(), f32::default_max_ulps()));
+    let points_2d = points.copy_to_2d(plane);
+    let points_3d = points_2d.copy_to_3d(plane);
+    assert!(points_3d.is_ulps_eq(&points, f32::default_epsilon(), f32::default_max_ulps()));
+}
+
+#[test]
+fn test_get_plane_yz() {
+    let points = vec![
+        Vec3::new(0.0, 1.0, 0.0),
+        Vec3::new(0.0, 0.0, 2.0),
+        Vec3::new(0.0, 10.0, 1.0),
+    ];
+    let aabb = Aabb3::with_points(&points);
+    let plane = Plane::get_plane(aabb).unwrap();
+    assert_eq!(plane, Plane::YZ);
+    let p3d = Vec3::new(0.0, 10.0, 1.0);
+    let p2d = plane.point_to_2d(p3d);
+    let p3d_2 = plane.point_to_3d(p2d);
+
+    assert!(p3d.is_ulps_eq(p3d_2, f32::default_epsilon(), f32::default_max_ulps()));
+    let points_2d = points.copy_to_2d(plane);
+    let points_3d = points_2d.copy_to_3d(plane);
+    assert!(
+        points_3d.is_ulps_eq(&points, f32::default_epsilon(), f32::default_max_ulps()),
+        "{:?}!={:?}",
+        points_3d,
+        points
+    );
 }
