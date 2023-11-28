@@ -10,7 +10,6 @@ license = "MIT OR Apache-2.0"
 keywords = ["polyline", "intersection", "convex-hull", "douglas-peucker", "visvalingam-whyatt"]
 
 [features]
-console_trace = [] # used for debugging purposes (tbd)
 glam = ["vector-traits/glam"] # this is only needed for the gui, tests and benchmarks
 cgmath = ["vector-traits/cgmath"] # this is only needed for some tests
 
@@ -32,6 +31,7 @@ fltk = "1.4.18"
 rand = "0.8.5"
 criterion = "0.5.1"
 vector-traits = { version = "0.3.2", features = ["glam"] }
+tempfile = "3.8"
 
 [[bench]]
 name = "intersection_bench"

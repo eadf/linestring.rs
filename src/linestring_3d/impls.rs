@@ -120,3 +120,25 @@ impl<T: GenericVector3> PartialEq for PriorityDistance<T> {
 }
 
 impl<T: GenericVector3> Eq for PriorityDistance<T> {}
+
+impl<T: GenericVector3, IT> From<[IT; 2]> for Aabb3<T>
+where
+    IT: Copy + Into<T>,
+{
+    fn from(coordinate: [IT; 2]) -> Aabb3<T> {
+        Aabb3 {
+            min_max: Some((coordinate[0].into(), coordinate[1].into())),
+        }
+    }
+}
+
+impl<T: GenericVector3> From<[T::Scalar; 6]> for Aabb3<T> {
+    fn from(coordinate: [T::Scalar; 6]) -> Aabb3<T> {
+        Aabb3 {
+            min_max: Some((
+                T::new_3d(coordinate[0], coordinate[1], coordinate[2]),
+                T::new_3d(coordinate[3], coordinate[4], coordinate[5]),
+            )),
+        }
+    }
+}

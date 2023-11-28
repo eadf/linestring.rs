@@ -152,7 +152,6 @@ fn test_line_segment_iterator_1() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
@@ -185,7 +184,6 @@ fn test_line_segment_iterator_2() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
@@ -218,7 +216,6 @@ fn test_line_segment_iterator_3() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
@@ -246,7 +243,6 @@ fn test_line_segment_iterator_4() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
@@ -266,7 +262,6 @@ fn test_line_segment_iterator_5() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
@@ -286,7 +281,6 @@ fn test_line_segment_iterator_6() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
@@ -335,11 +329,12 @@ fn test_get_plane_xy() {
     assert!(p3d.is_ulps_eq(p3d_2, f32::default_epsilon(), f32::default_max_ulps()));
     let points_2d = points.copy_to_2d(plane);
     let points_3d = points_2d.copy_to_3d(plane);
-    assert!(points_3d.is_ulps_eq(&points, f32::default_epsilon(), f32::default_max_ulps()));
+    assert!(points_3d.ulps_eq(&points, f32::default_epsilon(), f32::default_max_ulps()));
 }
 
 #[test]
 fn test_get_plane_xz() {
+    use vector_traits::glam::vec3;
     let points = vec![
         Vec3::new(1.0, 0.0, 0.0),
         Vec3::new(0.0, 0.0, 2.0),
@@ -354,8 +349,12 @@ fn test_get_plane_xz() {
 
     assert!(p3d.is_ulps_eq(p3d_2, f32::default_epsilon(), f32::default_max_ulps()));
     let points_2d = points.copy_to_2d(plane);
-    let points_3d = points_2d.copy_to_3d(plane);
-    assert!(points_3d.is_ulps_eq(&points, f32::default_epsilon(), f32::default_max_ulps()));
+    let mut points_3d = points_2d.copy_to_3d(plane);
+    assert!(points_3d.abs_diff_eq(&points, f32::default_epsilon()));
+    points_3d.apply(&|x| x + vec3(1.0, 2.0, 3.0));
+    assert_eq!(points_3d[0], vec3(2.0, 2.0, 3.0));
+    assert_eq!(points_3d[1], vec3(1.0, 2.0, 5.0));
+    assert_eq!(points_3d[2], vec3(2.0, 2.0, 4.0));
 }
 
 #[test]
@@ -376,7 +375,7 @@ fn test_get_plane_yz() {
     let points_2d = points.copy_to_2d(plane);
     let points_3d = points_2d.copy_to_3d(plane);
     assert!(
-        points_3d.is_ulps_eq(&points, f32::default_epsilon(), f32::default_max_ulps()),
+        points_3d.ulps_eq(&points, f32::default_epsilon(), f32::default_max_ulps()),
         "{:?}!={:?}",
         points_3d,
         points

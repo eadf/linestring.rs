@@ -1141,7 +1141,7 @@ pub trait Approx<T: GenericVector2> {
     ///
     /// This method delegates to the `approx::UlpsEq::ulps_eq` method, performing approximate equality checks
     /// one time per coordinate axis.
-    fn is_ulps_eq(
+    fn ulps_eq(
         &self,
         other: &Self,
         epsilon: <T::Scalar as AbsDiffEq>::Epsilon,
@@ -1152,11 +1152,11 @@ pub trait Approx<T: GenericVector2> {
     ///
     /// This method delegates to the `approx::AbsDiffEq::abs_diff_eq` method, performing approximate equality checks
     /// one time per coordinate axis.
-    fn is_abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool;
+    fn abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool;
 }
 
 impl<T: GenericVector2> Approx<T> for Vec<T> {
-    fn is_ulps_eq(
+    fn ulps_eq(
         &self,
         other: &Self,
         epsilon: <T::Scalar as AbsDiffEq>::Epsilon,
@@ -1169,7 +1169,7 @@ impl<T: GenericVector2> Approx<T> for Vec<T> {
                 .all(|(a, b)| a.is_ulps_eq(*b, epsilon, max_ulps))
     }
 
-    fn is_abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool {
+    fn abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool {
         self.len() == other.len()
             && self
                 .iter()
@@ -1285,7 +1285,7 @@ impl<T: HasXY> Aabb2<T> {
         None
     }
 
-    /// returns true if this aabb entirely contains/engulfs 'other' (inclusive)
+    /// returns true if this aabb entirely contains 'other' (inclusive)
     #[inline(always)]
     pub fn contains_aabb(&self, other: Aabb2<T>) -> bool {
         if let Some(self_aabb) = self.min_max {
@@ -1297,7 +1297,7 @@ impl<T: HasXY> Aabb2<T> {
         false
     }
 
-    /// returns true if this aabb entirely contains/engulfs a line (inclusive)
+    /// returns true if this aabb entirely contains a line (inclusive)
     #[inline(always)]
     pub fn contains_line_inclusive(&self, line: &Line2<T>) -> bool {
         if let Some(self_aabb) = self.min_max {
@@ -1382,8 +1382,6 @@ pub fn intersect_line_point<T: GenericVector2>(
     let ap = ((px - l0x) * (px - l0x) + (py - l0y) * (py - l0y)).sqrt();
     let pb = ((l1x - px) * (l1x - px) + (l1y - py) * (l1y - py)).sqrt();
 
-    #[cfg(feature = "console_trace")]
-    println!("ab={:?}, ap={:?}, pb={:?}, ap+pb={:?}", ab, ap, pb, ap + pb);
     if ulps_eq!(&ab, &(ap + pb)) {
         return Some(Intersection::Intersection(point));
     }

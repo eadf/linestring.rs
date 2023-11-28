@@ -10,7 +10,7 @@ compile_error!("All of the traits 'glam' and 'cgmath' features must be enabled f
 
 use linestring::{
     linestring_2d::{self, Aabb2, Intersection, Line2, LineString2, SimpleAffine},
-    linestring_3d::{Line3, LineString3},
+    linestring_3d::{save_to_obj_file, Line3, LineString3},
     prelude::{indexed_simplify_rdp_2d, indexed_simplify_rdp_3d},
     LinestringError,
 };
@@ -172,7 +172,6 @@ fn ray_intersection_1() {
     let l1 = vec![[0., 200.].into(), [0., -200.].into()];
     let l2 = linestring_2d::Line2::<Vec2>::from([-400., 0., 1., 0.]);
     let mut ray = l2.end - l2.start;
-    println!("origin={:?}", l2.start);
     let rv = l1.closest_ray_intersection(ray, l2.start).unwrap();
     almost_equal(rv.x, 0.0, rv.y, 0.0);
     let l1 = vec![[0., 200.].into(), [0., -200.].into()];
@@ -317,7 +316,6 @@ fn intersection_12() {
     let l1 = Line2::<Vec2>::new((-1.0, 0.0).into(), (1000.0, 0.0).into());
     let l2 = Line2::<Vec2>::new((0.0, 0.0).into(), (5.0, 0.0).into());
     let rv = l1.intersection_point(l2);
-    println!("rv:{:?}", rv);
     match rv {
         Some(Intersection::Intersection(_a)) => {
             panic!("expected an overlap, got {:?}", _a)
@@ -328,7 +326,6 @@ fn intersection_12() {
         _ => panic!("expected an overlap, got None"),
     }
     let rv = l2.intersection_point(l1);
-    println!("rv:{:?}", rv);
     match rv {
         Some(Intersection::Intersection(_a)) => {
             panic!("expected an overlap, got {:?}", _a)
@@ -380,7 +377,6 @@ fn simplify_1() {
     ];
     let line: Vec<Vec2> = line.into_iter().map(|v| v.into()).collect();
     let result = line.simplify_rdp(1.0);
-    println!("-----Result :{:?}", result);
     assert_eq!(6, result.point_count());
     assert_eq!(6, result.window_iter().len());
 }
@@ -411,7 +407,8 @@ fn simplify_3() {
         [100., 100., 0.].into(),
         [77., 613., 0.].into(),
     ];
-    assert_eq!(6, line.simplify_rdp(1.0).window_iter().len());
+    assert_eq!(7, line.simplify_rdp(1.0).len());
+    assert_eq!(5, line.simplify_vw(1).len());
 }
 
 #[test]
@@ -430,6 +427,7 @@ fn simplify_4() {
             .len()
     );
     assert_eq!(2, line.simplify_rdp(1.0).window_iter().len());
+    assert_eq!(4, line.simplify_vw(1).len());
 }
 
 #[test]
@@ -447,7 +445,8 @@ fn simplify_5() {
             .windows(2)
             .len()
     );
-    assert_eq!(2, line.simplify_rdp(1.0).window_iter().len());
+    assert_eq!(3, line.simplify_rdp(1.0).len());
+    assert_eq!(2, line.simplify_vw(1).len());
 }
 
 #[test]
@@ -525,9 +524,7 @@ fn simplify_vw_2() {
         [0f32, 0.],
     ];
     let line: Vec<Vec2> = line.into_iter().map(|v| v.into()).collect();
-    println!("input:{:?}", line);
     let l = line.simplify_vw(2);
-    println!("Result: {:?}", l);
     assert_eq!(line.len() - 2, l.len());
     assert!(line.is_connected())
 }
@@ -545,10 +542,7 @@ fn simplify_vw_3() {
         [0f32, 0.],
     ];
     let line: Vec<Vec2> = line.into_iter().map(|v| v.into()).collect();
-    println!("input:{:?}", line);
-
     let l = line.simplify_vw(5);
-    println!("Result: {:?}", l);
     assert_eq!(line.len() - 5, l.len());
     assert!(line.is_connected())
 }
@@ -564,9 +558,18 @@ fn simplify_vw_4() {
     let line: Vec<Vec2> = line.into_iter().map(|v| v.into()).collect();
     let is_connected = line.is_connected();
     let l = line.simplify_vw(6);
-    println!("Result: {:?}", l);
     assert_eq!(line.len() - 6, l.len());
     assert_eq!(line.is_connected(), is_connected)
+}
+
+#[test]
+fn simplify_6() {
+    let line: Vec<Vec2> = vec![[0f32, 0.].into(), [100., 0.].into()];
+
+    let l = line.simplify_vw(5);
+    assert_eq!(2, l.len());
+    let l = line.simplify_rdp(5.0);
+    assert_eq!(2, l.len());
 }
 
 #[test]
@@ -587,7 +590,6 @@ fn voronoi_parabolic_arc_1() {
 
     let vpa = linestring_2d::VoronoiParabolicArc::new(segment, cell_point, start_point, end_point);
     let result = vpa.discretize_2d(max_dist);
-    println!("result: {:?}", result);
     let epsilon = <Vec2 as HasXY>::Scalar::default_epsilon();
     let ulps = <Vec2 as HasXY>::Scalar::default_max_ulps();
     assert!(result[0].is_ulps_eq([100.0, 200.0].into(), epsilon, ulps));
@@ -599,7 +601,6 @@ fn voronoi_parabolic_arc_1() {
     assert!(result[6].is_ulps_eq([250.0, 162.5].into(), epsilon, ulps));
     assert!(result[7].is_ulps_eq([275.0, 178.125].into(), epsilon, ulps));
     assert!(result[8].is_ulps_eq([300.0, 200.0].into(), epsilon, ulps));
-    println!("result: {:?}", result);
 }
 
 #[test]
@@ -796,12 +797,6 @@ fn convex_hull_3() -> Result<(), LinestringError> {
     let igs = linestring_2d::convex_hull::indexed_graham_scan(&points_b, &indices)?;
 
     assert_eq!(b.len(), igs.len());
-
-    println!(
-        "convex hull b: start:{}, end:{}",
-        b.first().unwrap(),
-        b.last().unwrap()
-    );
     assert!(convex_hull::contains_convex_hull(&a, &b));
     assert!(convex_hull::contains_convex_hull_par(&a, &b));
     assert!(!convex_hull::contains_convex_hull(&b, &a));
@@ -927,8 +922,6 @@ fn convex_hull_6() -> Result<(), LinestringError> {
         //pos.x = 0.0;
         pos.y += grid_spacing;
     }
-    println!("pos:{:?}", pos);
-    println!("points.len():{:?}", points.len());
 
     let ghs = convex_hull::graham_scan(&points)?;
     let gw = convex_hull::gift_wrap(&points)?;
@@ -1021,6 +1014,31 @@ fn self_intersecting_1() {
         vec2(1.0, -0.5),
     ];
     let rv = linestring.is_self_intersecting();
-    println!("{:?}", rv);
     assert!(rv.unwrap());
+}
+
+#[test]
+fn test_save_to_obj_file() {
+    use tempfile::tempdir;
+
+    let vertices: Vec<Vec3> = vec![
+        (0.0, 0.0, 0.0).into(),
+        (2.0, 3.0, 10.0).into(),
+        (4.0, 3.0, 0.0).into(),
+        (6.0, 3.0, 0.0).into(),
+        (1.0, 1.0, 1.0).into(),
+        (7.0, 4.0, 0.0).into(),
+    ];
+    let lines: Vec<Line3<Vec3>> = vertices.chunk_iter().collect();
+    // Create a temporary directory
+    let temp_dir = tempdir().expect("Failed to create temporary directory");
+
+    // Generate a temporary file path within the temporary directory
+    let temp_file_path = temp_dir.path().join("temp.obj");
+
+    // Call the function with the temporary file path
+    let result = save_to_obj_file(&temp_file_path, "object_name", &vec![lines]);
+
+    // Assert that the function returned Ok
+    assert!(result.is_ok());
 }

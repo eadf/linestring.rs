@@ -503,8 +503,6 @@ impl<T: GenericVector2> IntersectionData<T> {
             }
         }
         self.site_events = Some(site_events);
-        #[cfg(feature = "console_trace")]
-        self.debug();
         Ok(self)
     }
 
@@ -639,32 +637,6 @@ impl<T: GenericVector2> IntersectionData<T> {
         let added_active_lines = event.add.iter().flatten().count();
         let intersections_found = event.intersection.iter().flatten().count();
 
-        #[cfg(feature = "console_trace")]
-        {
-            println!("*************************************");
-            print!(
-                "handle_event() sweepline=({:?},{:?})",
-                self.sweepline_pos.x(),
-                self.sweepline_pos.y(),
-            );
-            print!(
-                ", drop={:?}",
-                event.drop.iter().flatten().collect::<Vec<&usize>>()
-            );
-            print!(
-                ", add={:?}",
-                event.add.iter().flatten().collect::<Vec<&usize>>()
-            );
-            print!(
-                ", intersection={:?}",
-                event.intersection.iter().flatten().collect::<Vec<&usize>>()
-            );
-            println!(
-                ", active:{:?}",
-                active_lines.iter().collect::<Vec<&usize>>()
-            );
-        }
-
         // Handle points converging at this point:
         // If sum of number of items in 'add' + 'drop' > 1 they must intersect at this point
         if self.ignore_end_point_intersections {
@@ -754,17 +726,6 @@ impl<T: GenericVector2> IntersectionData<T> {
         }
 
         if intersections_found + added_active_lines == 0 {
-            #[cfg(feature = "console_trace")]
-            {
-                println!(
-                    "neighbours left: {:?}",
-                    neighbour_priority.slope.candidates_left
-                );
-                println!(
-                    "neighbours right: {:?}",
-                    neighbour_priority.slope.candidates_right
-                );
-            }
             // this event didn't spawn off new events, check neighbours
             if !neighbour_priority.slope.candidates_left.is_empty()
                 && !neighbour_priority.slope.candidates_right.is_empty()
@@ -783,25 +744,8 @@ impl<T: GenericVector2> IntersectionData<T> {
             for l in event.intersection.iter().flatten() {
                 connected_priority.update_both(*l, &self.lines);
             }
-            #[cfg(feature = "console_trace")]
-            {
-                println!(
-                    "left connected_priority candidates {:?}",
-                    connected_priority.candidates_left
-                );
-                println!(
-                    "right connected_priority candidates {:?}",
-                    connected_priority.candidates_right
-                );
-            }
 
             if !neighbour_priority.slope.candidates_left.is_empty() {
-                #[cfg(feature = "console_trace")]
-                println!(
-                    "left neighbour_priority candidates {:?}",
-                    neighbour_priority.slope.candidates_left
-                );
-
                 self.find_new_events(
                     &neighbour_priority.slope.candidates_left,
                     &connected_priority.candidates_left,
@@ -809,12 +753,6 @@ impl<T: GenericVector2> IntersectionData<T> {
                 )?;
             }
             if !neighbour_priority.slope.candidates_right.is_empty() {
-                #[cfg(feature = "console_trace")]
-                println!(
-                    "right neighbour_priority candidates {:?}",
-                    neighbour_priority.slope.candidates_right
-                );
-
                 self.find_new_events(
                     &neighbour_priority.slope.candidates_right,
                     &connected_priority.candidates_right,
@@ -822,11 +760,7 @@ impl<T: GenericVector2> IntersectionData<T> {
                 )?;
             }
         }
-        #[cfg(feature = "console_trace")]
-        {
-            println!("Post active lines: {:?}", active_lines);
-            println!();
-        }
+
         Ok(())
     }
 
@@ -848,8 +782,6 @@ impl<T: GenericVector2> IntersectionData<T> {
                     // if endpoints are equal they will already be in the event queue
                     continue;
                 }
-                #[cfg(feature = "console_trace")]
-                print!("testing intersection between {} and {}: ", left_i, right_i);
 
                 if let Some(intersection_p) = left_l.intersection_point(right_l) {
                     let intersection_p = intersection_p.single();
@@ -870,12 +802,6 @@ impl<T: GenericVector2> IntersectionData<T> {
                             T::Scalar::default_max_ulps(),
                         )
                     {
-                        #[cfg(feature = "console_trace")]
-                        println!(
-                            "Lines {:?} and {:?} intersects at {:?}",
-                            left_i, right_i, intersection_p
-                        );
-
                         self.add_intersection_event(
                             site_events,
                             &SiteEventKey {
@@ -884,9 +810,6 @@ impl<T: GenericVector2> IntersectionData<T> {
                             &[*left_i, *right_i],
                         )
                     }
-                } else {
-                    #[cfg(feature = "console_trace")]
-                    println!(" no intersection");
                 }
             }
         }
@@ -910,18 +833,7 @@ impl<T: GenericVector2> IntersectionData<T> {
 
         for line in intersecting_lines {
             value.push(*line);
-            #[cfg(feature = "console_trace")]
-            println!("Reported an intersection {:?} for line #{}", pos, line);
         }
         value.sort_unstable();
-    }
-
-    #[cfg(feature = "console_trace")]
-    fn debug(&self) {
-        println!("Stored item in this order:");
-        for k in self.site_events.as_ref().unwrap().iter().map(|kv| *kv.0) {
-            print!("{:?}, ", k);
-        }
-        println!();
     }
 }

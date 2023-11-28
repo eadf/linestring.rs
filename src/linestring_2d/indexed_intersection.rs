@@ -567,8 +567,6 @@ impl<T: GenericVector2> IntersectionTester<T> {
             }
         }
         self.site_events = Some(site_events);
-        #[cfg(feature = "console_trace")]
-        self.debug();
         Ok(self)
     }
 
@@ -714,32 +712,6 @@ impl<T: GenericVector2> IntersectionTester<T> {
         let added_active_lines = event.add.iter().flatten().count();
         let intersections_found = event.intersection.iter().flatten().count();
 
-        #[cfg(feature = "console_trace")]
-        {
-            println!("*************************************");
-            print!(
-                "handle_event() sweepline=({:?},{:?})",
-                self.sweepline_pos.x(),
-                self.sweepline_pos.y(),
-            );
-            print!(
-                ", drop={:?}",
-                event.drop.iter().flatten().collect::<Vec<&usize>>()
-            );
-            print!(
-                ", add={:?}",
-                event.add.iter().flatten().collect::<Vec<&usize>>()
-            );
-            print!(
-                ", intersection={:?}",
-                event.intersection.iter().flatten().collect::<Vec<&usize>>()
-            );
-            println!(
-                ", active:{:?}",
-                active_lines.iter().collect::<Vec<&usize>>()
-            );
-        }
-
         // Handle points converging at this point:
         // If sum of number of items in 'add' + 'drop' > 1 they must intersect at this point
         if self.ignore_end_point_intersections {
@@ -834,17 +806,6 @@ impl<T: GenericVector2> IntersectionTester<T> {
         }
 
         if intersections_found + added_active_lines == 0 {
-            #[cfg(feature = "console_trace")]
-            {
-                println!(
-                    "neighbours left: {:?}",
-                    neighbour_priority.slope.candidates_left
-                );
-                println!(
-                    "neighbours right: {:?}",
-                    neighbour_priority.slope.candidates_right
-                );
-            }
             // this event didn't spawn off new events, check neighbours
             if !neighbour_priority.slope.candidates_left.is_empty()
                 && !neighbour_priority.slope.candidates_right.is_empty()
@@ -863,25 +824,8 @@ impl<T: GenericVector2> IntersectionTester<T> {
             for l in event.intersection.iter().flatten() {
                 connected_priority.update_both(&self.vertices, *l, &self.lines);
             }
-            #[cfg(feature = "console_trace")]
-            {
-                println!(
-                    "left connected_priority candidates {:?}",
-                    connected_priority.candidates_left
-                );
-                println!(
-                    "right connected_priority candidates {:?}",
-                    connected_priority.candidates_right
-                );
-            }
 
             if !neighbour_priority.slope.candidates_left.is_empty() {
-                #[cfg(feature = "console_trace")]
-                println!(
-                    "left neighbour_priority candidates {:?}",
-                    neighbour_priority.slope.candidates_left
-                );
-
                 self.find_new_events(
                     &neighbour_priority.slope.candidates_left,
                     &connected_priority.candidates_left,
@@ -889,23 +833,12 @@ impl<T: GenericVector2> IntersectionTester<T> {
                 )?;
             }
             if !neighbour_priority.slope.candidates_right.is_empty() {
-                #[cfg(feature = "console_trace")]
-                println!(
-                    "right neighbour_priority candidates {:?}",
-                    neighbour_priority.slope.candidates_right
-                );
-
                 self.find_new_events(
                     &neighbour_priority.slope.candidates_right,
                     &connected_priority.candidates_right,
                     site_events,
                 )?;
             }
-        }
-        #[cfg(feature = "console_trace")]
-        {
-            println!("Post active lines: {:?}", active_lines);
-            println!();
         }
         Ok(())
     }
@@ -931,8 +864,7 @@ impl<T: GenericVector2> IntersectionTester<T> {
                     // if endpoints are equal they will already be in the event queue
                     continue;
                 }
-                #[cfg(feature = "console_trace")]
-                print!("testing intersection between {} and {}: ", left_i, right_i);
+
                 let left_l_as_line = Line2::new(self.vertices[left_l.0], self.vertices[left_l.1]);
                 let right_l_as_line =
                     Line2::new(self.vertices[right_l.0], self.vertices[right_l.1]);
@@ -955,12 +887,6 @@ impl<T: GenericVector2> IntersectionTester<T> {
                             T::Scalar::default_max_ulps(),
                         )
                     {
-                        #[cfg(feature = "console_trace")]
-                        println!(
-                            "Lines {:?} and {:?} intersects at {:?}",
-                            left_i, right_i, intersection_p
-                        );
-
                         let intersection_p_index = self.vertices.len();
                         self.vertices.push(intersection_p);
                         self.add_intersection_event(
@@ -972,9 +898,6 @@ impl<T: GenericVector2> IntersectionTester<T> {
                             &[*left_i, *right_i],
                         )
                     }
-                } else {
-                    #[cfg(feature = "console_trace")]
-                    println!(" no intersection");
                 }
             }
         }
@@ -1002,18 +925,7 @@ impl<T: GenericVector2> IntersectionTester<T> {
 
         for line in intersecting_lines {
             value.push(*line);
-            #[cfg(feature = "console_trace")]
-            println!("Reported an intersection {:?} for line #{}", pos, line);
         }
         value.sort_unstable();
-    }
-
-    #[cfg(feature = "console_trace")]
-    fn debug(&self) {
-        println!("Stored item in this order:");
-        for k in self.site_events.as_ref().unwrap().iter().map(|kv| *kv.0) {
-            print!("{:?}, ", k);
-        }
-        println!();
     }
 }

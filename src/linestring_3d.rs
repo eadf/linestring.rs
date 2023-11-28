@@ -480,7 +480,7 @@ pub trait Approx<T: GenericVector3> {
     ///
     /// This method delegates to the `approx::UlpsEq::ulps_eq` method, performing approximate equality checks
     /// one time per coordinate axis.
-    fn is_ulps_eq(
+    fn ulps_eq(
         &self,
         other: &Self,
         epsilon: <T::Scalar as AbsDiffEq>::Epsilon,
@@ -491,11 +491,11 @@ pub trait Approx<T: GenericVector3> {
     ///
     /// This method delegates to the `approx::AbsDiffEq::abs_diff_eq` method, performing approximate equality checks
     /// one time per coordinate axis.
-    fn is_abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool;
+    fn abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool;
 }
 
 impl<T: GenericVector3> Approx<T> for Vec<T> {
-    fn is_ulps_eq(
+    fn ulps_eq(
         &self,
         other: &Self,
         epsilon: <T::Scalar as AbsDiffEq>::Epsilon,
@@ -508,34 +508,12 @@ impl<T: GenericVector3> Approx<T> for Vec<T> {
                 .all(|(a, b)| a.is_ulps_eq(*b, epsilon, max_ulps))
     }
 
-    fn is_abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool {
+    fn abs_diff_eq(&self, other: &Self, epsilon: <T::Scalar as AbsDiffEq>::Epsilon) -> bool {
         self.len() == other.len()
             && self
                 .iter()
                 .zip(other.iter())
                 .all(|(a, b)| a.is_abs_diff_eq(*b, epsilon))
-    }
-}
-
-impl<T: GenericVector3, IT> From<[IT; 2]> for Aabb3<T>
-where
-    IT: Copy + Into<T>,
-{
-    fn from(coordinate: [IT; 2]) -> Aabb3<T> {
-        Aabb3 {
-            min_max: Some((coordinate[0].into(), coordinate[1].into())),
-        }
-    }
-}
-
-impl<T: GenericVector3> From<[T::Scalar; 6]> for Aabb3<T> {
-    fn from(coordinate: [T::Scalar; 6]) -> Aabb3<T> {
-        Aabb3 {
-            min_max: Some((
-                T::new_3d(coordinate[0], coordinate[1], coordinate[2]),
-                T::new_3d(coordinate[3], coordinate[4], coordinate[5]),
-            )),
-        }
     }
 }
 
@@ -589,7 +567,7 @@ impl<T: GenericVector3> Aabb3<T> {
         None
     }
 
-    /// returns true if this aabb entirely contains/engulfs 'other' (inclusive)
+    /// returns true if this aabb entirely contains 'other' (inclusive)
     #[inline(always)]
     pub fn contains_aabb(&self, other: &Self) -> bool {
         if let Some(self_aabb) = other.min_max {
@@ -601,7 +579,7 @@ impl<T: GenericVector3> Aabb3<T> {
         false
     }
 
-    /// returns true if this aabb entirely contains/engulfs a line (inclusive)
+    /// returns true if this aabb entirely contains a line (inclusive)
     #[inline(always)]
     pub fn contains_line(&self, line: &Line3<T>) -> bool {
         if let Some(self_aabb) = self.min_max {
@@ -681,7 +659,7 @@ pub fn distance_to_line_squared_safe<T: GenericVector3>(l0: T, l1: T, p: T) -> T
 pub fn save_to_obj_file<T: GenericVector3>(
     filename: impl AsRef<Path>,
     object_name: &str,
-    lines: Vec<Vec<Line3<T>>>,
+    lines: &Vec<Vec<Line3<T>>>,
 ) -> Result<(), LinestringError> {
     let mut point_set = collections::HashMap::<String, usize>::new();
     // try to de-duplicate points

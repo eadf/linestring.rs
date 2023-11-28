@@ -159,7 +159,6 @@ fn test_line_segment_iterator_1() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
@@ -192,7 +191,6 @@ fn test_line_segment_iterator_2() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
@@ -225,7 +223,6 @@ fn test_line_segment_iterator_3() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
@@ -253,7 +250,6 @@ fn test_line_segment_iterator_4() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
@@ -273,7 +269,6 @@ fn test_line_segment_iterator_5() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
@@ -293,7 +288,6 @@ fn test_line_segment_iterator_6() {
             result,
             expected
         );
-        println!("ok: {:?}=={:?}", result, expected)
     }
 }
 
