@@ -43,7 +43,7 @@ limitations under the License.
 
 mod impls;
 
-use crate::LinestringError;
+use crate::{linestring_2d, LinestringError};
 use itertools::Itertools;
 use std::{collections, fmt, fs, hash::Hash, io, io::Write, path::Path};
 use vector_traits::{
@@ -192,6 +192,16 @@ impl<T: GenericVector3> Line3<T> {
             end: f(self.end),
         }
     }
+
+    /// Copy this Line3 into a Line2, populating the axes defined by 'plane'
+    /// An axis will always try to keep it's position (e.g. y goes to y if possible).
+    /// That way the operation is reversible (with regards to axis positions).
+    pub fn copy_to_2d(&self, plane: Plane) -> linestring_2d::Line2<T::Vector2> {
+        linestring_2d::Line2::new(
+            plane.point_to_2d::<T>(self.start),
+            plane.point_to_2d::<T>(self.end),
+        )
+    }
 }
 
 /// A simple 3d AABB
@@ -231,6 +241,18 @@ impl<T: GenericVector3> Aabb3<T> {
         self.min_max = Some((aabb_min, aabb_max));
     }
 
+    /// returns true if this aabb entirely contains 'other' (inclusive)
+    #[inline(always)]
+    pub fn contains_aabb(&self, other: &Aabb3<T>) -> bool {
+        if let Some(self_aabb) = self.min_max {
+            if let Some(other_aabb) = other.min_max {
+                return Self::contains_point_inclusive_(self_aabb, other_aabb.0)
+                    && Self::contains_point_inclusive_(self_aabb, other_aabb.1);
+            }
+        }
+        false
+    }
+
     /// returns the center point of the AABB if it exists
     pub fn center(&self) -> Option<T> {
         if let Some((low, high)) = self.min_max {
@@ -243,15 +265,20 @@ impl<T: GenericVector3> Aabb3<T> {
     #[inline(always)]
     pub fn contains_point_inclusive(&self, point: T) -> bool {
         if let Some(aabb) = self.min_max {
-            (aabb.0.x() < point.x() || ulps_eq!(&aabb.0.x(), &point.x()))
-                && (aabb.0.y() < point.y() || ulps_eq!(&aabb.0.y(), &point.y()))
-                && (aabb.0.z() < point.z() || ulps_eq!(&aabb.0.z(), &point.z()))
-                && (aabb.1.x() > point.x() || ulps_eq!(&aabb.1.x(), &point.x()))
-                && (aabb.1.y() > point.y() || ulps_eq!(&aabb.1.y(), &point.y()))
-                && (aabb.1.z() > point.z() || ulps_eq!(&aabb.1.z(), &point.z()))
+            Self::contains_point_inclusive_(aabb, point)
         } else {
             false
         }
+    }
+
+    #[inline(always)]
+    fn contains_point_inclusive_(aabb: (T, T), point: T) -> bool {
+        (aabb.0.x() < point.x() || ulps_eq!(&aabb.0.x(), &point.x()))
+            && (aabb.0.y() < point.y() || ulps_eq!(&aabb.0.y(), &point.y()))
+            && (aabb.0.z() < point.z() || ulps_eq!(&aabb.0.z(), &point.z()))
+            && (aabb.1.x() > point.x() || ulps_eq!(&aabb.1.x(), &point.x()))
+            && (aabb.1.y() > point.y() || ulps_eq!(&aabb.1.y(), &point.y()))
+            && (aabb.1.z() > point.z() || ulps_eq!(&aabb.1.z(), &point.z()))
     }
 
     /// Apply an operation over each coordinate.
@@ -259,6 +286,85 @@ impl<T: GenericVector3> Aabb3<T> {
         if let Some(ref mut min_max) = self.min_max {
             self.min_max = Some((f(min_max.0), f(min_max.1)))
         }
+    }
+
+    pub fn update_aabb(&mut self, aabb: Aabb3<T>) {
+        if let Some((min, max)) = aabb.min_max {
+            self.update_with_point(min);
+            self.update_with_point(max);
+        }
+    }
+
+    pub fn update_with_point(&mut self, point: T) {
+        if self.min_max.is_none() {
+            self.min_max = Some((point, point));
+            return;
+        }
+        let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
+
+        if point.x() < aabb_min.x() {
+            aabb_min.set_x(point.x());
+        }
+        if point.y() < aabb_min.y() {
+            aabb_min.set_y(point.y());
+        }
+        if point.z() < aabb_min.z() {
+            aabb_min.set_z(point.z());
+        }
+        if point.x() > aabb_max.x() {
+            aabb_max.set_x(point.x());
+        }
+        if point.y() > aabb_max.y() {
+            aabb_max.set_y(point.y());
+        }
+        if point.z() > aabb_max.z() {
+            aabb_max.set_z(point.z());
+        }
+        self.min_max = Some((aabb_min, aabb_max));
+    }
+
+    pub fn get_high(&self) -> Option<T> {
+        if let Some((_, _high)) = self.min_max {
+            return Some(_high);
+        }
+        None
+    }
+
+    pub fn get_low(&self) -> Option<T> {
+        if let Some((_low, _)) = self.min_max {
+            return Some(_low);
+        }
+        None
+    }
+
+    /// returns true if this aabb entirely contains a line (inclusive)
+    #[inline(always)]
+    pub fn contains_line(&self, line: &Line3<T>) -> bool {
+        if let Some(self_aabb) = self.min_max {
+            return Self::contains_point_(self_aabb, line.start)
+                && Self::contains_point_(self_aabb, line.end);
+        }
+        false
+    }
+
+    /// returns true if this aabb contains a point (inclusive)
+    #[inline(always)]
+    pub fn contains_point(&self, point: T) -> bool {
+        if let Some(self_aabb) = self.min_max {
+            return Self::contains_point_(self_aabb, point);
+        }
+        false
+    }
+
+    /// returns true if aabb contains a point (inclusive)
+    #[inline(always)]
+    fn contains_point_(aabb: (T, T), point: T) -> bool {
+        aabb.0.x() <= point.x()
+            && aabb.0.y() <= point.y()
+            && aabb.0.z() <= point.z()
+            && aabb.1.x() >= point.x()
+            && aabb.1.y() >= point.y()
+            && aabb.1.z() >= point.z()
     }
 }
 
@@ -517,99 +623,6 @@ impl<T: GenericVector3> Approx<T> for Vec<T> {
     }
 }
 
-impl<T: GenericVector3> Aabb3<T> {
-    pub fn update_aabb(&mut self, aabb: Aabb3<T>) {
-        if let Some((min, max)) = aabb.min_max {
-            self.update_with_point(min);
-            self.update_with_point(max);
-        }
-    }
-
-    pub fn update_with_point(&mut self, point: T) {
-        if self.min_max.is_none() {
-            self.min_max = Some((point, point));
-            return;
-        }
-        let (mut aabb_min, mut aabb_max) = self.min_max.take().unwrap();
-
-        if point.x() < aabb_min.x() {
-            aabb_min.set_x(point.x());
-        }
-        if point.y() < aabb_min.y() {
-            aabb_min.set_y(point.y());
-        }
-        if point.z() < aabb_min.z() {
-            aabb_min.set_z(point.z());
-        }
-        if point.x() > aabb_max.x() {
-            aabb_max.set_x(point.x());
-        }
-        if point.y() > aabb_max.y() {
-            aabb_max.set_y(point.y());
-        }
-        if point.z() > aabb_max.z() {
-            aabb_max.set_z(point.z());
-        }
-        self.min_max = Some((aabb_min, aabb_max));
-    }
-
-    pub fn get_high(&self) -> Option<T> {
-        if let Some((_, _high)) = self.min_max {
-            return Some(_high);
-        }
-        None
-    }
-
-    pub fn get_low(&self) -> Option<T> {
-        if let Some((_low, _)) = self.min_max {
-            return Some(_low);
-        }
-        None
-    }
-
-    /// returns true if this aabb entirely contains 'other' (inclusive)
-    #[inline(always)]
-    pub fn contains_aabb(&self, other: &Self) -> bool {
-        if let Some(self_aabb) = other.min_max {
-            if let Some(o_aabb) = other.min_max {
-                return Self::contains_point_(self_aabb, o_aabb.0)
-                    && Self::contains_point_(self_aabb, o_aabb.1);
-            }
-        }
-        false
-    }
-
-    /// returns true if this aabb entirely contains a line (inclusive)
-    #[inline(always)]
-    pub fn contains_line(&self, line: &Line3<T>) -> bool {
-        if let Some(self_aabb) = self.min_max {
-            return Self::contains_point_(self_aabb, line.start)
-                && Self::contains_point_(self_aabb, line.end);
-        }
-        false
-    }
-
-    /// returns true if this aabb contains a point (inclusive)
-    #[inline(always)]
-    pub fn contains_point(&self, point: T) -> bool {
-        if let Some(self_aabb) = self.min_max {
-            return Self::contains_point_(self_aabb, point);
-        }
-        false
-    }
-
-    /// returns true if aabb contains a point (inclusive)
-    #[inline(always)]
-    fn contains_point_(aabb: (T, T), point: T) -> bool {
-        aabb.0.x() <= point.x()
-            && aabb.0.y() <= point.y()
-            && aabb.0.z() <= point.z()
-            && aabb.1.x() >= point.x()
-            && aabb.1.y() >= point.y()
-            && aabb.1.z() >= point.z()
-    }
-}
-
 #[allow(clippy::many_single_char_names)]
 #[inline(always)]
 fn cross_abs_squared<T: GenericVector3>(a: T, b: T) -> T::Scalar {
@@ -659,7 +672,7 @@ pub fn distance_to_line_squared_safe<T: GenericVector3>(l0: T, l1: T, p: T) -> T
 pub fn save_to_obj_file<T: GenericVector3>(
     filename: impl AsRef<Path>,
     object_name: &str,
-    lines: &Vec<Vec<Line3<T>>>,
+    lines: &[Vec<Line3<T>>],
 ) -> Result<(), LinestringError> {
     let mut point_set = collections::HashMap::<String, usize>::new();
     // try to de-duplicate points

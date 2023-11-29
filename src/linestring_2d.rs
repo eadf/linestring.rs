@@ -389,7 +389,7 @@ impl<T: GenericVector2> Line2<T> {
         area * area
     }
 
-    /// Copy this lines2 into a line3, populating the axes defined by 'plane'
+    /// Copy this Line2 into a Line3, populating the axes defined by 'plane'
     /// An axis will always try to keep it's position (e.g. y goes to y if possible).
     /// That way the operation is reversible (with regards to axis positions).
     pub fn copy_to_3d(&self, plane: Plane) -> linestring_3d::Line3<T::Vector3> {
@@ -1287,7 +1287,7 @@ impl<T: HasXY> Aabb2<T> {
 
     /// returns true if this aabb entirely contains 'other' (inclusive)
     #[inline(always)]
-    pub fn contains_aabb(&self, other: Aabb2<T>) -> bool {
+    pub fn contains_aabb(&self, other: &Aabb2<T>) -> bool {
         if let Some(self_aabb) = self.min_max {
             if let Some(other_aabb) = other.min_max {
                 return Self::contains_point_inclusive_(self_aabb, other_aabb.0)

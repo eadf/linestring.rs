@@ -7,7 +7,7 @@ use crate::{
 use vector_traits::{
     approx::{AbsDiffEq, UlpsEq},
     glam,
-    glam::{Vec3, Vec3A},
+    glam::{Vec2, Vec3, Vec3A},
     Approx,
 };
 
@@ -90,7 +90,7 @@ fn test_linestring_iter_3() {
 
 #[test]
 fn test_discretize_3d_1() -> Result<(), LinestringError> {
-    let l = VoronoiParabolicArc::<glam::Vec2>::new(
+    let l = VoronoiParabolicArc::<Vec2>::new(
         Line2::new((0.0, 0.0).into(), (10.0, 0.0).into()),
         (0.5, 0.5).into(),
         (0.0, 0.0).into(),
@@ -103,7 +103,7 @@ fn test_discretize_3d_1() -> Result<(), LinestringError> {
 
 #[test]
 fn test_aabb3_1() -> Result<(), LinestringError> {
-    let aabb3 =
+    let mut aabb3 =
         Aabb3::<glam::DVec3>::with_points(&[(0.0, 0.0, 0.0).into(), (10.0, 10.0, 10.0).into()]);
     assert!(
         aabb3.center().unwrap().is_ulps_eq(
@@ -122,6 +122,11 @@ fn test_aabb3_1() -> Result<(), LinestringError> {
     assert!(aabb3.contains_point_inclusive((10.0, 10.0, 10.0).into()));
     assert!(aabb3.contains_point_inclusive((0.0, 10.0, 10.0).into()));
     assert!(aabb3.contains_point_inclusive((10.0, 0.0, 10.0).into()));
+    aabb3.update_with_point(glam::dvec3(10.0, 10.0, 10.0));
+    aabb3.update_with_point(glam::dvec3(0.0, 0.0, 0.0));
+
+    assert!(aabb3.contains_aabb(&aabb3));
+
     Ok(())
 }
 
@@ -330,6 +335,11 @@ fn test_get_plane_xy() {
     let points_2d = points.copy_to_2d(plane);
     let points_3d = points_2d.copy_to_3d(plane);
     assert!(points_3d.ulps_eq(&points, f32::default_epsilon(), f32::default_max_ulps()));
+
+    let line2 = Line2::<Vec2>::from([0.0, 0.0, 1.0, 1.0]);
+    let line3 = line2.copy_to_3d(plane);
+    let line2_prim = line3.copy_to_2d(plane);
+    assert!(line2.abs_diff_eq(&line2_prim, f32::default_epsilon()));
 }
 
 #[test]
@@ -355,6 +365,11 @@ fn test_get_plane_xz() {
     assert_eq!(points_3d[0], vec3(2.0, 2.0, 3.0));
     assert_eq!(points_3d[1], vec3(1.0, 2.0, 5.0));
     assert_eq!(points_3d[2], vec3(2.0, 2.0, 4.0));
+
+    let line2 = Line2::<Vec2>::from([0.0, 0.0, 1.0, 1.0]);
+    let line3 = line2.copy_to_3d(plane);
+    let line2_prim = line3.copy_to_2d(plane);
+    assert!(line2.abs_diff_eq(&line2_prim, f32::default_epsilon()));
 }
 
 #[test]
@@ -380,4 +395,9 @@ fn test_get_plane_yz() {
         points_3d,
         points
     );
+
+    let line2 = Line2::<Vec2>::from([0.0, 0.0, 1.0, 1.0]);
+    let line3 = line2.copy_to_3d(plane);
+    let line2_prim = line3.copy_to_2d(plane);
+    assert!(line2.abs_diff_eq(&line2_prim, f32::default_epsilon()));
 }
