@@ -1015,6 +1015,11 @@ fn self_intersecting_1() {
     ];
     let rv = linestring.is_self_intersecting();
     assert!(rv.unwrap());
+    let rv = linestring.intersection(&Line2::from([0.0, 0.0, 1.0, 1.0]));
+    assert!(rv.is_some());
+    let (rv0, rv1) = linestring.find_two_intersections(&Line2::from([0.0, 0.0, 1.0, 1.0]));
+    assert!(rv0.is_some());
+    assert!(rv1.is_some());
 }
 
 #[test]

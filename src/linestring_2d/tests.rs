@@ -7,6 +7,7 @@ use vector_traits::{
     approx::{AbsDiffEq, UlpsEq},
     glam, Approx, Vec2A,
 };
+use crate::linestring_2d::Approx as Approx2;
 
 #[test]
 fn test_linestring_iter_1() {
@@ -129,6 +130,10 @@ fn test_aabb2_1() -> Result<(), LinestringError> {
     assert!(aabb2.contains_point_inclusive((10.0, 10.0).into()));
     assert!(aabb2.contains_point_inclusive((0.0, 10.0).into()));
     assert!(aabb2.contains_point_inclusive((10.0, 0.0).into()));
+    assert!(aabb2.contains_aabb_inclusive(&aabb2));
+    for l in aabb2.convex_hull().unwrap().chunk_iter() {
+        assert!(aabb2.contains_line_inclusive(&l));
+    }
     Ok(())
 }
 
@@ -184,6 +189,8 @@ fn test_line_segment_iterator_2() {
         glam::Vec2::new(3.0, 0.0),
     ];
     assert_eq!(result.len(), expected_result.len());
+    assert!(result.abs_diff_eq(&expected_result, f32::default_epsilon() ));
+    assert!(result.ulps_eq(&expected_result, f32::default_epsilon(), f32::default_max_ulps()));
     for (result, expected) in result.iter().zip(expected_result) {
         assert!(
             result.is_abs_diff_eq(expected, 1e-6.into()),

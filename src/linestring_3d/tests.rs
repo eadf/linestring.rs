@@ -24,7 +24,9 @@ fn test_linestring_iter_1() {
     ];
 
     assert_eq!(6, line.window_iter().len());
+    assert!(!line.window_iter().is_empty());
     assert_eq!(3, line.chunk_iter().len());
+    assert_eq!(line.chunk_iter().remainder().len(), 1);
     let _ = line.pop();
     assert_eq!(5, line.window_iter().len());
     assert_eq!(3, line.chunk_iter().len());
@@ -98,6 +100,8 @@ fn test_discretize_3d_1() -> Result<(), LinestringError> {
     );
     let d = l.discretize_3d(0.1.into());
     assert_eq!(d.len(), 10);
+    let d = l.discretize_3d_straight_line();
+    assert_eq!(d.len(), 2);
     Ok(())
 }
 

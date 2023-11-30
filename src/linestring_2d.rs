@@ -114,10 +114,6 @@ pub trait LineString2<T: GenericVector2> {
     /// This might return the origin position if the position is already on a line segment
     fn closest_ray_intersection(&self, ray_dir: T, origin: T) -> Option<T>;
 
-    /// returns true if this and the other objects are the same.
-    /// float equality is determined by ulps_eq!()
-    fn approx_eq(&self, other: &Self) -> bool;
-
     /// Returns an iterator over consecutive pairs of points in the line string, forming continuous lines.
     /// This iterator is created using `.windows(2)` on the underlying point collection.
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
@@ -785,6 +781,7 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
 
     /// intersection method that returns two possible intersection points
     /// Use this when you know there can only be two intersection points (e.g. convex hulls)
+    /// TODO: is this needed?
     fn find_two_intersections(&self, other: &Line2<T>) -> (Option<T>, Option<T>) {
         let mut intersections: Vec<T> = Vec::new();
 
@@ -879,21 +876,6 @@ impl<T: GenericVector2> LineString2<T> for Vec<T> {
             }
         });
         nearest_t.map(|t| origin + ray_dir * t)
-    }
-
-    /// returns true if this and the other objects are the same.
-    /// float equality is determined by ulps_eq!()
-    fn approx_eq(&self, other: &Self) -> bool {
-        if self.len() != other.len() {
-            return false;
-        }
-
-        for (point_a, point_b) in self.iter().zip(other.iter()) {
-            if !ulps_eq!(point_a.x(), point_b.x()) || !ulps_eq!(point_a.y(), point_b.y()) {
-                return false;
-            }
-        }
-        true
     }
 
     /// Returns an iterator over consecutive pairs of points in the line string, forming continuous lines.
@@ -1287,7 +1269,7 @@ impl<T: HasXY> Aabb2<T> {
 
     /// returns true if this aabb entirely contains 'other' (inclusive)
     #[inline(always)]
-    pub fn contains_aabb(&self, other: &Aabb2<T>) -> bool {
+    pub fn contains_aabb_inclusive(&self, other: &Aabb2<T>) -> bool {
         if let Some(self_aabb) = self.min_max {
             if let Some(other_aabb) = other.min_max {
                 return Self::contains_point_inclusive_(self_aabb, other_aabb.0)
