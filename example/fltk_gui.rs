@@ -90,10 +90,10 @@ fn main() {
         100,
         100,
         W,
-        H + SH * 1,
+        H + SH,
         "Ramer–Douglas–Peucker & Visvalingam–Whyatt simplification + Self intersection test",
     );
-    let mut frame = Frame::new(FO, FO, WF, HF + SH * 1, "");
+    let mut frame = Frame::new(FO, FO, WF, HF + SH, "");
     frame.set_color(Color::White);
     frame.set_frame(FrameType::DownBox);
 
@@ -145,7 +145,7 @@ fn main() {
         s.set_label(
             ("           Ramer–Douglas–Peucker distance:".to_string()
                 + &distance.to_string()
-                + (&"           ".to_string()))
+                + "           ")
                 .as_str(),
         );
         sender.send(GuiMessage::SliderRdpChanged(distance));
@@ -157,7 +157,7 @@ fn main() {
         s.set_label(
             ("           Visvalingam–Whyatt deleted points:".to_string()
                 + &number_to_remove.to_string()
-                + (&"           ".to_string()))
+                + "           ")
                 .as_str(),
         );
         sender.send(GuiMessage::SliderVwChanged(number_to_remove));

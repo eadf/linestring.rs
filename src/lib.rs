@@ -74,8 +74,9 @@ limitations under the License.
 //! * Convex hull containment test (single threaded or multi-threaded with [ryon](https://crates.io/crates/rayon))
 //! * Simple affine transformation (pan, zoom)
 //!
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use thiserror::Error;
+use vector_traits::num_traits::Float;
 
 #[derive(Error, Debug)]
 pub enum LinestringError {
@@ -111,4 +112,18 @@ pub mod prelude {
         linestring_3d::{simplify::indexed_simplify_rdp as indexed_simplify_rdp_3d, LineString3},
         shape::divide_into_shapes,
     };
+}
+
+#[inline]
+/// format a float so that it always display at least once decimal
+/// (makes it easier to copy&paste into code
+pub(crate) fn format_float<G>(value: G) -> String
+where
+    G: Float + Display,
+{
+    if value.fract() == G::zero() {
+        format!("{:.1}", value)
+    } else {
+        format!("{}", value)
+    }
 }

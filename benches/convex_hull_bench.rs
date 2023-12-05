@@ -20,6 +20,7 @@ fn convex_hull_graham_scan_bench(c: &mut Criterion) {
 
     c.bench_function("convex_hull_graham_scan_bench", |b| {
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box({
                 let _a = convex_hull::graham_scan(&points).unwrap();
             });
@@ -38,6 +39,7 @@ fn convex_hull_gift_wrap_bench(c: &mut Criterion) {
 
     c.bench_function("convex_hull_gift_wrap_bench", |b| {
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box({
                 let _a = convex_hull::gift_wrap(&points).unwrap();
             });
@@ -57,6 +59,7 @@ fn convex_hull_indexed_graham_scan_bench(c: &mut Criterion) {
 
     c.bench_function("convex_hull_indexed_graham_scan_bench", |b| {
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box({
                 let _a = convex_hull::indexed_graham_scan(&points, &indices).unwrap();
             });
@@ -76,6 +79,7 @@ fn convex_hull_indexed_gift_wrap_bench(c: &mut Criterion) {
 
     c.bench_function("convex_hull_indexed_gift_wrap_bench", |b| {
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box({
                 let _a = convex_hull::indexed_gift_wrap(&points, &indices).unwrap();
             });
@@ -95,6 +99,7 @@ fn convex_hull_convex_hull_par(c: &mut Criterion) {
 
     c.bench_function("convex_hull_convex_hull_par", |b| {
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box({
                 let _a = convex_hull::convex_hull_par(&points, &indices, CHUNK_SIZE).unwrap();
             });

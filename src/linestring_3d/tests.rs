@@ -1,6 +1,6 @@
 use crate::{
     linestring_2d::{Line2, VoronoiParabolicArc},
-    linestring_3d::{Aabb3, Approx as Approx3, LineString3, Plane},
+    linestring_3d::{Aabb3, Approx as Approx3, Line3, LineString3, Plane},
     prelude::LineString2,
     LinestringError,
 };
@@ -26,6 +26,7 @@ fn test_linestring_iter_1() {
     assert_eq!(6, line.window_iter().len());
     assert!(!line.window_iter().is_empty());
     assert_eq!(3, line.chunk_iter().len());
+    assert!(!line.chunk_iter().is_empty());
     assert_eq!(line.chunk_iter().remainder().len(), 1);
     let _ = line.pop();
     assert_eq!(5, line.window_iter().len());
@@ -98,7 +99,7 @@ fn test_discretize_3d_1() -> Result<(), LinestringError> {
         (0.0, 0.0).into(),
         (10.0, 0.0).into(),
     );
-    let d = l.discretize_3d(0.1.into());
+    let d = l.discretize_3d(0.1);
     assert_eq!(d.len(), 10);
     let d = l.discretize_3d_straight_line();
     assert_eq!(d.len(), 2);
@@ -129,8 +130,35 @@ fn test_aabb3_1() -> Result<(), LinestringError> {
     aabb3.update_with_point(glam::dvec3(10.0, 10.0, 10.0));
     aabb3.update_with_point(glam::dvec3(0.0, 0.0, 0.0));
 
-    assert!(aabb3.contains_aabb(&aabb3));
+    assert!(aabb3.contains_aabb_inclusive(&aabb3));
 
+    Ok(())
+}
+
+#[test]
+fn test_aabb3_2() -> Result<(), LinestringError> {
+    let aabb3 = Aabb3::<glam::DVec3>::from([0.0, 0.0, 0.0, 10.0, 10.0, 10.0]);
+    assert!(
+        aabb3.center().unwrap().is_ulps_eq(
+            (5.0, 5.0, 5.0).into(),
+            f64::default_epsilon(),
+            f64::default_max_ulps()
+        ),
+        "{:?}",
+        aabb3.center().unwrap()
+    );
+    let aabb3 = Aabb3::<glam::DVec3>::from([[0.0, 0.0, 0.0], [10.0, 10.0, 10.0]]);
+    assert!(
+        aabb3.center().unwrap().is_ulps_eq(
+            (5.0, 5.0, 5.0).into(),
+            f64::default_epsilon(),
+            f64::default_max_ulps()
+        ),
+        "{:?}",
+        aabb3.center().unwrap()
+    );
+    let aabb3 = Aabb3::<glam::DVec3>::default();
+    assert!(aabb3.get_low().is_none());
     Ok(())
 }
 
@@ -156,7 +184,7 @@ fn test_line_segment_iterator_1() {
     assert_eq!(result.len(), expected_result.len());
     for (result, expected) in result.iter().zip(expected_result) {
         assert!(
-            result.is_abs_diff_eq(expected, 1e-6.into()),
+            result.is_abs_diff_eq(expected, 1e-6),
             "{:?}!={:?}",
             result,
             expected
@@ -188,7 +216,7 @@ fn test_line_segment_iterator_2() {
     assert_eq!(result.len(), expected_result.len());
     for (result, expected) in result.iter().zip(expected_result) {
         assert!(
-            result.is_abs_diff_eq(expected, 1e-6.into()),
+            result.is_abs_diff_eq(expected, 1e-6),
             "{:?}!={:?}",
             result,
             expected
@@ -220,7 +248,7 @@ fn test_line_segment_iterator_3() {
     assert_eq!(result.len(), expected_result.len());
     for (result, expected) in result.iter().zip(expected_result) {
         assert!(
-            result.is_abs_diff_eq(expected, 1e-6.into()),
+            result.is_abs_diff_eq(expected, 1e-6),
             "{:?}!={:?}",
             result,
             expected
@@ -247,7 +275,7 @@ fn test_line_segment_iterator_4() {
 
     for (result, expected) in iterator.zip(expected_result) {
         assert!(
-            result.is_abs_diff_eq(expected, 1e-6.into()),
+            result.is_abs_diff_eq(expected, 1e-6),
             "{:?}!={:?}",
             result,
             expected
@@ -266,7 +294,7 @@ fn test_line_segment_iterator_5() {
 
     for (result, expected) in iterator.zip(expected_result) {
         assert!(
-            result.is_abs_diff_eq(expected, 1e-6.into()),
+            result.is_abs_diff_eq(expected, 1e-6),
             "{:?}!={:?}",
             result,
             expected
@@ -285,7 +313,7 @@ fn test_line_segment_iterator_6() {
 
     for (result, expected) in iterator.zip(expected_result) {
         assert!(
-            result.is_abs_diff_eq(expected, 1e-6.into()),
+            result.is_abs_diff_eq(expected, 1e-6),
             "{:?}!={:?}",
             result,
             expected
@@ -304,7 +332,7 @@ fn test_line_segment_iterator_single_point() {
 
     for (result, expected) in iterator.zip(expected_result) {
         assert!(
-            result.is_abs_diff_eq(expected, 1e-6.into()),
+            result.is_abs_diff_eq(expected, 1e-6),
             "{:?}=={:?}",
             result,
             expected
@@ -404,4 +432,31 @@ fn test_get_plane_yz() {
     let line3 = line2.copy_to_3d(plane);
     let line2_prim = line3.copy_to_2d(plane);
     assert!(line2.abs_diff_eq(&line2_prim, f32::default_epsilon()));
+}
+
+#[test]
+fn test_line_1() {
+    let line: Line3<Vec3> = [0f32, 1., 2.0, 10., 11., 12.0].into();
+    assert!(line.start.is_ulps_eq(
+        [0f32, 1., 2.0].into(),
+        f32::default_epsilon(),
+        f32::default_max_ulps()
+    ));
+    assert!(line.end.is_ulps_eq(
+        [10f32, 11., 12.0].into(),
+        f32::default_epsilon(),
+        f32::default_max_ulps()
+    ));
+
+    let line = Line3::<Vec3>::from([0f32, 1., 2.0, 10., 11., 12.0]);
+    assert!(line.start.is_ulps_eq(
+        [0f32, 1., 2.0].into(),
+        f32::default_epsilon(),
+        f32::default_max_ulps()
+    ));
+    assert!(line.end.is_ulps_eq(
+        [10f32, 11., 12.0].into(),
+        f32::default_epsilon(),
+        f32::default_max_ulps()
+    ));
 }

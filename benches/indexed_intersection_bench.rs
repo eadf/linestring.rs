@@ -21,10 +21,11 @@ fn indexed_intersection_bench_1(c: &mut Criterion) {
         angle += 0.1;
         radius += 0.2;
     }
-    let edges: Vec<(usize, usize)> = (0..vertices.len() as usize).tuples().collect();
+    let edges: Vec<(usize, usize)> = (0..vertices.len()).tuples().collect();
 
     c.bench_function("indexed_intersection_bench", |b| {
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box({
                 let (_output_vertices, _result_iter) = IntersectionTester::new(vertices.clone())
                     .with_ignore_end_point_intersections(true)

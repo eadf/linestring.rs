@@ -23,6 +23,7 @@ fn intersection_bench_1(c: &mut Criterion) {
 
     c.bench_function("intersection_bench", |b| {
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box({
                 assert!(!linestring.is_self_intersecting().unwrap());
             });

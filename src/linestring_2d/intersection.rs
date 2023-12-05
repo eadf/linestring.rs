@@ -112,7 +112,7 @@ impl<T: GenericVector2> PartialEq for SiteEventKey<T> {
 /// It only stores the lines with highest x value left of pivot point, and lines with lowest x
 /// value right of the point. Secondarily it prioritizes according to slope of the line, lines
 /// leaning towards pivot point have priority.
-struct MinMax<T: GenericVector2> {
+pub(crate) struct MinMax<T: GenericVector2> {
     best_left: Option<T::Scalar>,
     slope: MinMaxSlope<T>,
     best_right: Option<T::Scalar>,
@@ -122,7 +122,7 @@ impl<T: GenericVector2> MinMax<T>
 where
     T::Scalar: UlpsEq,
 {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             best_left: None,
             best_right: None,
@@ -131,7 +131,7 @@ where
     }
 
     /// keep track of the candidates closest (on both sides) to pivot_x
-    fn update(
+    pub(crate) fn update(
         &mut self,
         pivot_x: T::Scalar,
         candidate_x: T::Scalar,
@@ -196,7 +196,7 @@ where
     }
 
     /// clear all data
-    fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.best_left = None;
         self.best_right = None;
         self.slope.clear();

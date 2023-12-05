@@ -45,23 +45,9 @@ limitations under the License.
 use super::{
     Aabb2, ChunkIterator, Intersection, Line2, PriorityDistance, SimpleAffine, WindowIterator,
 };
-use std::{
-    cmp::Ordering,
-    fmt,
-    fmt::{Debug, Display},
-};
-use vector_traits::{approx::*, num_traits::real::Real, GenericScalar, GenericVector2};
-
-fn format_float<G>(value: G) -> String
-where
-    G: Real + Display,
-{
-    if value.fract() == G::zero() {
-        format!("{:.1}", value)
-    } else {
-        format!("{}", value)
-    }
-}
+use crate::format_float;
+use std::{cmp::Ordering, fmt, fmt::Debug};
+use vector_traits::{approx::*, GenericScalar, GenericVector2};
 
 impl<T: GenericVector2> PartialEq for Line2<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -71,7 +57,6 @@ impl<T: GenericVector2> PartialEq for Line2<T> {
             && ulps_eq!(self.end.y(), other.end.y())
     }
 }
-impl<T: GenericVector2> Eq for Line2<T> {}
 
 impl<T: GenericVector2> PartialOrd for PriorityDistance<T> {
     #[inline(always)]
@@ -93,6 +78,7 @@ impl<T: GenericVector2> PartialEq for PriorityDistance<T> {
         ulps_eq!(self.key, other.key)
     }
 }
+
 impl<T: GenericVector2> Eq for PriorityDistance<T> {}
 
 impl<T: GenericVector2> From<[T::Scalar; 4]> for Line2<T> {
@@ -145,7 +131,6 @@ impl<T: GenericVector2> PartialEq for Aabb2<T> {
         }
     }
 }
-impl<T: GenericVector2> Eq for Aabb2<T> {}
 
 impl<T: GenericVector2> Debug for Intersection<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -253,6 +238,23 @@ impl<T: GenericVector2> UlpsEq for Line2<T> {
 impl<T: GenericVector2> Default for Aabb2<T> {
     fn default() -> Self {
         Self { min_max: None }
+    }
+}
+
+impl<T: GenericVector2> Debug for Aabb2<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some((start, end)) = self.min_max {
+            write!(
+                f,
+                "Aabb2[({},{})-({},{})]",
+                format_float(start.x()),
+                format_float(start.y()),
+                format_float(end.x()),
+                format_float(end.y()),
+            )
+        } else {
+            write!(f, "Aabb2[None]",)
+        }
     }
 }
 

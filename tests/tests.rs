@@ -8,58 +8,23 @@
 #[cfg(not(all(feature = "glam", feature = "cgmath")))]
 compile_error!("All of the traits 'glam' and 'cgmath' features must be enabled for tests");
 
+use itertools::Itertools;
 use linestring::{
-    linestring_2d::{self, Aabb2, Intersection, Line2, LineString2, SimpleAffine},
+    linestring_2d::{
+        self, indexed_intersection::IntersectionTester, Aabb2, Intersection, Line2, LineString2,
+        SimpleAffine,
+    },
     linestring_3d::{save_to_obj_file, Line3, LineString3},
     prelude::{indexed_simplify_rdp_2d, indexed_simplify_rdp_3d},
     LinestringError,
 };
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::ops::Neg;
 use vector_traits::{
     approx::{ulps_eq, AbsDiffEq, UlpsEq},
-    glam::{dvec2, vec2, Vec2, Vec3, Vec3A},
+    glam::{dvec2, vec2, DVec2, Vec2, Vec3, Vec3A},
     Approx, HasXY,
 };
-
-#[allow(dead_code)]
-const EPSILON: f64 = 1e-10; // or some small value that's appropriate for your use case
-
-fn silly_assert_approx_eq<T: SillyApproxEq + std::fmt::Debug>(v1: T, v2: T, epsilon: f64) {
-    assert!(v1.silly_approx_eq(&v2, epsilon), "{:?} != {:?}", v1, v2);
-}
-trait SillyApproxEq {
-    fn silly_approx_eq(&self, other: &Self, epsilon: f64) -> bool;
-}
-
-impl SillyApproxEq for f32 {
-    fn silly_approx_eq(&self, other: &Self, epsilon: f64) -> bool {
-        (self - other).abs() <= epsilon as f32
-    }
-}
-impl SillyApproxEq for f64 {
-    fn silly_approx_eq(&self, other: &Self, epsilon: f64) -> bool {
-        (self - other).abs() <= epsilon
-    }
-}
-
-impl SillyApproxEq for Vec2 {
-    fn silly_approx_eq(&self, other: &Self, epsilon: f64) -> bool {
-        (self.x - other.x).abs() <= epsilon as f32 && (self.y - other.y).abs() <= epsilon as f32
-    }
-}
-
-impl SillyApproxEq for Vec3 {
-    fn silly_approx_eq(&self, other: &Self, epsilon: f64) -> bool {
-        (self.x - other.x).abs() <= epsilon as f32
-            && (self.y - other.y).abs() <= epsilon as f32
-            && (self.z - other.z).abs() <= epsilon as f32
-    }
-}
-
-fn almost_equal<T: UlpsEq + std::fmt::Debug>(x1: T, x2: T, y1: T, y2: T) {
-    assert!(ulps_eq!(&x1, &x2), "{:?}!={:?}", (x1, y1), (x2, y2));
-    assert!(ulps_eq!(&y1, &y2), "{:?}!={:?}", (x1, y1), (x2, y2));
-}
 
 /// draws a line pivoting around (x,y) with 'angle' in degrees
 /// l1 & l2 are lengths
@@ -133,6 +98,7 @@ fn line3_1() {
 
 #[test]
 fn aabb_1() {
+    #[allow(clippy::useless_vec)]
     let line = vec![vec2(0.0, 0.0), vec2(10.0, 1.0)];
     let aabb0 = Aabb2::from(line.iter());
     let aabb1 = Aabb2::from(line.iter());
@@ -164,7 +130,7 @@ fn intersection_1() {
     let l1 = linestring_2d::Line2::<Vec2>::from([200., 200., 300., 300.]);
     let l2 = linestring_2d::Line2::<Vec2>::from([400., 200., 300., 300.]);
     let rv = l1.intersection_point(l2).unwrap().single();
-    almost_equal(rv.x, 300.0, rv.y, 300.0);
+    assert!(rv.is_abs_diff_eq(vec2(300.0, 300.0), f32::default_epsilon()));
 }
 
 #[test]
@@ -173,13 +139,14 @@ fn ray_intersection_1() {
     let l2 = linestring_2d::Line2::<Vec2>::from([-400., 0., 1., 0.]);
     let mut ray = l2.end - l2.start;
     let rv = l1.closest_ray_intersection(ray, l2.start).unwrap();
-    almost_equal(rv.x, 0.0, rv.y, 0.0);
+    rv.is_abs_diff_eq(vec2(0.0, 0.0), f32::default_epsilon());
     let l1 = vec![[0., 200.].into(), [0., -200.].into()];
     let rv = l1.closest_ray_intersection(ray, l2.start).unwrap();
-    almost_equal(rv.x, 0.0, rv.y, 0.0);
+    rv.is_abs_diff_eq(vec2(0.0, 0.0), f32::default_epsilon());
     ray = ray.neg();
     assert!(l1.closest_ray_intersection(ray, l2.start).is_none());
 }
+
 #[test]
 fn ray_intersection_2() {
     let ray_origin: vector_traits::glam::Vec2 = (10., 200.).into();
@@ -193,7 +160,7 @@ fn ray_intersection_2() {
         let l1 = vec![line1.start, line1.end];
         let rv = l1.closest_ray_intersection(ray, ray_origin).unwrap();
         //println!("rv:{:?} l1:{:?}", rv, pivot_p);
-        silly_assert_approx_eq(rv, pivot_p, 0.001);
+        rv.is_abs_diff_eq(pivot_p, 0.001);
         //silly_assert_approx_eq(rv, 200.0,  0.001);
     }
 }
@@ -203,16 +170,16 @@ fn intersection_2() {
     let l1 = linestring_2d::Line2::<Vec2>::from([200., 200., 300., 400.]);
     let l2 = linestring_2d::Line2::<Vec2>::from([400., 200., 300., 400.]);
     let rv = l1.intersection_point(l2).unwrap().single();
-    almost_equal(rv.x, 300.0, rv.y, 400.0);
+    rv.is_abs_diff_eq(vec2(300.0, 400.0), f32::default_epsilon());
 }
 
 #[test]
 fn intersection_3() {
     // line to point detection
-    let l1 = linestring_2d::Line2::<Vec2>::from([200., 200., 300., 300.]);
-    let l2 = linestring_2d::Line2::<Vec2>::from([250., 250., 250., 250.]);
+    let l1 = linestring_2d::Line2::<DVec2>::from([200., 200., 300., 300.]);
+    let l2 = linestring_2d::Line2::<DVec2>::from([250., 250., 250., 250.]);
     let rv = l1.intersection_point(l2).unwrap().single();
-    almost_equal(rv.x, 250.0, rv.y, 250.0);
+    rv.is_abs_diff_eq(dvec2(250.0, 250.0), f64::default_epsilon());
 }
 
 #[test]
@@ -221,7 +188,7 @@ fn intersection_4() {
     let l1 = linestring_2d::Line2::<Vec2>::from([300., 300., 200., 200.]);
     let l2 = linestring_2d::Line2::<Vec2>::from([250., 250., 250., 250.]);
     let rv = l1.intersection_point(l2).unwrap().single();
-    almost_equal(rv.x, 250.0, rv.y, 250.0);
+    rv.is_abs_diff_eq(vec2(250.0, 250.0), f32::default_epsilon());
 }
 
 #[test]
@@ -239,7 +206,7 @@ fn intersection_5() {
             .single();
         //println!("rv:{:?}", rv);
         //println!();
-        almost_equal(rv.x, point.x, rv.y, point.y);
+        rv.is_abs_diff_eq(point, f32::default_epsilon());
     }
 }
 
@@ -450,20 +417,87 @@ fn simplify_5() {
 }
 
 #[test]
-fn a_test() -> Result<(), LinestringError> {
-    let _l: Vec<[f32; 2]> = vec![
-        [651.3134, 410.21536],
-        [335.7384, 544.54614],
-        [154.29922, 363.10654],
-        [425.06284, 255.50153],
-        [651.1434, 387.16595],
-        [250.0, 300.0],
+fn simplify_7() {
+    // test that two-vertices line segments will remain the same after simplification
+    let line: Vec<Vec3> = vec![(0.0, 3.0, 0.0).into(), (1.0, 2.0, 0.0).into()];
+    let indices: Vec<usize> = vec![0, 1];
+    assert_eq!(2, indexed_simplify_rdp_3d(&line, &indices, 1000.0).len());
+    assert_eq!(2, line.simplify_rdp(1000.0).len());
+    assert_eq!(2, line.simplify_vw(1000).len());
+}
+
+#[test]
+fn simplify_8() {
+    // Seed the RNG for reproducibility
+    let mut rng: StdRng = SeedableRng::from_seed([42; 32]);
+    let mut line = Vec::<Vec3>::with_capacity(500);
+    // Add some random vertices to the line
+    for _ in 0..500 {
+        line.push(
+            (
+                rng.gen_range(0.0..5.0),
+                rng.gen_range(0.0..5.0),
+                rng.gen_range(0.0..5.0),
+            )
+                .into(),
+        );
+    }
+    let indices: Vec<usize> = (0..line.len())
+        .tuple_windows::<(_, _)>()
+        .flat_map(|a| [a.0, a.1])
+        .collect();
+    assert_eq!(249, line.clone().simplify_vw(250).len());
+    assert_eq!(134, indexed_simplify_rdp_3d(&line, &indices, 3.5).len());
+    assert_eq!(134, line.clone().simplify_rdp(3.5).len());
+}
+
+#[test]
+fn intersection_13() -> Result<(), LinestringError> {
+    let line: Vec<Vec2> = vec![
+        [651.3134, 410.21536].into(),
+        [335.7384, 544.54614].into(),
+        [154.29922, 363.10654].into(),
+        [425.06284, 255.50153].into(),
+        [651.1434, 387.16595].into(),
+        [250.0, 300.0].into(),
     ];
 
-    let l: Vec<Vec2> = _l.into_iter().map(|v| v.into()).collect();
-    let result = l.is_self_intersecting()?;
+    assert!(line.is_self_intersecting()?);
+    let edges: Vec<(usize, usize)> = (0..line.len()).tuples().collect();
 
-    assert!(result);
+    let (_output_vertices, result_iter) = IntersectionTester::new(line)
+        .with_ignore_end_point_intersections(true)?
+        .with_stop_at_first_intersection(true)?
+        .with_edges(edges.iter())?
+        .compute()?;
+
+    assert_eq!(result_iter.len(), 1);
+    Ok(())
+}
+
+#[test]
+fn intersection_14() -> Result<(), LinestringError> {
+    const SIZE: usize = 500;
+
+    use rand::{rngs::StdRng, Rng, SeedableRng};
+
+    let mut rng: StdRng = SeedableRng::from_seed([42; 32]);
+    let mut line = Vec::<Vec2>::with_capacity(SIZE);
+    for _i in 0..SIZE {
+        let p = vec2(rng.gen_range(0.0..4096.0), rng.gen_range(0.0..4096.0));
+        line.push(p);
+    }
+
+    assert!(line.is_self_intersecting()?);
+    let edges: Vec<(usize, usize)> = (0..line.len()).tuples().collect();
+
+    let (_output_vertices, result_iter) = IntersectionTester::new(line)
+        .with_ignore_end_point_intersections(true)?
+        .with_stop_at_first_intersection(false)?
+        .with_edges(edges.iter())?
+        .compute()?;
+
+    assert_eq!(7612, result_iter.len());
     Ok(())
 }
 
@@ -493,7 +527,7 @@ fn another_test() -> Result<(), linestring::LinestringError> {
     assert_eq!(glam_vec2, glam_dvec2);
     assert_eq!(cgmath_vector2_f32, cgmath_vector_f64);
     assert_eq!(glam_vec2, cgmath_vector_f64);
-    assert_eq!(glam_vec2, false);
+    assert!(!glam_vec2);
     Ok(())
 }
 
@@ -584,7 +618,8 @@ fn voronoi_parabolic_arc_1() {
     */
     let cell_point: glam::Vec2 = [200.0, 200.0].into();
     let segment: linestring_2d::Line2<glam::Vec2> = [[100.0, 100.0], [300.0, 100.0]].into();
-    let max_dist: f32 = 0.800000037997961;
+    //let max_dist: f32 = 0.800000037997961;
+    let max_dist: f32 = 0.8;
     let start_point: glam::Vec2 = [100.0, 200.0].into();
     let end_point: glam::Vec2 = [300.0, 200.0].into();
 
@@ -1042,8 +1077,23 @@ fn test_save_to_obj_file() {
     let temp_file_path = temp_dir.path().join("temp.obj");
 
     // Call the function with the temporary file path
-    let result = save_to_obj_file(&temp_file_path, "object_name", &vec![lines]);
+    let result = save_to_obj_file(&temp_file_path, "object_name", &[lines]);
 
     // Assert that the function returned Ok
     assert!(result.is_ok());
+}
+
+#[test]
+fn test_debug_impl() {
+    let line = Line2::<Vec2>::from([0.0, 0.0, 1.0, 1.0]);
+    let s = format!("{:?})", line);
+    assert_eq!("(0.0,0.0)-(1.0,1.0))", s);
+
+    let aabb = Aabb2::<Vec2>::with_points(&[vec2(0.0f32, 0.0), vec2(1.0, 1.0)]);
+    let s = format!("{:?})", aabb);
+    assert_eq!("Aabb2[(0.0,0.0)-(1.0,1.0)])", s);
+
+    let aabb = Aabb2::<Vec2>::default();
+    let s = format!("{:?}", aabb);
+    assert_eq!("Aabb2[None]", s);
 }

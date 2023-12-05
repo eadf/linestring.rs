@@ -45,7 +45,7 @@ mod impls;
 
 use crate::{linestring_2d, LinestringError};
 use itertools::Itertools;
-use std::{collections, fmt, fs, hash::Hash, io, io::Write, path::Path};
+use std::{collections, fmt, fs, io, io::Write, path::Path};
 use vector_traits::{
     approx::{ulps_eq, AbsDiffEq, UlpsEq},
     num_traits::{real::Real, AsPrimitive},
@@ -60,7 +60,7 @@ mod tests;
 pub enum Shape3d<T: GenericVector3> {
     Line(Line3<T>),
     Linestring(Vec<T>),
-    ParabolicArc(crate::linestring_2d::VoronoiParabolicArc<T::Vector2>),
+    ParabolicArc(linestring_2d::VoronoiParabolicArc<T::Vector2>),
 }
 
 /// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
@@ -158,7 +158,7 @@ impl Plane {
 }
 
 /// A 3d line
-#[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
+#[derive(PartialEq, Copy, Clone)]
 pub struct Line3<T: GenericVector3> {
     pub start: T,
     pub end: T,
@@ -206,7 +206,7 @@ impl<T: GenericVector3> Line3<T> {
 
 /// A simple 3d AABB
 /// If min_max is none no data has not been assigned yet.
-#[derive(PartialEq, Eq, Copy, Clone, Hash, fmt::Debug)]
+#[derive(PartialEq, Copy, Clone, fmt::Debug)]
 pub struct Aabb3<T: GenericVector3> {
     min_max: Option<(T, T)>,
 }
@@ -241,18 +241,6 @@ impl<T: GenericVector3> Aabb3<T> {
         self.min_max = Some((aabb_min, aabb_max));
     }
 
-    /// returns true if this aabb entirely contains 'other' (inclusive)
-    #[inline(always)]
-    pub fn contains_aabb(&self, other: &Aabb3<T>) -> bool {
-        if let Some(self_aabb) = self.min_max {
-            if let Some(other_aabb) = other.min_max {
-                return Self::contains_point_inclusive_(self_aabb, other_aabb.0)
-                    && Self::contains_point_inclusive_(self_aabb, other_aabb.1);
-            }
-        }
-        false
-    }
-
     /// returns the center point of the AABB if it exists
     pub fn center(&self) -> Option<T> {
         if let Some((low, high)) = self.min_max {
@@ -269,6 +257,28 @@ impl<T: GenericVector3> Aabb3<T> {
         } else {
             false
         }
+    }
+
+    /// returns true if this aabb entirely contains 'other' (inclusive)
+    #[inline(always)]
+    pub fn contains_aabb_inclusive(&self, other: &Aabb3<T>) -> bool {
+        if let Some(self_aabb) = self.min_max {
+            if let Some(other_aabb) = other.min_max {
+                return Self::contains_point_inclusive_(self_aabb, other_aabb.0)
+                    && Self::contains_point_inclusive_(self_aabb, other_aabb.1);
+            }
+        }
+        false
+    }
+
+    /// returns true if this aabb entirely contains a line (inclusive)
+    #[inline(always)]
+    pub fn contains_line_inclusive(&self, line: &Line3<T>) -> bool {
+        if let Some(self_aabb) = self.min_max {
+            return Self::contains_point_inclusive_(self_aabb, line.start)
+                && Self::contains_point_inclusive_(self_aabb, line.end);
+        }
+        false
     }
 
     #[inline(always)]
@@ -335,36 +345,6 @@ impl<T: GenericVector3> Aabb3<T> {
             return Some(_low);
         }
         None
-    }
-
-    /// returns true if this aabb entirely contains a line (inclusive)
-    #[inline(always)]
-    pub fn contains_line(&self, line: &Line3<T>) -> bool {
-        if let Some(self_aabb) = self.min_max {
-            return Self::contains_point_(self_aabb, line.start)
-                && Self::contains_point_(self_aabb, line.end);
-        }
-        false
-    }
-
-    /// returns true if this aabb contains a point (inclusive)
-    #[inline(always)]
-    pub fn contains_point(&self, point: T) -> bool {
-        if let Some(self_aabb) = self.min_max {
-            return Self::contains_point_(self_aabb, point);
-        }
-        false
-    }
-
-    /// returns true if aabb contains a point (inclusive)
-    #[inline(always)]
-    fn contains_point_(aabb: (T, T), point: T) -> bool {
-        aabb.0.x() <= point.x()
-            && aabb.0.y() <= point.y()
-            && aabb.0.z() <= point.z()
-            && aabb.1.x() >= point.x()
-            && aabb.1.y() >= point.y()
-            && aabb.1.z() >= point.z()
     }
 }
 

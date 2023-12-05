@@ -1162,7 +1162,7 @@ impl<T: GenericVector2> Approx<T> for Vec<T> {
 
 /// A simple 2d AABB
 /// If min_max is none no data has not been assigned yet.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub struct Aabb2<T: HasXY> {
     min_max: Option<(T, T)>,
 }
@@ -1175,7 +1175,7 @@ impl<T: HasXY> Aabb2<T> {
         }
     }
 
-    /// updates the aabb with points
+    /// Builds an aabb from points
     pub fn with_points(points: &[T]) -> Self {
         let mut rv = Self { min_max: None };
         if !points.is_empty() {

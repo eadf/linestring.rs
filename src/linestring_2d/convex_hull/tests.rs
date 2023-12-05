@@ -45,6 +45,7 @@ use crate::{linestring_2d::convex_hull, LinestringError};
 use vector_traits::glam::{vec2, DVec2, Vec2};
 
 #[test]
+#[allow(clippy::vec_init_then_push)]
 fn contains_point_exclusive_1() {
     let mut hull = Vec::<DVec2>::with_capacity(5);
     hull.push([0.0, 0.0].into());
@@ -89,6 +90,7 @@ fn contains_point_exclusive_1() {
 }
 
 #[test]
+#[allow(clippy::vec_init_then_push)]
 fn contains_point_inclusive_1() {
     let mut hull = Vec::<DVec2>::with_capacity(5);
     hull.push([0.0, 0.0].into());

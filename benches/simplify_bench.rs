@@ -23,6 +23,7 @@ fn simplify_bench_rdp(c: &mut Criterion) {
 
     c.bench_function("simplify_bench_rdp", |b| {
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box({
                 linestring.simplify_rdp(0.01);
             });
@@ -46,6 +47,7 @@ fn simplify_bench_vw(c: &mut Criterion) {
 
     c.bench_function("simplify_bench_vw", |b| {
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box({
                 linestring.simplify_vw(11000);
             });

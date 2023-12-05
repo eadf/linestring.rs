@@ -41,7 +41,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 //! A module containing boiler-plate implementations of standard traits such as Default, From etc etc
-use crate::linestring_3d::{Aabb3, ChunkIterator, Line3, PriorityDistance, WindowIterator};
+use crate::{
+    format_float,
+    linestring_3d::{Aabb3, ChunkIterator, Line3, PriorityDistance, WindowIterator},
+};
+use std::{fmt, fmt::Debug};
 use vector_traits::{approx::ulps_eq, GenericVector3};
 
 impl<T: GenericVector3> Default for Aabb3<T> {
@@ -72,29 +76,33 @@ impl<'a, T: GenericVector3> Iterator for ChunkIterator<'a, T> {
     }
 }
 
-#[allow(clippy::from_over_into)]
-impl<T: GenericVector3> Into<[T::Scalar; 6]> for Line3<T> {
-    fn into(self) -> [T::Scalar; 6] {
-        [
-            self.start.x(),
-            self.start.y(),
-            self.start.z(),
-            self.end.x(),
-            self.end.y(),
-            self.end.z(),
-        ]
+impl<T: GenericVector3> From<[T::Scalar; 6]> for Line3<T> {
+    fn from(value: [T::Scalar; 6]) -> Self {
+        Line3 {
+            start: T::new_3d(value[0], value[1], value[2]),
+            end: T::new_3d(value[3], value[4], value[5]),
+        }
+    }
+}
+
+impl<T: GenericVector3> Debug for Line3<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "({},{},{})-({},{},{})",
+            format_float(self.start.x()),
+            format_float(self.start.y()),
+            format_float(self.start.z()),
+            format_float(self.end.x()),
+            format_float(self.end.y()),
+            format_float(self.end.z()),
+        )
     }
 }
 
 impl<T: GenericVector3, IT: Copy + Into<T>> From<[IT; 2]> for Line3<T> {
     fn from(pos: [IT; 2]) -> Line3<T> {
         Line3::<T>::new(pos[0].into(), pos[1].into())
-    }
-}
-
-impl<T: GenericVector3> From<[T::Scalar; 6]> for Line3<T> {
-    fn from(l: [T::Scalar; 6]) -> Line3<T> {
-        Line3::<T>::new(T::new_3d(l[0], l[1], l[2]), T::new_3d(l[3], l[4], l[5]))
     }
 }
 
