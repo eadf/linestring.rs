@@ -182,7 +182,23 @@ fn unwind_line(
     line
 }
 
-/// calculate the highest index and the adjacency map
+/// Calculates the highest index and the adjacency map from a set of edges.
+///
+/// Given a slice of indices in the "chunk(2)" format, where each pair of consecutive elements represents
+/// an edge between two vertices, this function computes the highest index in the set and generates
+/// an adjacency map.
+///
+/// The adjacency map is represented as a hash map where each vertex index is associated with a
+/// `SmallVec` containing its adjacent vertices.
+///
+/// # Arguments
+///
+/// * `indices` - A slice of usize values in "chunk(2)" format, representing edges between vertices.
+///
+/// # Returns
+///
+/// A tuple containing the highest index in the set and the adjacency map.
+///
 fn adjacency_map(indices: &[usize]) -> (usize, AHashMap<usize, SmallVec<[usize; 2]>>) {
     let mut adjacency_map = AHashMap::<usize, SmallVec<[usize; 2]>>::with_capacity(indices.len());
     let mut max_index = 0;
@@ -241,7 +257,7 @@ fn termination_candidate_nodes(
 /// ```
 /// use linestring::prelude::divide_into_shapes;
 /// let indices = vec![0, 1, 2, 3, 1, 4, 4, 5, 6, 7];
-/// let result = divide_into_shapes(&indices);
+/// let result = divide_into_shapes(&indices).0;
 /// assert_eq!(result.len(), 3);
 /// assert_eq!(result[0], vec![6, 7]);
 /// assert_eq!(result[1], vec![5, 4, 1, 0]);
@@ -261,8 +277,9 @@ fn termination_candidate_nodes(
 /// # Returns
 ///
 /// A `Vec<Vec<usize>>` containing lists of lists of continuous connected shapes.
+/// A Vob<u32> where un-connected and intersection indices are set to False.
 ///
-pub fn divide_into_shapes(indices: &[usize]) -> Vec<Vec<usize>> {
+pub fn divide_into_shapes(indices: &[usize]) -> (Vec<Vec<usize>>, Vob<u32>) {
     // a Vec containing identified shapes, and those are vertex indices in .windows(2) format
     let mut group_container = Vec::<Vec<usize>>::new();
     // a map for vertex id to a list of adjacent vertices
@@ -273,7 +290,7 @@ pub fn divide_into_shapes(indices: &[usize]) -> Vec<Vec<usize>> {
         termination_candidate_nodes(max_index, &adjacency_map);
 
     // vertices that has already been marked as used
-    let mut visited = SetVob::fill_with_false(indices.len());
+    let mut visited = SetVob::fill_with_false(max_index + 1);
     /*
     println!(
         "adjacency_map:{:?}",
@@ -403,5 +420,5 @@ pub fn divide_into_shapes(indices: &[usize]) -> Vec<Vec<usize>> {
             }
         }
     }
-    group_container
+    (group_container, visited.vob)
 }

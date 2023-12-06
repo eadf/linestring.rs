@@ -138,15 +138,25 @@ fn test_aabb2_1() -> Result<(), LinestringError> {
     for l in aabb2.convex_hull().unwrap().chunk_iter() {
         assert!(aabb2.contains_line_inclusive(&l));
     }
-    let (low, high, width, height) = aabb2.extents().unwrap();
+    let (low, high, delta) = aabb2.extents().unwrap();
     assert_eq!(low, glam::dvec2(0.0, 0.0));
     assert_eq!(high, glam::dvec2(10.0, 10.0));
-    assert_eq!(width, 10.0);
-    assert_eq!(height, 10.0);
+    assert_eq!(delta.x, 10.0);
+    assert_eq!(delta.y, 10.0);
 
-    let aabb2 = Aabb2::<glam::Vec2>::default();
+    let aabb2 = Aabb2::<glam::DVec2>::default();
     assert!(aabb2.extents().is_none());
     assert!(aabb2.min_max().is_none());
+
+    let mut aabb2 = Aabb2::<glam::DVec2>::new(glam::dvec2(0.0, 0.0));
+    assert!(aabb2.extents().is_some());
+    assert!(aabb2.min_max().is_some());
+
+    let aabb = Aabb2::<glam::DVec2>::with_points(&[(1.0, 1.0).into(), (11.0, 11.0).into()]);
+    aabb2.update_with_aabb(aabb);
+    assert!(aabb2.extents().is_some());
+    assert!(aabb2.min_max().is_some());
+    assert!(aabb2.contains_aabb_inclusive(&aabb));
     Ok(())
 }
 

@@ -1185,7 +1185,7 @@ impl<T: HasXY> Aabb2<T> {
     }
 
     /// updates the aabb with the limits of another aabb
-    pub fn update_aabb(&mut self, aabb: Aabb2<T>) {
+    pub fn update_with_aabb(&mut self, aabb: Aabb2<T>) {
         if let Some((min, max)) = aabb.min_max {
             self.update_with_point(min);
             self.update_with_point(max);
@@ -1240,12 +1240,12 @@ impl<T: HasXY> Aabb2<T> {
         None
     }
 
-    /// Returns the extents of this AABB in the form of `Option<(min_coordinate, max_coordinate, width, height)>`.
-    pub fn extents(&self) -> Option<(T, T, T::Scalar, T::Scalar)> {
+    /// Returns the extents of this AABB in the form of `Option<(min_coordinate, max_coordinate, delta)>`.
+    pub fn extents(&self) -> Option<(T, T, T)> {
         if let Some((low, high)) = self.min_max {
-            let width = high.x() - low.x();
-            let height = high.y() - low.y();
-            Some((low, high, width, height))
+            let delta_x = high.x() - low.x();
+            let delta_y = high.y() - low.y();
+            Some((low, high, T::new_2d(delta_x, delta_y)))
         } else {
             None
         }

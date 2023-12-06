@@ -56,13 +56,6 @@ pub(crate) mod simplify;
 #[cfg(test)]
 mod tests;
 
-/// Placeholder for different 3d shapes
-pub enum Shape3d<T: GenericVector3> {
-    Line(Line3<T>),
-    Linestring(Vec<T>),
-    ParabolicArc(linestring_2d::VoronoiParabolicArc<T::Vector2>),
-}
-
 /// Axis aligned planes, used to describe how imported 'flat' data is arranged in space
 #[allow(clippy::upper_case_acronyms)]
 #[derive(fmt::Debug, Copy, Clone, Eq, PartialEq)]
@@ -298,7 +291,7 @@ impl<T: GenericVector3> Aabb3<T> {
         }
     }
 
-    pub fn update_aabb(&mut self, aabb: Aabb3<T>) {
+    pub fn update_with_aabb(&mut self, aabb: Aabb3<T>) {
         if let Some((min, max)) = aabb.min_max {
             self.update_with_point(min);
             self.update_with_point(max);
@@ -345,6 +338,18 @@ impl<T: GenericVector3> Aabb3<T> {
             return Some(_low);
         }
         None
+    }
+
+    /// Returns the extents of this AABB in the form of `Option<(min_coordinate, max_coordinate, delta)>`.
+    pub fn extents(&self) -> Option<(T, T, T)> {
+        if let Some((low, high)) = self.min_max {
+            let delta_x = high.x() - low.x();
+            let delta_y = high.y() - low.y();
+            let delta_z = high.z() - low.z();
+            Some((low, high, T::new_3d(delta_x, delta_y, delta_z)))
+        } else {
+            None
+        }
     }
 }
 

@@ -132,6 +132,12 @@ fn test_aabb3_1() -> Result<(), LinestringError> {
 
     assert!(aabb3.contains_aabb_inclusive(&aabb3));
 
+    let (low, high, delta) = aabb3.extents().unwrap();
+    assert_eq!(low, glam::dvec3(0.0, 0.0, 0.0));
+    assert_eq!(high, glam::dvec3(10.0, 10.0, 10.0));
+    assert_eq!(delta.x, 10.0);
+    assert_eq!(delta.y, 10.0);
+    assert_eq!(delta.z, 10.0);
     Ok(())
 }
 
