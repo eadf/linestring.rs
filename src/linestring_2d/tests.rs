@@ -5,7 +5,7 @@ use crate::{
 };
 use vector_traits::{
     approx::{AbsDiffEq, UlpsEq},
-    glam, Approx, Vec2A,
+    glam, Approx, HasXY, Vec2A,
 };
 
 #[test]
@@ -152,7 +152,9 @@ fn test_aabb2_1() -> Result<(), LinestringError> {
     assert!(aabb2.extents().is_some());
     assert!(aabb2.min_max().is_some());
 
-    let aabb = Aabb2::<glam::DVec2>::with_points(&[(1.0, 1.0).into(), (11.0, 11.0).into()]);
+    let mut aabb = Aabb2::<glam::DVec2>::with_points(&[(1.0, 1.0).into(), (11.0, 11.0).into()]);
+    aabb.apply(&|v| glam::DVec2::new(v.x().round(), v.y().round()));
+
     aabb2.update_with_aabb(aabb);
     assert!(aabb2.extents().is_some());
     assert!(aabb2.min_max().is_some());
@@ -162,12 +164,13 @@ fn test_aabb2_1() -> Result<(), LinestringError> {
 
 #[test]
 fn test_line_segment_iterator_1() {
-    let points = vec![
+    let mut points = vec![
         Vec2A::new(0.0, 0.0),
         Vec2A::new(1.0, 0.0),
         Vec2A::new(2.0, 0.0),
         Vec2A::new(3.0, 0.0),
     ];
+    points.apply(&|v| Vec2A::new(v.x().round(), v.y().round()));
 
     let distance = 1.5;
     let result: Vec<Vec2A> = points.discretize(distance).collect();

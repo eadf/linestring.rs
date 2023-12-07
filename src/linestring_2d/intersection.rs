@@ -43,28 +43,23 @@ limitations under the License.
 
 use crate::{linestring_2d, LinestringError};
 use ahash::AHashSet;
-use std::{cmp::Ordering, collections::BTreeMap, convert::identity, fmt, fmt::Debug};
-use vector_traits::{approx::*, num_traits::float::FloatCore, GenericScalar, GenericVector2};
+use std::{cmp::Ordering, collections::BTreeMap, convert::identity};
+use vector_traits::{
+    approx,
+    approx::{AbsDiffEq, UlpsEq},
+    num_traits::float::FloatCore,
+    GenericScalar, GenericVector2,
+};
 
 #[derive(Clone, Copy)]
-pub struct SiteEventKey<T: GenericVector2> {
-    pub pos: T,
+struct SiteEventKey<T: GenericVector2> {
+    pos: T,
 }
 
 impl<T: GenericVector2> SiteEventKey<T> {
-    pub fn new(x: T::Scalar, y: T::Scalar) -> Self {
-        Self {
-            pos: T::new_2d(x, y),
-        }
-    }
-}
-
-impl<T: GenericVector2> Debug for SiteEventKey<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("")
-            .field(&self.pos.x())
-            .field(&self.pos.y())
-            .finish()
+    #[inline(always)]
+    fn new(pos: T) -> Self {
+        Self { pos }
     }
 }
 
@@ -83,8 +78,8 @@ where
 {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if ulps_eq!(&self.pos.y(), &other.pos.y()) {
-            if ulps_eq!(&self.pos.x(), &other.pos.x()) {
+        if approx::ulps_eq!(&self.pos.y(), &other.pos.y()) {
+            if approx::ulps_eq!(&self.pos.x(), &other.pos.x()) {
                 Some(Ordering::Equal)
             } else {
                 self.pos.x().partial_cmp(&other.pos.x())
@@ -145,7 +140,7 @@ where
             );*/
             // handle left side
             if let Some(current_min) = self.best_left {
-                if ulps_eq!(&current_min, &candidate_x) {
+                if approx::ulps_eq!(&current_min, &candidate_x) {
                     self.slope
                         .update_left(false, candidate_slope, candidate_index);
                 } else if current_min < candidate_x {
@@ -172,7 +167,7 @@ where
             );*/
             // handle right side
             if let Some(current_max) = self.best_right {
-                if ulps_eq!(&current_max, &candidate_x) {
+                if approx::ulps_eq!(&current_max, &candidate_x) {
                     self.slope
                         .update_right(false, candidate_slope, candidate_index);
                 } else if current_max > candidate_x {
@@ -227,7 +222,7 @@ where
     /// sort candidates based on slope, keep only the ones with 'flattest' angle to the left and right
     fn update_both(&mut self, candidate_index: usize, lines: &[linestring_2d::Line2<T>]) {
         let line = lines[candidate_index];
-        let candidate_slope = if ulps_eq!(&line.end.y(), &line.start.y()) {
+        let candidate_slope = if approx::ulps_eq!(&line.end.y(), &line.start.y()) {
             T::Scalar::INFINITY
         } else {
             (line.end.x() - line.start.x()) / (line.end.y() - line.start.y())
@@ -249,7 +244,7 @@ where
         );*/
         // handle left side
         if let Some(current_slope) = self.best_left {
-            if ulps_eq!(&current_slope, &candidate_slope) {
+            if approx::ulps_eq!(&current_slope, &candidate_slope) {
                 // this candidate is just as good as the others already found
                 self.candidates_left.push(candidate_index);
             } else if candidate_slope < current_slope {
@@ -287,7 +282,7 @@ where
         }
         // handle right side
         if let Some(current_slope) = self.best_right {
-            if ulps_eq!(&current_slope, &candidate_slope) {
+            if approx::ulps_eq!(&current_slope, &candidate_slope) {
                 // this candidate is just as good as the others already found
                 self.candidates_right.push(candidate_index);
             } else if candidate_slope > current_slope {
@@ -378,13 +373,13 @@ fn sweepline_intersection<T: GenericVector2>(
     let y2 = other.end.y();
     let x1 = other.start.x();
     let x2 = other.end.x();
-    if ulps_eq!(&y1, &y2) {
+    if approx::ulps_eq!(&y1, &y2) {
         // horizontal line: return to the point right of sweepline.x, if any
         // Any point to the left are supposedly already handled.
         return (sweepline.x() < x2).then_some((x2, T::Scalar::ZERO));
     }
 
-    if ulps_eq!(&x1, &x2) {
+    if approx::ulps_eq!(&x1, &x2) {
         return Some((x1, T::Scalar::INFINITY));
     }
 
@@ -473,14 +468,14 @@ impl<T: GenericVector2> IntersectionData<T> {
 
             // Re-arrange so that:
             // SiteEvent.pos.start < SiteEvent.pos.end (primary ordering: pos.y, secondary: pos.x)
-            if !(SiteEventKey { pos: aline.start }).lt(&(SiteEventKey { pos: aline.end })) {
+            if !(SiteEventKey::new(aline.start)).lt(&(SiteEventKey::new(aline.end))) {
                 std::mem::swap(&mut aline.start, &mut aline.end);
             };
 
             self.lines.push(aline);
 
-            let key_start = SiteEventKey { pos: aline.start };
-            let key_end = SiteEventKey { pos: aline.end };
+            let key_start = SiteEventKey::new(aline.start);
+            let key_end = SiteEventKey::new(aline.end);
 
             // start points goes into the site_event::add list
             if let Some(event) = site_events.get_mut(&key_start) {

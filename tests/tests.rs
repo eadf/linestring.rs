@@ -131,6 +131,11 @@ fn intersection_1() {
     let l2 = linestring_2d::Line2::<Vec2>::from([400., 200., 300., 300.]);
     let rv = l1.intersection_point(l2).unwrap().single();
     assert!(rv.is_abs_diff_eq(vec2(300.0, 300.0), f32::default_epsilon()));
+    let rv = l1
+        .intersection_point(l2)
+        .unwrap()
+        .closest(vec2(201., 201.0));
+    assert!(rv.is_abs_diff_eq(vec2(300.0, 300.0), f32::default_epsilon()));
 }
 
 #[test]
@@ -708,6 +713,35 @@ fn transform_test_2() -> Result<(), linestring::LinestringError> {
 }
 
 #[test]
+fn transform_test_3() -> Result<(), linestring::LinestringError> {
+    let mut aabb_source = linestring_2d::Aabb2::default();
+    let mut aabb_dest = linestring_2d::Aabb2::default();
+
+    // source is (-100,-100)-(100,100)
+    aabb_source.update_with_point(Vec2::new(-100., -100.));
+    aabb_source.update_with_point(Vec2::new(100., 100.));
+
+    // dest is (0,0)-(800,800.)
+    aabb_dest.update_with_point(Vec2::new(0., 0.));
+    aabb_dest.update_with_point(Vec2::new(800., 800.));
+
+    let transform = linestring_2d::SimpleAffine::new(&aabb_source, &aabb_dest)?;
+    //println!("Affine:{:?}", transform);
+
+    assert_eq!(
+        transform.transform_ab_a([-100., -100., 100., 100.])?,
+        [0., 0., 800.0, 800.0]
+    );
+
+    assert_eq!(
+        transform.transform_ba_a([0., 0., 800.0, 800.0])?,
+        [-100., -100., 100., 100.]
+    );
+
+    Ok(())
+}
+
+#[test]
 fn convex_hull_0() -> Result<(), linestring::LinestringError> {
     use linestring::linestring_2d::convex_hull;
     let line: Vec<Vec2> = vec![
@@ -1055,6 +1089,9 @@ fn self_intersecting_1() {
     let (rv0, rv1) = linestring.find_two_intersections(&Line2::from([0.0, 0.0, 1.0, 1.0]));
     assert!(rv0.is_some());
     assert!(rv1.is_some());
+
+    let rv = linestring.find_all_intersections(&Line2::from([0.0, 0.0, 1.0, 1.0]));
+    assert_eq!(rv.len(), 2);
 }
 
 #[test]
