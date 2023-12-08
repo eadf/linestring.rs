@@ -827,8 +827,8 @@ pub fn indexed_graham_scan_no_loop<T: GenericVector2>(
     Ok(hull)
 }
 
+/*
 /// Combines two convex hulls together as two point clouds using `indexed_gift_wrap_no_loop()`
-#[allow(dead_code)]
 fn combine_indexed_convex_hull_lazy<T: GenericVector2>(
     vertices: &[T],
     indices_a: Result<Vec<usize>, LinestringError>,
@@ -850,7 +850,7 @@ fn combine_indexed_convex_hull_lazy<T: GenericVector2>(
         indices_a.extend(indices_b.iter());
     }
     indexed_graham_scan_no_loop(vertices, &indices_a, None)
-}
+}*/
 
 /// a structure trying to keep track of from what list indices came from.
 #[derive(Clone)]
